@@ -1,0 +1,19 @@
+Testing helpers:
+  RandImposter
+  Deck stacking
+Features:
+  Listen on port
+  echo server
+  database API
+  database implementation
+  login API
+  login implementation
+  Config file
+  chat
+  game API
+  HiLo
+  dynamically loaded modules
+Utilities:
+  Card
+  Deck
+  Dice
