@@ -1,15 +1,5 @@
 #ifndef SERVER_TEST_H__
-#define SERVER_TEST_H__
-
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <stdio.h>
-#include <cxxtest/TestSuite.h>
-#include <gamed/server.h>
-
-#define TEST_PORT 7483
+#define 
 
 class ServerTest: public CxxTest::TestSuite {
 public:
@@ -18,10 +8,8 @@ public:
 	void tearDown() {};
 
 	void test_server_welcome() {
-		GamedServer server;
-		server.config.listen(TEST_PORT);
-		server.daemonize();
-		int sock = open_socket(TEST_PORT);
+		run_command("../gamed");
+		int sock = open_socket(GAMED_PORT);
 	}
 
 private:
@@ -43,6 +31,8 @@ private:
 		return sock;
 	}
 
+	void run_command(char *command) {
+	}
 };
 
 #endif
