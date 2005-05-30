@@ -1,6 +1,7 @@
-all: test build docs
+all: test build docs games
 
 test:
+	cd games && make test
 	cd src && make test
 
 build:
@@ -8,3 +9,6 @@ build:
 
 docs:
 	echo "Future enhancement"
+
+games:
+	cd games && make

@@ -1,8 +1,12 @@
+Short List:
+  game #defines - game.h
+  game API
+  HiLo  
+
 Testing helpers:
   RandImposter
   Deck stacking
 Features:
-  Listen on port
   echo server
   database API
   database implementation
@@ -10,7 +14,6 @@ Features:
   login implementation
   Config file
   chat
-  game API
   HiLo
   dynamically loaded modules
 Utilities:
