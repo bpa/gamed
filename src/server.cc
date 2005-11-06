@@ -21,30 +21,30 @@ struct event ev_sig_hup;
 /******************************************************************************/
 
 Gamed::Server::Server() {
-	event_init();
-	signal(SIGPIPE,SIG_IGN);
-	event_set(&ev_sig_hup, SIGHUP, EV_SIGNAL, handle_sig_hup, NULL);
-    	event_add(&ev_sig_hup,NULL);
-	//lt_dlinit();
-	//initstate(time(NULL),&random_state[0],32);
-	//setstate(&random_state[0]);
+  event_init();
+  signal(SIGPIPE,SIG_IGN);
+  event_set(&ev_sig_hup, SIGHUP, EV_SIGNAL, handle_sig_hup, NULL);
+      event_add(&ev_sig_hup,NULL);
+  //lt_dlinit();
+  //initstate(time(NULL),&random_state[0],32);
+  //setstate(&random_state[0]);
 }
 
 /******************************************************************************/
 
 void Gamed::Server::run_as_daemon() {
-	if (daemon(1, 0) == -1) {
-		perror("daemonize");
-		//return EX_OSERR;
-	}
-	run();
+  if (daemon(1, 0) == -1) {
+    perror("daemonize");
+    //return EX_OSERR;
+  }
+  run();
 }
 
 /******************************************************************************/
 
 void Gamed::Server::run() {
-	listen_on_port(GAMED_PORT);
-	event_dispatch();
+  listen_on_port(GAMED_PORT);
+  event_dispatch();
 }
 
 /******************************************************************************/
@@ -54,7 +54,7 @@ void Gamed::Server::listen_on_port(int port) {
     struct sockaddr_in sa;
     listener = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
     if (listener < 0) {
-	perror("socket");
+        perror("socket");
         exit(0);
     }
     socklen_t sa_len = sizeof(sa);
