@@ -1,14 +1,13 @@
-all: test build docs games
-
-test:
-	cd games && make test
-	cd src && make test
+all: build test games docs
 
 build:
 	cd src && make 
 
-docs:
-	echo "Future enhancement"
+test:
+	cd test && make
 
 games:
 	cd games && make
+
+docs:
+	echo "Future enhancement"
