@@ -1,11 +1,10 @@
-#ifndef HILO_TEST_H__
-#define HILO_TEST_H__
+#ifndef SPEED_RISK_PLAYING_TEST_H__
+#define SPEED_RISK_PLAYING_TEST_H__
 
 #include <cxxtest/TestSuite.h>
 #include <gamed/game.h>
-using namespace Gamed;
 
-class HiLoTest: public CxxTest::TestSuite {
+class SpeedRiskPlayingTest: public CxxTest::TestSuite {
 public:
 
 	void setUp()    {};

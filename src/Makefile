@@ -1,24 +1,18 @@
 .SUFFIXES:
 .SUFFIXES: .o .cc
-SOURCE = server.cc db.cc
+SOURCE != ls [^m]*.cc
 OBJS = $(SOURCE:.cc=.o)
-CFLAGS = -Wall -O2 -I. -I/usr/local/include -I/home/bruce/projects/gamed/include
+CFLAGS = -Wall -O2 -I/usr/local/include -I../include -I../games -g
 SOFLAGS = -fpic -shared -Wl,--export-dynamic
 LIBS = -L/usr/local/lib -levent
 CC = g++
 
-all: build
-
-build: libs main.o
-	$(CC) $(CFLAGS) -o server main.o $(OBJS) $(LIBS)
-
-libs: lib/libgamed.so
-
-lib/libgamed.so: $(OBJS)
-	$(CC) $(SOFLAGS) $(LIBS) -o lib/libgamed.so $(OBJS)
+server: $(OBJS) main.o
+	$(CC) $(CFLAGS) -o server $(OBJS) main.o $(LIBS)
+	$(CC) $(CFLAGS) -Wl,-x -shared -o ../lib/libgamed.so -Wl,-soname,libgamed.so $(OBJS)
 
 .cc.o:
 	$(CC) $(CFLAGS) -c $<
 
 clean:
-	rm -f *.o lib/*.so
+	rm -f *.o server

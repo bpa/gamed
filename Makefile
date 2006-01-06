@@ -1,13 +1,35 @@
-all: build test games docs
+all: lib server tests game client
 
-build:
-	cd src && make 
+lib:
+	mkdir -p lib
 
-test:
-	cd test && make
+server:
+	@echo "----  Making all in src  ----"
+	@make -C src
 
-games:
-	cd games && make
+tests:
+	@echo "---- Making all in tests ----"
+	@make -C test
 
-docs:
-	echo "Future enhancement"
+game:
+	@echo "---- Making all in games ----"
+	@make -C games
+
+client:
+	@echo "---- Making all in clients ----"
+	@make -C clients
+
+doc:
+	@echo "---- Making all in docs  ----"
+	@make -C docs
+
+clean:
+	rm -rf lib
+	@echo "----  Cleaning for src  ----"
+	@make clean -C src
+	@echo "---- Cleaning for tests ----"
+	@make clean -C test
+	@echo "---- Cleaning for games ----"
+	@make clean -C games
+	@echo "---- Cleaning for clients ----"
+	@make clean -C clients

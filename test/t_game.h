@@ -2,6 +2,7 @@
 #define GAME_TEST_H__
 
 #include <gamed/game.h>
+#include <cxxtest/TestSuite.h>
 using namespace Gamed;
 
 class GameTest: public CxxTest::TestSuite {

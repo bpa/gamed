@@ -1,7 +1,7 @@
 #ifndef REQUEST_TEST_H__
 #define REQUEST_TEST_H__
 
-#include <gamed/request.h>
+#include <cxxtest/TestSuite.h>
 using namespace Gamed;
 
 class RequestTest: public CxxTest::TestSuite {
@@ -11,7 +11,6 @@ public:
 	void tearDown() {};
 
 	void test_create() {
-        JoinRequest r;
     }
 
 };

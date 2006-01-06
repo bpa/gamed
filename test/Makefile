@@ -1,15 +1,21 @@
-CFLAGS = -Wall -I.. -I../include/cxxtest -DTESTING
-LIBS = -L/usr/local/lib -L../lib -lgamed -R../lib -levent
+CFLAGS = -Wall -I../src -I../include -I../include/cxxtest -I/usr/local/include -DTESTING
+LIBS = -L/usr/local/lib -levent -L../lib
 CC = g++
+TEST != ls *.h
+SRC != ls ../src/[^m]*.cc
+OBS = $(SRC:.cc=.o)
 
 run: runtests
-	LD_LIBRARY_PATH=../lib ./runtests
+	@LD_LIBRARY_PATH=../lib ./runtests
 
-runtests: runtests.cpp
-	$(CC) $(CFLAGS) $(LIBS) -o runtests runtests.cpp utils.o
+runtests: runtests.cpp ../lib/libgamed.so
+	$(CC) $(CFLAGS) $(LIBS) -o runtests runtests.cpp -lgamed
 
-utils.o: ../utils.cc
-	$(CC) $(CFLAGS) -c ../utils.cc -o utils.o
+../lib/libgamed.so: $(SRC)
+	@make -C ../src
 
-runtests.cpp: *.h
+runtests.cpp: $(OBS)
 	../include/cxxtest/cxxtestgen.pl --error-printer -o runtests.cpp *.h
+
+clean:
+	rm -f runtests.cpp *.o

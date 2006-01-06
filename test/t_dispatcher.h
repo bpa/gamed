@@ -2,6 +2,7 @@
 #define DISPATCHER_TEST_H__
 
 #include <gamed/dispatcher.h>
+#include <cxxtest/TestSuite.h>
 
 using namespace Gamed;
 

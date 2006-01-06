@@ -1,6 +1,7 @@
 #ifndef SERVER_TEST_H__
 #define SERVER_TEST_H__
 
+#include <cxxtest/TestSuite.h>
 #include <gamed/server.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>

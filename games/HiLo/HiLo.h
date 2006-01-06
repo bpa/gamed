@@ -3,13 +3,9 @@
 
 #include <gamed/game.h>
 
-class HiLo: public Gamed::Game {
-public:
-    HiLo();
-    void handle_request(Gamed::Player *, Gamed::Request *);
-private:
+typedef struct {
     int number;
     int guesses;
-};
+} HiLoData;
 
 #endif

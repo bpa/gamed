@@ -1,7 +1,5 @@
-Short List:
-  game #defines - game.h
-  game API
-  HiLo  
+Wishlist
+  server should handle initialization of player list for Game*
 
 Testing helpers:
   RandImposter

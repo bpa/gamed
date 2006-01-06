@@ -1,15 +1,17 @@
 #ifndef GAMED_PLAYER_H
 #define GAMED_PLAYER_H
 
-namespace Gamed {
+#include <stddef.h>
+#include <sys/queue.h>
 
-class Player;
+LIST_HEAD(st_player_list_head, st_player);
+typedef struct st_player_list_head PlayerList;
 
-class PlayerList {
+struct st_player {
+    LIST_ENTRY(st_player) players;
+    int sock;
+    int in_game_id;
 };
+typedef struct st_player Player;
 
-class Player {
-};
-
-}
 #endif
