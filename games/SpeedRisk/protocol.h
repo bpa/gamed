@@ -27,14 +27,17 @@ typedef enum SR_COUNTRY {
 
 typedef enum SR_COMMAND {
     SR_CMD_NOP = 0,
+    SR_CMD_PLAYER_JOIN,
     SR_CMD_MESSAGE,
     SR_CMD_ERROR,
     SR_CMD_READY,
     SR_CMD_NOTREADY, //A.K.A. Pause
+    SR_CMD_START_PLACING,
     SR_CMD_BEGIN,
     SR_CMD_MOVE,
     SR_CMD_ATTACK,
     SR_CMD_PLACE,
+    SR_CMD_GET_ARMIES,
     SR_CMD_ATTACK_RESULT,
     SR_CMD_GAME_STATUS,
     SR_CMD_PLAYER_STATUS,
@@ -43,35 +46,40 @@ typedef enum SR_COMMAND {
     SR_CMD_VICTORY,
 } SR_COMMAND;
 
+typedef struct {
+    int command : 8;
+    unsigned from    : 8;
+    unsigned to      : 8;
+    unsigned armies  : 8;
+} SR_Command;
+
 typedef enum SR_ERROR {
     SR_ERR_INVALID_CMD=0,
     SR_ERR_NOT_ENOUGH_PLAYERS,
+    SR_ERR_NOT_ENOUGH_ARMIES,
+    SR_ERR_NOT_OWNER,
 } SR_ERROR;
 
 typedef struct {
-    int8_t command;
-    int8_t error;
-    int16_t unused;
+    int command : 8;
+    int error   : 8;
+    int unused  : 16;
 } SR_Error;
 
 typedef struct {
-    int8_t command;
-    int8_t player;
-    int8_t country;
-    int8_t country2;
-} SR_Status;
-
-typedef struct {
-    int8_t command;
-    int8_t from;
-    int8_t to;
-    int8_t armies;
-} SR_Command;
-
-typedef struct {
-    int8_t  command;
-    int8_t  owner;
-    int16_t armies;
+    unsigned country : 8;
+    unsigned owner   : 8;
+    unsigned armies  : 16;
 } SR_Country;
+
+typedef struct {
+    SR_Command command;
+    SR_Country countries[SR_NUM_COUNRIES];
+} SR_Game_Status;
+
+typedef struct {
+    SR_Command command;
+    SR_Country country;
+} SR_Country_Status;
 
 #endif

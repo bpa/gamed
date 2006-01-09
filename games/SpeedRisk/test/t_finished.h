@@ -28,11 +28,11 @@ public:
 	void setUp()    {}
 	void tearDown() {}
 
-    void simple_command_test(int command, int exp) {
+    void simple_command_test(int command, SR_COMMAND exp) {
         reset_mocks();
         cmd.command = command;
-        handle_request(&game, &player, (char*)&cmd);
-        TS_ASSERT_EQUALS(res->command, exp);
+        handle_request(&game, &player, (char*)&cmd, 4);
+        TS_ASSERT_EQUALS(exp, res->command);
     }
 
 	void test_finished_commands() {
