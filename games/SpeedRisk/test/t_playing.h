@@ -53,6 +53,19 @@ public:
         TS_ASSERT_EQUALS(exp, plr_res->command);
     }
 
+    void test_borders() {
+        //positive in both directions
+        TS_ASSERT(borders(SR_CENTRAL_AMERICA, SR_VENEZUELA));
+        TS_ASSERT(borders(SR_VENEZUELA, SR_CENTRAL_AMERICA));
+
+        //negative in both directions
+        TS_ASSERT(!borders(SR_ICELAND, SR_MADAGASCAR));
+        TS_ASSERT(!borders(SR_MADAGASCAR, SR_ICELAND));
+
+        //can't border self
+        TS_ASSERT(!borders(SR_ARGENTINA, SR_ARGENTINA));
+    }
+
 	void test_move() {
     }
 

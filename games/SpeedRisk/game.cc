@@ -92,6 +92,7 @@ void game_init (Game *g) {
     data->status.command.command = SR_CMD_GAME_STATUS;
     g->playing = 0;
     msg_error.command = SR_CMD_ERROR;
+    build_border_table();
 }
 
 bool player_join   (Game *g, Player *p);
