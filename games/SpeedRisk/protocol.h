@@ -5,10 +5,8 @@
 
 #define SR_NUM_COUNRIES 42
 typedef enum SR_COUNTRY {
-    SR_NONE=0,
-
 // North America (9)
-    SR_EASTERN_US, SR_NORTHWEST_TERRITORY, SR_WESTERN_US, SR_ONTARIO,
+    SR_EASTERN_US=0, SR_NORTHWEST_TERRITORY, SR_WESTERN_US, SR_ONTARIO,
     SR_CENTRAL_AMERICA, SR_ALBERTA, SR_GREENLAND, SR_ALASKA, SR_QUEBEC,
 // South America (4)
     SR_BRAZIL, SR_VENEZUELA, SR_ARGENTINA, SR_PERU,
@@ -39,6 +37,7 @@ typedef enum SR_COMMAND {
     SR_CMD_PLACE,
     SR_CMD_GET_ARMIES,
     SR_CMD_ATTACK_RESULT,
+    SR_CMD_MOVE_RESULT,
     SR_CMD_GAME_STATUS,
     SR_CMD_PLAYER_STATUS,
     SR_CMD_COUNTRY_STATUS,
@@ -58,6 +57,7 @@ typedef enum SR_ERROR {
     SR_ERR_NOT_ENOUGH_PLAYERS,
     SR_ERR_NOT_ENOUGH_ARMIES,
     SR_ERR_NOT_OWNER,
+    SR_ERR_INVALID_DESTINATION,
 } SR_ERROR;
 
 typedef struct {
@@ -81,5 +81,11 @@ typedef struct {
     SR_Command command;
     SR_Country country;
 } SR_Country_Status;
+
+typedef struct {
+    SR_Command command;
+    SR_Country country1;
+    SR_Country country2;
+} SR_Move_Result;
 
 #endif

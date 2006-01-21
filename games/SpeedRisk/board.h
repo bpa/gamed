@@ -27,7 +27,7 @@ typedef struct {
 #define SR_STARTING_ARMIES 10
 #define SR_MAX_BORDERING 5
 
-bool borders(SR_COUNTRY, SR_COUNTRY);
+bool borders(int, int);
 void build_border_table();
 
 #endif

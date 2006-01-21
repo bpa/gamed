@@ -10,6 +10,7 @@
 SR_Command msg_command;
 SR_Country msg_country;
 SR_Error   msg_error;
+SR_Move_Result msg_move;
 
 #define all_cmd_f(g, cmd, from) \
     msg_command.command = cmd; \
@@ -33,6 +34,8 @@ SR_Error   msg_error;
     msg_error.error = msg; \
     tell_player(p,(char*)&msg_error,4);
 
+#define holds(p, c) ((int)status->countries[c].owner == p->in_game_id)
+
 void init_board(Game *game) {
     int c, i, armies, player;
     SpeedRiskData *board = (SpeedRiskData*)game->data;
@@ -45,6 +48,7 @@ void init_board(Game *game) {
         board->players[i].countries_held = 0;
     }
     for (c=0; c < SR_NUM_COUNRIES; c++) {
+        status->countries[c].country = c;
         status->countries[c].armies = 1;
         do {
             player = get_random(game->playing);
@@ -92,6 +96,7 @@ void game_init (Game *g) {
     data->status.command.command = SR_CMD_GAME_STATUS;
     g->playing = 0;
     msg_error.command = SR_CMD_ERROR;
+    msg_move.command.command = SR_CMD_MOVE_RESULT;
     build_border_table();
 }
 
@@ -133,6 +138,11 @@ void handle_request (Game *game, Player *p, char *req, int len) {
     SpeedRiskData *srd = (SpeedRiskData*)game->data;
     SR_Game_Status *status = &srd->status;
     SR_Command *cmd = (SR_Command*)req;
+    if (    cmd->to >= SR_NUM_COUNRIES or
+          cmd->from >= SR_NUM_COUNRIES ) {
+        player_error(p, SR_ERR_INVALID_DESTINATION);
+        return;
+    }
     switch(srd->state) {
         case SR_WAITING_FOR_PLAYERS:
             switch (cmd->command) {
@@ -191,10 +201,7 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                     tell_all(game,(char*)&msg_command,4);
                     break;
                 case SR_CMD_PLACE:
-                    if (cmd->to >= SR_NUM_COUNRIES) {
-                        player_error(p, SR_ERR_INVALID_CMD);
-                    }
-                    else if (srd->status.countries[cmd->to].owner 
+                    if (srd->status.countries[cmd->to].owner 
                                 != (unsigned int)p->in_game_id) {
                         player_error(p, SR_ERR_NOT_OWNER);
                     }
@@ -215,6 +222,25 @@ void handle_request (Game *game, Player *p, char *req, int len) {
         case SR_RUNNING:
             switch (cmd->command) {
                 case SR_CMD_MOVE:
+                    if (!(holds(p,cmd->from) && holds(p,cmd->to))) {
+                        player_error(p, SR_ERR_NOT_OWNER);
+                    }
+                    else if (!borders(cmd->from, cmd->to)) {
+                        player_error(p, SR_ERR_INVALID_DESTINATION);
+                    }
+                    else if (cmd->armies>=status->countries[cmd->from].armies){
+                        player_error(p, SR_ERR_NOT_ENOUGH_ARMIES);
+                    }
+                    else {
+                        status->countries[cmd->from].armies -= cmd->armies;
+                        status->countries[cmd->to].armies   += cmd->armies;
+                        memcpy(&msg_move.country1,&status->countries[cmd->from],
+                                     sizeof(SR_Country));
+                        memcpy(&msg_move.country2, &status->countries[cmd->to],
+                                     sizeof(SR_Country));
+                        tell_all(game,(char*)&msg_move,sizeof(msg_move));
+                    }
+                    break;
                 case SR_CMD_ATTACK:
                 case SR_CMD_PLACE:
                 case SR_CMD_GAME_STATUS:

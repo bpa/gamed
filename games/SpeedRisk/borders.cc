@@ -142,7 +142,7 @@ void build_border_table() {
   border_table_built = true;
 }
 
-bool borders(SR_COUNTRY c1, SR_COUNTRY c2) {
+bool borders(int c1, int c2) {
     if (c1 < SR_NUM_COUNRIES && c1 >=0 &&
         c2 < SR_NUM_COUNRIES && c2 >=0) {
             return border_table[c1][c2];

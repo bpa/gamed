@@ -5,11 +5,14 @@ TESTS != ls *.h
 test: runtests
 	@./runtests
 
-runtests: runtests.cpp game.o borders.o
-	$(CC) $(CFLAGS) -o runtests runtests.cpp game.o borders.o $(TESTS)
+runtests: tests.o game.o borders.o
+	$(CC) $(CFLAGS) -o runtests game.o borders.o tests.o
 
 runtests.cpp: $(TESTS)
 	../../../include/cxxtest/cxxtestgen.pl --error-printer -o runtests.cpp *.h
+
+tests.o: runtests.cpp
+	$(CC) $(CFLAGS) -c runtests.cpp -o tests.o
 
 game.o: ../game.cc
 	$(CC) $(CFLAGS) ../game.cc -c -o game.o
