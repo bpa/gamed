@@ -23,8 +23,9 @@ void handle_request(Game *g, Player *p, char *, int len);
 //void player_kicked (Game *g, Player *p, char *why);
 //void player_dropped(Game *g, Player *p);
 
-void tell_player (Player *p, const char *, int len);
-void tell_all (Game *g, const char *, int len);
+void tell_player (Player *p, const char *, size_t len);
+void tell_all (Game *g, const char *, size_t len);
+void add_timer (Game *g, int milliseconds, bool persistent);
 
 #define tellf_player(p, msg, ...) \
     game_tell_len = snprintf(&game_tell_buff[0], 1024, msg, ##__VA_ARGS__); \

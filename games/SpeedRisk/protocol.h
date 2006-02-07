@@ -69,7 +69,8 @@ typedef struct {
 typedef struct {
     unsigned country : 8;
     unsigned owner   : 8;
-    unsigned armies  : 16;
+    unsigned armies  : 8;
+    unsigned unused  : 8;
 } SR_Country;
 
 typedef struct {

@@ -6,6 +6,7 @@
 #include <string.h>
 #include <gamed/game.h>
 
+long next_rand[5];
 char rand_state[8];
 int  game_tell_len;
 char game_tell_buff[1024];
@@ -24,7 +25,24 @@ void init_utils() {
     }
 }
 
+void set_random(long a, long b=-1, long c=-1, long d=-1, long e=-1) {
+    next_rand[0] = a;
+    next_rand[1] = b;
+    next_rand[2] = c;
+    next_rand[3] = d;
+    next_rand[4] = e;
+}
+
 long get_random(long max) {
+    long next, i;
+    if (next_rand[0] != -1) {
+        next = next_rand[0];
+        for (i=0; i<4; i++) {
+            next_rand[i] = next_rand[i+1];
+        }
+        next_rand[4] = -1;
+        return next % max;
+    }
     return random() % max;
 }
 
@@ -38,7 +56,7 @@ void reset_mocks() {
     }
 }
 
-void tell_player (Player *p, const char *msg, int len) {
+void tell_player (Player *p, const char *msg, size_t len) {
     if (len == 0) {
         len = strlen(msg);
     }
@@ -48,7 +66,7 @@ void tell_player (Player *p, const char *msg, int len) {
     if (mock_plr_pos==5) mock_plr_pos = 0;
 }
 
-void tell_all (Game *g, const char *msg, int len) {
+void tell_all (Game *g, const char *msg, size_t len) {
     if (len == 0) {
         len = strlen(msg);
     }
@@ -57,5 +75,7 @@ void tell_all (Game *g, const char *msg, int len) {
     mock_all_pos++;
     if (mock_all_pos==5) mock_all_pos = 0;
 }
+
+void add_timer (Game *g, int milliseconds, bool persistent) { }
 
 #endif

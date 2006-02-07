@@ -1,6 +1,6 @@
 #include <strings.h>
 #include <stdint.h>
-#include "board.h"
+#include <SpeedRisk/board.h>
 
 #define set_border(a, b) border_table[a][b] = 1; border_table[b][a] = 1;
 int8_t border_table[SR_NUM_COUNRIES][SR_NUM_COUNRIES];

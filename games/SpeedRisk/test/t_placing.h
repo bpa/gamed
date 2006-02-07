@@ -60,10 +60,10 @@ public:
         TS_ASSERT_EQUALS(SR_CMD_GAME_STATUS, status->command.command);
         TS_ASSERT_EQUALS((1 + SR_NUM_COUNRIES) * 4, mock_all_len[2]);
 
-        TS_ASSERT_EQUALS(10, ((SR_Command*)&mock_plr_buff[0])->armies);
-        TS_ASSERT_EQUALS(10, ((SR_Command*)&mock_plr_buff[1])->armies);
-        TS_ASSERT_EQUALS(10, ((SR_Command*)&mock_plr_buff[2])->armies);
-        TS_ASSERT_EQUALS(10, ((SR_Command*)&mock_plr_buff[3])->armies);
+        TS_ASSERT_EQUALS(30, ((SR_Command*)&mock_plr_buff[0])->armies);
+        TS_ASSERT_EQUALS(30, ((SR_Command*)&mock_plr_buff[1])->armies);
+        TS_ASSERT_EQUALS(30, ((SR_Command*)&mock_plr_buff[2])->armies);
+        TS_ASSERT_EQUALS(30, ((SR_Command*)&mock_plr_buff[3])->armies);
 
         int armies[] = {0,0,0,0};
 

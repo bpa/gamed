@@ -21,15 +21,23 @@ void handle_connect(int sock, short event, void *args);
 void handle_network_event(int sock, short event, void *args);
 struct event ev_connection;
 struct event ev_sig_hup;
+
+/******************************************************************************/
 char rand_state[8];
-
 char buff[1024];
+Game game;
+/******************************************************************************/
 
+long get_random(long max) {
+    return random() % max;
+}
 /******************************************************************************/
 
 Gamed::Server::Server() {
   event_init();
   initstate(time(NULL), &rand_state[0],8);
+  bzero(&game, sizeof(Game));
+  game_init(&game);
   signal(SIGPIPE,SIG_IGN);
   event_set(&ev_sig_hup, SIGHUP, EV_SIGNAL, handle_sig_hup, NULL);
       event_add(&ev_sig_hup,NULL);
@@ -100,10 +108,13 @@ void handle_connect(int listener, short event, void *args) {
     fprintf(stderr, "Recieved connection from %s\n");
     client = (Client*)malloc(sizeof(Client));
     bzero(client,sizeof(Client));
+    /* 
     client->game = (Game*)malloc(sizeof(Game));
+    game_init(client->game);
+    */
+    client->game = &game;
     client->player.sock = sock;
     player_join(client->game, &client->player);
-    game_init(client->game);
     event_set((struct event*)&client->ev, sock, EV_READ | EV_PERSIST,
         &handle_network_event, client);
     event_add((struct event*)&client->ev,NULL);
@@ -116,13 +127,15 @@ void handle_network_event(int sock, short event, void *args) {
     Client *client = (Client*)args;
     r = recv(sock, buff, 1024,0);
     if (r > 0) {
-        handle_request(client->game, &client->player, &buff[0]);
+        handle_request(client->game, &client->player, &buff[0], r);
     }
     else {
         shutdown(sock, SHUT_RDWR);
         event_del(&client->ev);
         player_quit(client->game, &client->player);
+/*
         free(client->game);
+*/
         free(client);
         if (r == 0) {
             fprintf(stderr,"Socket closed\n");
@@ -132,6 +145,30 @@ void handle_network_event(int sock, short event, void *args) {
         }
     }
 }
+/******************************************************************************/
+
+void tell_player (Player *p, const char *msg, size_t len) {
+    if (send(p->sock, msg, len, MSG_NOSIGNAL) == -1) {
+        /* No current recourse */
+        /* TODO: add a pointer to game to player, or find
+                 some other way to join player to game */
+    }
+}
+/******************************************************************************/
+
+void tell_all (Game *g, const char *msg, size_t len) {
+    Player *p, *tmp;
+    LIST_FOREACH_SAFE(p, &g->players, players, tmp) {
+        if (send(p->sock, msg, len, MSG_NOSIGNAL) == -1) {
+            player_quit(g, p);
+        }
+    }
+}
+/******************************************************************************/
+
+void add_timer (Game *g, int milliseconds, bool persistent) {
+}
+
 /******************************************************************************/
 
 void handle_sig_hup(int sock, short event, void *args) {
