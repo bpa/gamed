@@ -9,6 +9,7 @@ from pygame.locals import *
 import traceback
 from Borders import borders
 from observing import Observable
+from math import ceil
 
 color = pygame.color.THECOLORS
 PLAYER_COLORS = (color['darkolivegreen'][:-1],
@@ -36,18 +37,11 @@ COMMANDS = [ 'NOP', 'PLAYER_JOIN', 'MESSAGE', 'ERROR', 'READY', 'NOTREADY',
   'ATTACK_RESULT', 'MOVE_RESULT', 'GAME_STATUS', 'PLAYER_STATUS',
   'COUNTRY_STATUS', 'DEFEAT', 'VICTORY' ]
 
-class GameError(RuntimeError):
-    def __init__(self, cmd):
-        self.errno = unpack(">xbxx", cmd)[0]
-        self.message = ERRORS[int(self.errno)]
+def cmd_cmd(cmd):    return ord(cmd[0])
+def cmd_from(cmd):   return ord(cmd[1])
+def cmd_to(cmd):     return ord(cmd[2])
+def cmd_armies(cmd): return ord(cmd[3])
 
-    def __str__(self):
-        return self.message
-    
-class ClientError(RuntimeError):
-    def __str__(self):
-        return self.args.__str__()
-    
 class Client:
     def __init__(self, host='localhost', port=7483):
         self.sock = socket.socket()
@@ -61,6 +55,12 @@ class Client:
         self.countries = []
         for c in range(42):
             self.countries.append(Country(pack('>4b',c,0,0,0)))
+        self.reserve = 0
+        cmd = self.sock.recv(4)
+        self.player_id = cmd_from(cmd)
+        print "I am player", self.player_id
+        for i in range(self.player_id+1):
+            Player(i,players)
 
     def send_command(self, command, f=0, t=0, armies=0):
         command = command.replace(' ', '_').upper()
@@ -68,7 +68,7 @@ class Client:
             cmd = self.command_map[command]
             print command
         else:
-            raise ClientError("Unrecognized command: %s" % command)
+            raise RuntimeError("Unrecognized command: %s" % command)
         packet = pack(">4b", cmd, f, t, armies)
         self.sock.send(packet, 4)
 
@@ -77,7 +77,7 @@ class Client:
             cmd = self.sock.recv(4,socket.MSG_DONTWAIT)
         except:
             return (False,None)
-        c = ord(cmd[0])
+        c = cmd_cmd(cmd)
         if (c == self.command_map['ERROR']):
             print ERRORS[ord(cmd[1])]
             return (True, None)
@@ -87,6 +87,9 @@ class Client:
             msg = self.sock.recv(4)
             self.countries[ord(msg[0])].update(msg)
             return (True, 'UPDATE')
+        elif (c == self.command_map['GET_ARMIES']):
+            self.reserve = cmd_armies(cmd)
+            return (True, 'GET_ARMIES')
         elif (c == self.command_map['COUNTRY_STATUS']):
             msg = self.sock.recv(4)
             self.countries[ord(msg[0])].update(msg)
@@ -97,6 +100,10 @@ class Client:
                 msg = self.sock.recv(4)
                 self.countries[ord(msg[0])].update(msg)
             return (True, 'UPDATE')
+        elif (c == self.command_map['PLAYER_JOIN']):
+            print "%2i%2i%2i%2i" % (ord(cmd[0]),ord(cmd[1]),ord(cmd[2]),ord(cmd[3]))
+            Player(cmd_from(cmd),players)
+            return (True, 'joined')
         else:
             return (True, COMMANDS[c])
 
@@ -113,9 +120,16 @@ class Country(Observable):
 def color(code, str):
     return "%c[%im%s%c[0m" % (27, code, str, 27)
 
-class Player:
-    def __init__(self, color, icon):
-        self.color = color
+class Player(pygame.sprite.Sprite):
+    def __init__(self, id, group):
+        print "Adding Player", id
+        pygame.sprite.Sprite.__init__(self, group)
+        self.id = id
+        self.image = font.render("Player %i" % id, True, PLAYER_COLORS[id])
+        self.rect = self.image.get_rect()
+        scr_rect = pygame.display.get_surface().get_rect()
+        self.rect.topleft = (20, scr_rect.bottom - (20 * (id + 1)))
+        print "Player will be drawn at", self.rect.topleft
 
 class CountryDisplay(pygame.sprite.Sprite):
     def __init__(self, group, img, x, y, country):
@@ -127,11 +141,11 @@ class CountryDisplay(pygame.sprite.Sprite):
         self.owner = -1
         self.sprites = [self]
         self.selected = False
-        self.token = font.render(str(self.country.armies), True, fontcolor)
+        self.token = font.render(str(self.country.armies), True, black)
         self.country.add_observer(self,['armies'])
 
     def handle_observation(self, c, field, old, new):
-        self.token = font.render(str(new), True, fontcolor)
+        self.token = font.render(str(new), True, black)
 
     def set_selected(self, selected):
         self.selected = selected
@@ -147,12 +161,15 @@ class CountryDisplay(pygame.sprite.Sprite):
         if self.owner != self.country.owner:
             self.owner = self.country.owner
             color = PLAYER_COLORS[self.owner]
+            if self.selected:
+               color = (255 - color[0], 255 - color[1], 255 - color[2])
             for s in self.sprites:
                 c = pygame.surfarray.pixels3d(s.image)
                 c[::] = color
                 del c
-        screen.blit(self.image, self.rect)
-        screen.blit(self.token, self.rect.center)
+        for s in self.sprites:
+            screen.blit(s.image, s.rect)
+            screen.blit(self.token, s.rect.center)
 
     def add_image(self, img, x, y):
         sprite = pygame.sprite.Sprite(self.groups())
@@ -175,6 +192,53 @@ class CountryGroup(pygame.sprite.RenderPlain):
                     return s
         return None
 
+class Picker:
+    def __init__(self, screen_size):
+        self.screen_size = screen_size
+        self.active = False
+        self.group = pygame.sprite.RenderPlain()
+        self.scale = pygame.sprite.Sprite()
+        self.scale.image = pygame.image.load('scale.png')
+        self.scale.rect = self.scale.image.get_rect()
+        self.armies = 0
+        self.range_upper = pygame.sprite.Sprite(self.group)
+        self.range_lower = pygame.sprite.Sprite(self.group)
+        self.render_range()
+
+    def render_range(self):
+        self.range_upper.image = font.render(
+            str(self.armies), True, black)
+        self.range_upper.rect = self.range_upper.image.get_rect()
+        self.range_upper.rect.midtop = self.scale.rect.midtop
+
+        self.range_lower.image = font.render(
+            '1', True, black)
+        self.range_lower.rect = self.range_lower.image.get_rect()
+        self.range_lower.rect.midbottom = self.scale.rect.midbottom
+
+    def draw(self, screen):
+        if self.active:
+            screen.blit(self.scale.image, self.scale.rect)
+            self.group.draw(screen)
+            
+    def activate(self, pos, armies):
+        self.active = True
+        self.scale.rect.topleft = pos
+        self.scale.rect.clamp_ip(self.screen_size)
+        self.armies = armies
+        self.render_range()
+
+    def deactivate(self):
+        self.active = False
+
+    def armies_chosen(self, point):
+        if self.active:
+            if self.scale.rect.collidepoint(point):
+                height = float(self.scale.rect.bottom - point[1])
+                return int(ceil(height / self.scale.rect.height * self.armies))
+        else:
+            return 0
+
 class SpeedRiskUI:
     def __init__(self):
         #pygame.key.set_repeat(500,15)
@@ -182,15 +246,14 @@ class SpeedRiskUI:
         ss = pygame.Rect(0,0,650,375)
         self.screen_size = ss
         self.screen = pygame.display.set_mode(ss.size,HWACCEL)
+        self.picker = Picker(ss)
         self.clock = pygame.time.Clock()
-        self.font = pygame.font.Font(None,20)
         self.fg = pygame.color.Color('white')
         self.bg = pygame.color.Color('black')
         self.client = Client()
         self.load_images()
         self.selected_country = None
         self.choosing_count = False
-        self.picker = pygame.sprite.RenderPlain()
         self.last_click = 0
         self.action = None
         self.action_from = 0
@@ -211,9 +274,6 @@ class SpeedRiskUI:
             self.clock.tick(40);
 
     def load_images(self):
-        self.scale = pygame.sprite.Sprite()
-        self.scale.image = pygame.image.load('scale.png')
-        self.scale.rect = self.scale.image.get_rect()
         self.overlays = CountryGroup()
         self.overlay_info = []
         for i in range(42): self.overlay_info.append(None)
@@ -235,6 +295,7 @@ class SpeedRiskUI:
         self.screen.fill(self.bg)
         self.screen.blit(self.background,(0,0))
         self.overlays.update(self.screen)
+        players.draw(self.screen)
         self.picker.draw(self.screen)
         pygame.display.flip()
 
@@ -250,40 +311,41 @@ class SpeedRiskUI:
                     self.client.send_command('READY')
             elif event.type == MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    if self.choosing_count:
-                        self.choosing_count = False
-                        self.picker.empty()
-                        if self.scale.rect.collidepoint(event.pos):
-                            self.complete_action()
-                            return
+                    chosen = self.picker.armies_chosen(event.pos)
+                    if chosen > 0:
+                        self.complete_action(chosen)
+                        return
                     c = self.overlays.collidepoint(event.pos)
                     if c == None:
                         if self.selected_country != None:
                             self.selected_country.set_selected(False)
                             self.selected_country = None
+                            self.picker.deactivate()
                     else:
                         now = pygame.time.get_ticks()
                         if self.selected_country == c:
                             if now < self.last_click + 250:
                                 self.init_place(event.pos, c)
+                            else:
+                                self.picker.deactivate()
                         else:
                             if self.selected_country != None:
                                 self.selected_country.set_selected(False)
                                 if borders(self.selected_country, c):
                                     self.init_move_or_attack(event.pos,c)
+                                else:
+                                    self.picker.deactivate()
                             self.selected_country = c
                             c.set_selected(True)
                         self.last_click = now
 
-    def complete_action(self):
-        armies = 1
+    def complete_action(self, armies):
         self.client.send_command(self.action, self.action_from, self.action_to, armies)
+        self.picker.deactivate()
 
     def init_place(self, pos, to_country):
-        self.picker.add(self.scale)
+        self.picker.activate(pos, self.client.reserve)
         self.choosing_count = True
-        self.scale.rect.topleft = pos
-        self.scale.rect.clamp_ip(self.screen_size)
         self.action = 'PLACE';
         self.action_to = to_country.country.id
 
@@ -291,21 +353,21 @@ class SpeedRiskUI:
         from_country = self.selected_country
         f_id = from_country.country.id
         t_id =   to_country.country.id
-        if from_country.owner == to_country.owner:
-            self.picker.add(self.scale)
-            self.choosing_count = True
-            self.scale.rect.topleft = pos
-            self.scale.rect.clamp_ip(self.screen_size)
-            self.action = 'MOVE';
-            self.action_from = f_id
-            self.action_to   = t_id
-        else:
-            armies = min(from_country.country.armies - 1, 3)
-            self.client.send_command('ATTACK', f_id, t_id, armies)
+        armies_available = from_country.country.armies - 1
+        if armies_available > 0:
+            if from_country.country.owner == to_country.country.owner:
+                self.picker.activate(pos, armies_available)
+                self.action = 'MOVE';
+                self.action_from = f_id
+                self.action_to   = t_id
+            else:
+                armies = min(from_country.country.armies - 1, 3)
+                self.client.send_command('ATTACK', f_id, t_id, armies)
 
 if __name__ == "__main__":
     pygame.init()
     font = pygame.font.Font(None, 20)
-    fontcolor = pygame.color.Color('black')
+    black = pygame.color.Color('black')
+    players = pygame.sprite.RenderPlain()
     ui = SpeedRiskUI()
     ui.run()

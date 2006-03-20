@@ -46,11 +46,13 @@ public:
 	void test_multi_join() {
         TS_ASSERT(player_join(&game, &p1));
         TS_ASSERT_EQUALS(SR_CMD_PLAYER_JOIN, all_res->command);
+        TS_ASSERT_EQUALS(0, all_res->from);
         TS_ASSERT_EQUALS(0, p1.in_game_id);
         TS_ASSERT_EQUALS(1, game.playing);
         reset_mocks();
         TS_ASSERT(player_join(&game, &p2));
         TS_ASSERT_EQUALS(SR_CMD_PLAYER_JOIN, all_res->command);
+        TS_ASSERT_EQUALS(1, all_res->from);
         TS_ASSERT_EQUALS(1, p2.in_game_id);
         TS_ASSERT_EQUALS(2, game.playing);
         reset_mocks();

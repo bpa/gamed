@@ -25,7 +25,7 @@ typedef struct {
     int            state;
 } SpeedRiskData;
 
-#define SR_STARTING_ARMIES 10
+#define SR_STARTING_ARMIES 20
 #define SR_MAX_BORDERING 5
 
 bool borders(int, int);

@@ -60,26 +60,31 @@ public:
         TS_ASSERT_EQUALS(SR_CMD_GAME_STATUS, status->command.command);
         TS_ASSERT_EQUALS((1 + SR_NUM_COUNRIES) * 4, mock_all_len[2]);
 
-        TS_ASSERT_EQUALS(30, ((SR_Command*)&mock_plr_buff[0])->armies);
-        TS_ASSERT_EQUALS(30, ((SR_Command*)&mock_plr_buff[1])->armies);
-        TS_ASSERT_EQUALS(30, ((SR_Command*)&mock_plr_buff[2])->armies);
-        TS_ASSERT_EQUALS(30, ((SR_Command*)&mock_plr_buff[3])->armies);
+        int i, surplus;
+        int base = SR_STARTING_ARMIES;
+        for (i=0; i<4; i++) {
+            surplus = ((SR_Command*)&mock_plr_buff[i])->armies;
+            if (surplus != base) {
+                TS_ASSERT_EQUALS(base+1, surplus);
+            }
+        }
 
-        int armies[] = {0,0,0,0};
+        int countries_held[] = {0,0,0,0};
 
-        int i;
         for (i=0; i<SR_NUM_COUNRIES; i++) {
             TS_ASSERT(status->countries[i].owner <  4);
             TS_ASSERT_EQUALS(1, status->countries[i].armies);
-            armies[status->countries[i].owner]++;
+            countries_held[status->countries[i].owner]++;
         }
 
         int left_to_place = 0;
         for (i=0; i<4; i++) {
-            TS_ASSERT(armies[i] == 10 || armies[i] == 11);
+            if (countries_held[i] != 10) {
+                TS_ASSERT_EQUALS(11, countries_held[i]);
+            }
             TS_ASSERT(srd->players[i].countries_held >= 10);
             TS_ASSERT(srd->players[i].countries_held <= 11);
-            TS_ASSERT(srd->players[i].armies < 12);
+            TS_ASSERT(srd->players[i].armies < base + 2);
             TS_ASSERT_EQUALS(false, srd->players[i].ready);
             left_to_place += srd->players[i].armies;
         }
@@ -105,29 +110,38 @@ public:
 
         srd->status.countries[0].owner  = 0;
         srd->status.countries[1].owner  = 1;
+        int p1_reserve = SR_STARTING_ARMIES;
+        int p2_reserve = SR_STARTING_ARMIES;
+        int c1_armies = 1;
+        int c2_armies = 1;
         
         place(&p1, 0,  0);
         TS_ASSERT_EQUALS(SR_CMD_COUNTRY_STATUS, all_res->command);
-        TS_ASSERT_EQUALS(1, status->country.armies);
-        TS_ASSERT_EQUALS(10, srd->players[0].armies);
+        TS_ASSERT_EQUALS(c1_armies,  status->country.armies);
+        TS_ASSERT_EQUALS(p1_reserve, srd->players[0].armies);
         TS_ASSERT_EQUALS(8, mock_all_len[0]);
-        place(&p1, 0,  1);
+
+        place(&p1, 0,  1); c1_armies++; p1_reserve--;
         TS_ASSERT_EQUALS(SR_CMD_COUNTRY_STATUS, all_res->command);
-        TS_ASSERT_EQUALS(2, status->country.armies);
-        TS_ASSERT_EQUALS(9, srd->players[0].armies);
+        TS_ASSERT_EQUALS(c1_armies,  status->country.armies);
+        TS_ASSERT_EQUALS(p1_reserve, srd->players[0].armies);
         TS_ASSERT_EQUALS(8, mock_all_len[0]);
-        place(&p1, 0,  5);
+
+        place(&p1, 0,  5); c1_armies+=5; p1_reserve-=5;
         TS_ASSERT_EQUALS(SR_CMD_COUNTRY_STATUS, all_res->command);
-        TS_ASSERT_EQUALS(7, status->country.armies);
-        TS_ASSERT_EQUALS(4, srd->players[0].armies);
+        TS_ASSERT_EQUALS(c1_armies,  status->country.armies);
+        TS_ASSERT_EQUALS(p1_reserve, srd->players[0].armies);
         TS_ASSERT_EQUALS(8, mock_all_len[0]);
+
         place(&p1, 0, -1);
         TS_ASSERT_EQUALS(SR_CMD_ERROR, plr_res->command);
         TS_ASSERT_EQUALS(SR_ERR_NOT_ENOUGH_ARMIES, error->error);
+
         place(&p1, 0, 20);
         TS_ASSERT_EQUALS(SR_CMD_ERROR, plr_res->command);
         TS_ASSERT_EQUALS(SR_ERR_NOT_ENOUGH_ARMIES, error->error);
-        place(&p1, 1,  1);
+
+        place(&p1, 1,  1); c2_armies++; p2_reserve--;
         TS_ASSERT_EQUALS(SR_CMD_ERROR, plr_res->command);
         TS_ASSERT_EQUALS(SR_ERR_NOT_OWNER, error->error);
     }

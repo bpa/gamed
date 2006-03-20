@@ -12,17 +12,18 @@ SR_Country msg_country;
 SR_Error   msg_error;
 SR_Move_Result msg_move;
 
-#define all_cmd_f(g, cmd, from) \
+#define all_cmd_f(g, cmd, f) \
     msg_command.command = cmd; \
+    msg_command.from = f; \
     tell_all(g,(char*)&msg_command,4);
 
 #define player_cmd(p, cmd) \
     msg_command.command = cmd; \
     tell_player(p,(char*)&msg_command,4);
 
-#define player_cmd_f(p, cmd, from) \
+#define player_cmd_f(p, cmd, f) \
     msg_command.command = cmd; \
-    msg_command.from = from; \
+    msg_command.from = f; \
     tell_player(p,(char*)&msg_command,4);
 
 #define player_cmd_a(p, cmd, n_armies) \
@@ -104,7 +105,8 @@ void init_board(Game *game) {
     }
     for (i=0; i < game->playing; i++) {
         board->players[i].armies += SR_STARTING_ARMIES;
-        player_cmd_a(board->players[i].player, SR_CMD_GET_ARMIES, 30);
+        player_cmd_a(board->players[i].player, SR_CMD_GET_ARMIES, 
+            board->players[i].armies);
     }
 }
 
@@ -289,7 +291,7 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                     else if (!borders(cmd->from, cmd->to)) {
                         player_error(p, SR_ERR_INVALID_DESTINATION);
                     }
-                    else if (cmd->armies >= 
+                    else if (cmd->armies < 1 || cmd->armies >= 
                         status->countries[cmd->from].armies) {
                         player_error(p, SR_ERR_NOT_ENOUGH_ARMIES);
                     }
@@ -339,8 +341,10 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                     }
                     else {
                         status->countries[cmd->to].armies += cmd->armies;
-                        srd->players[p->in_game_id].armies -= cmd ->armies;
+                        srd->players[p->in_game_id].armies -= cmd->armies;
                         give_country_status(game, NULL, cmd->to);
+                        player_cmd_a(p, SR_CMD_GET_ARMIES,
+                            srd->players[p->in_game_id].armies);
                     }
                     break;
                 case SR_CMD_GAME_STATUS:

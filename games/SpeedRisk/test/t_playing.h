@@ -222,11 +222,17 @@ public:
     }
 
 	void test_bad_attacks() {
+        setup_country(SR_SIAM,              0, 1);
         setup_country(SR_EASTERN_AUSTRALIA, 0, 2);
         setup_country(SR_WESTERN_AUSTRALIA, 0, 3);
         setup_country(SR_INDONESIA,         1, 1);
         setup_country(SR_NEW_GUINEA,        1, 1);
         setup_country(SR_MADAGASCAR,        1, 1);
+
+        //Can't attack with no one
+        send_cmd(&p1, SR_CMD_ATTACK, SR_SIAM, SR_INDONESIA, 0);
+        TS_ASSERT_EQUALS(SR_CMD_ERROR, err->command);
+        TS_ASSERT_EQUALS(SR_ERR_NOT_ENOUGH_ARMIES, err->error);
 
         //Can't attack with last guy or more than you have
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 3);
