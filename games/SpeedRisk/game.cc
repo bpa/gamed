@@ -57,6 +57,17 @@ SR_Move_Result msg_move;
     } \
     if (holds_continent) { armies += value; }
 
+void handle_timer  (int sock, short event, void *args) {
+    Game *g = (Game*)args;
+    SpeedRiskData *board = (SpeedRiskData*)g->data;
+    if (board->state == SR_DONE) {
+        event_del(&g->timer);
+    }
+    else {
+        produce_armies(g);
+    }
+}
+
 void produce_armies(Game *game) {
     bool holds_continent;
     int i, c, armies, held;
@@ -76,7 +87,7 @@ void produce_armies(Game *game) {
             add_armies_for_continent(SR_NEW_GUINEA,    4, 2);
             p->armies += armies;
             if (p->armies > 255) { p->armies = 255; }
-            player_cmd_a(p->player, SR_CMD_PLAYER_STATUS, p->armies);
+            player_cmd_a(p->player, SR_CMD_GET_ARMIES, p->armies);
         }
     }
 }
@@ -183,6 +194,7 @@ void handle_request (Game *game, Player *p, char *req, int len) {
     int attack_rolls[3];
     int defend_rolls[2];
     bool all_ready;
+    struct timeval period;
     SpeedRiskData *srd = (SpeedRiskData*)game->data;
     SR_Game_Status *status = &srd->status;
     SR_Command *cmd = (SR_Command*)req;
@@ -238,6 +250,9 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                         srd->state = SR_RUNNING;
                         msg_command.command = SR_CMD_BEGIN;
                         tell_all(game,(char*)&msg_command,4);
+                        period.tv_sec = 30;
+                        period.tv_usec = 0;
+                        add_timer(game, &period, true);
                     }
                     break;
                 case SR_CMD_NOTREADY:

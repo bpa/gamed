@@ -76,6 +76,6 @@ void tell_all (Game *g, const char *msg, size_t len) {
     if (mock_all_pos==5) mock_all_pos = 0;
 }
 
-void add_timer (Game *g, int milliseconds, bool persistent) { }
+void add_timer (Game *g, struct timeval *tv, bool persistent) { }
 
 #endif

@@ -22,7 +22,6 @@ void handle_network_event(int sock, short event, void *args);
 void handle_timer(int sock, short event, void *args);
 struct event ev_connection;
 struct event ev_sig_hup;
-struct event ev_timer;
 
 /******************************************************************************/
 char rand_state[8];
@@ -41,7 +40,6 @@ Gamed::Server::Server() {
   bzero(&game, sizeof(Game));
   game_init(&game);
   signal(SIGPIPE,SIG_IGN);
-  event_set(&ev_timer, NULL, EV_TIMEOUT | EV_PERSIST, handle_timer, &game);
   event_set(&ev_sig_hup, SIGHUP, EV_SIGNAL | EV_PERSIST, handle_sig_hup, NULL);
   event_add(&ev_sig_hup,NULL);
   //lt_dlinit();
@@ -167,16 +165,11 @@ void tell_all (Game *g, const char *msg, size_t len) {
 }
 /******************************************************************************/
 
-/* This is the incorrect version because the correct version is not required */
-void add_timer (Game *g, int milliseconds, bool persistent) {
-    event_add(&ev_timer,NULL);
+void add_timer (Game *g, struct timeval *period, bool persistent) {
+    printf("Adding timer\n");
+    event_set(&g->timer, NULL, EV_TIMEOUT | EV_PERSIST, handle_timer, g);
+    event_add(&g->timer, period);
 }
-
-/******************************************************************************/
-
-void handle_timer(int sock, short event, void *args) {
-}
-
 /******************************************************************************/
 
 void handle_sig_hup(int sock, short event, void *args) {

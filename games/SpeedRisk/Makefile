@@ -2,7 +2,7 @@
 .SUFFIXES: .so .cc
 SOFLAGS = -shared -Wl,-x
 CFLAGS = -Wall
-INC = -I../../include -I/usr/local/include
+LIBS = -L/usr/local/lib -levent
 CC = g++
 
 run: tests
