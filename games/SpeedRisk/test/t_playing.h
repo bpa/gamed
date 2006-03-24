@@ -458,6 +458,10 @@ public:
         TS_ASSERT_EQUALS(8, mv->country2.armies);
     }
 
+    void test_win_game() {
+       
+    }
+
     Game game;
     Player p1;
     Player p2;

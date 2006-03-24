@@ -7,6 +7,8 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
+#define SR_GENERATION_PERIOD 60
+
 SR_Command msg_command;
 SR_Country msg_country;
 SR_Error   msg_error;
@@ -58,6 +60,7 @@ SR_Move_Result msg_move;
     if (holds_continent) { armies += value; }
 
 void handle_timer  (int sock, short event, void *args) {
+    struct timeval period;
     Game *g = (Game*)args;
     SpeedRiskData *board = (SpeedRiskData*)g->data;
     if (board->state == SR_DONE) {
@@ -65,6 +68,9 @@ void handle_timer  (int sock, short event, void *args) {
     }
     else {
         produce_armies(g);
+        period.tv_sec = SR_GENERATION_PERIOD;
+        period.tv_usec = 0;
+        event_add(&g->timer, &period);
     }
 }
 
@@ -250,7 +256,7 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                         srd->state = SR_RUNNING;
                         msg_command.command = SR_CMD_BEGIN;
                         tell_all(game,(char*)&msg_command,4);
-                        period.tv_sec = 30;
+                        period.tv_sec = SR_GENERATION_PERIOD;
                         period.tv_usec = 0;
                         add_timer(game, &period, true);
                     }

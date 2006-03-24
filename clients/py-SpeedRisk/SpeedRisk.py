@@ -132,7 +132,7 @@ class Player(pygame.sprite.Sprite):
         print "Player will be drawn at", self.rect.topleft
 
 class CountryDisplay(pygame.sprite.Sprite):
-    def __init__(self, group, img, x, y, country):
+    def __init__(self, group, img, x, y, lx, ly, country):
         pygame.sprite.Sprite.__init__(self, group)
         self.rect = img.get_rect().move(x,y)
         self.image = img
@@ -142,6 +142,7 @@ class CountryDisplay(pygame.sprite.Sprite):
         self.sprites = [self]
         self.selected = False
         self.token = font.render(str(self.country.armies), True, black)
+        self.token_pos = self.token.get_rect().move(lx, ly)
         self.country.add_observer(self,['armies'])
 
     def handle_observation(self, c, field, old, new):
@@ -169,15 +170,17 @@ class CountryDisplay(pygame.sprite.Sprite):
                 del c
         for s in self.sprites:
             screen.blit(s.image, s.rect)
-            screen.blit(self.token, s.rect.center)
+            screen.blit(self.token, s.token_pos)
 
-    def add_image(self, img, x, y):
+    def add_image(self, img, x, y, lx, ly):
         sprite = pygame.sprite.Sprite(self.groups())
         sprite.image = img
         sprite.rect = img.get_rect().move(x,y)
         sprite.country = self.country
         sprite.name = self.name
         sprite.set_selected = self.set_selected
+        sprite.token_pos = self.token_pos.move(0,0)
+        sprite.token_pos.topleft = (lx, ly)
         self.sprites.append(sprite)
         self.owner = -1
 
@@ -281,15 +284,17 @@ class SpeedRiskUI:
         self.background = pygame.image.load('world_map_relief.jpg')
         countries = open('manifest')
         for c in countries.readlines():
-            (id, name, x, y) = c.split(':')
+            (id, name, x, y, lx, ly) = c.split(':')
             id = int(id)
             image = pygame.image.load(name)
             if self.overlay_info[id] != None:
-                self.overlay_info[id].add_image(image, int(x), int(y))
+                self.overlay_info[id].add_image(image, \
+                    int(x), int(y), int(lx), int(ly))
             else:
                 obj = self.client.countries[id]
                 self.overlay_info[id] = \
-                    CountryDisplay(self.overlays, image, int(x), int(y), obj)
+                    CountryDisplay(self.overlays, image, \
+                        int(x), int(y), int(lx), int(ly), obj)
 
     def draw_screen(self):
         self.screen.fill(self.bg)
@@ -313,7 +318,9 @@ class SpeedRiskUI:
                 if event.button == 1:
                     chosen = self.picker.armies_chosen(event.pos)
                     if chosen > 0:
-                        self.complete_action(chosen)
+                        self.client.send_command(self.action, self.action_from, 
+                            self.action_to, chosen)
+                        self.picker.deactivate()
                         return
                     c = self.overlays.collidepoint(event.pos)
                     if c == None:
@@ -339,15 +346,14 @@ class SpeedRiskUI:
                             c.set_selected(True)
                         self.last_click = now
 
-    def complete_action(self, armies):
-        self.client.send_command(self.action, self.action_from, self.action_to, armies)
-        self.picker.deactivate()
-
     def init_place(self, pos, to_country):
-        self.picker.activate(pos, self.client.reserve)
-        self.choosing_count = True
-        self.action = 'PLACE';
-        self.action_to = to_country.country.id
+        if self.client.reserve > 0:
+            self.picker.activate(pos, self.client.reserve)
+            self.choosing_count = True
+            self.action = 'PLACE';
+            self.action_to = to_country.country.id
+        else:
+            self.picker.deactivate()
 
     def init_move_or_attack(self, pos, to_country):
         from_country = self.selected_country
@@ -361,8 +367,11 @@ class SpeedRiskUI:
                 self.action_from = f_id
                 self.action_to   = t_id
             else:
-                armies = min(from_country.country.armies - 1, 3)
+                armies = min(armies_available, 3)
                 self.client.send_command('ATTACK', f_id, t_id, armies)
+                self.picker.deactivate()
+        else:
+            self.picker.deactivate()
 
 if __name__ == "__main__":
     pygame.init()
