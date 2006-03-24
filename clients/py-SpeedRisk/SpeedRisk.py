@@ -55,12 +55,18 @@ class Client:
         self.countries = []
         for c in range(42):
             self.countries.append(Country(pack('>4b',c,0,0,0)))
-        self.reserve = 0
         cmd = self.sock.recv(4)
         self.player_id = cmd_from(cmd)
         print "I am player", self.player_id
         for i in range(self.player_id+1):
             Player(i,players)
+        self.available = pygame.sprite.Sprite(players)
+        self.set_reserve(0)
+
+    def set_reserve(self, reserve):
+        self.reserve = reserve
+        self.available.image = big.render(" %i armies in reserve " % (reserve), True, black, PLAYER_COLORS[self.player_id])
+        self.available.rect = self.available.image.get_rect().move(250,300)
 
     def send_command(self, command, f=0, t=0, armies=0):
         command = command.replace(' ', '_').upper()
@@ -88,7 +94,7 @@ class Client:
             self.countries[ord(msg[0])].update(msg)
             return (True, 'UPDATE')
         elif (c == self.command_map['GET_ARMIES']):
-            self.reserve = cmd_armies(cmd)
+            self.set_reserve(cmd_armies(cmd))
             return (True, 'GET_ARMIES')
         elif (c == self.command_map['COUNTRY_STATUS']):
             msg = self.sock.recv(4)
@@ -376,6 +382,7 @@ class SpeedRiskUI:
 if __name__ == "__main__":
     pygame.init()
     font = pygame.font.Font(None, 20)
+    big = pygame.font.Font(None, 40)
     black = pygame.color.Color('black')
     players = pygame.sprite.RenderPlain()
     ui = SpeedRiskUI()

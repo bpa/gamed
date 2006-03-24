@@ -197,6 +197,7 @@ void player_quit (Game *g, Player *p) {
 
 void handle_request (Game *game, Player *p, char *req, int len) {
     int i, defending, attacking, attack_loss, defend_loss;
+    int defender;
     int attack_rolls[3];
     int defend_rolls[2];
     bool all_ready;
@@ -317,6 +318,7 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                         player_error(p, SR_ERR_NOT_ENOUGH_ARMIES);
                     }
                     else {
+                        defender = status->countries[cmd->to].owner;
                         bzero(&attack_rolls, 3*sizeof(int));
                         bzero(&defend_rolls, 2*sizeof(int));
                         attacking = cmd->armies > 3 ? 3 : cmd->armies;
@@ -347,9 +349,18 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                             status->countries[cmd->from].armies -= attacking;
                             status->countries[cmd->to].armies += attacking;
                             status->countries[cmd->to].owner = p->in_game_id;
+                            srd->players[p->in_game_id].countries_held++;
+                            srd->players[defender].countries_held--;
                         }
                         tell_all_mv_at_result(game, SR_CMD_ATTACK_RESULT,
                             cmd->from, cmd->to);
+                        if (srd->players[defender].countries_held == 0) {
+                            all_cmd_f(game, SR_CMD_DEFEAT, defender);
+                        }
+                        if (srd->players[p->in_game_id].countries_held == 42) {
+                            all_cmd_f(game, SR_CMD_VICTORY, p->in_game_id);
+                            srd->state = SR_DONE;
+                        }
                     }
                     break;
                 case SR_CMD_PLACE:

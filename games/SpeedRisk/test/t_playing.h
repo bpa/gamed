@@ -434,6 +434,8 @@ public:
         TS_ASSERT_EQUALS(6, mv->country1.armies);
         TS_ASSERT_EQUALS(0, mv->country2.owner);
         TS_ASSERT_EQUALS(3, mv->country2.armies);
+        TS_ASSERT_EQUALS(15, srd->players[0].countries_held);
+        TS_ASSERT_EQUALS(13, srd->players[1].countries_held);
 
         //Attacker wins
         setup_country(SR_WESTERN_AUSTRALIA, 0, 9);
@@ -459,7 +461,32 @@ public:
     }
 
     void test_win_game() {
-       
+        SR_Move_Result *mv = (SR_Move_Result*)all_res;
+        int i;
+        for (i=0; i<42; i++) {
+            srd->status.countries[i].owner = 0;
+            srd->status.countries[i].armies = 1;
+        }
+        srd->players[0].countries_held = 41;
+        srd->players[1].countries_held = 1;
+        srd->players[2].countries_held = 0;
+        srd->players[3].countries_held = 0;
+
+        setup_country(SR_WESTERN_AUSTRALIA, 0, 9);
+        setup_country(SR_NEW_GUINEA,        1, 1);
+        set_random(5,5,4,4);
+        send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 8);
+        TS_ASSERT_EQUALS(SR_CMD_ATTACK_RESULT, mv->command.command);
+        all_res = (SR_Command*)&mock_all_buff[1];
+        TS_ASSERT_EQUALS(SR_CMD_DEFEAT, all_res->command);
+        TS_ASSERT_EQUALS(1, all_res->from);
+        TS_ASSERT_EQUALS(0, srd->players[1].countries_held);
+        all_res = (SR_Command*)&mock_all_buff[2];
+        TS_ASSERT_EQUALS(SR_CMD_VICTORY, all_res->command);
+        TS_ASSERT_EQUALS(0, all_res->from);
+        TS_ASSERT_EQUALS(42, srd->players[0].countries_held);
+
+        TS_ASSERT_EQUALS(SR_DONE, srd->state);
     }
 
     Game game;
