@@ -42,7 +42,7 @@ def cmd_from(cmd):   return ord(cmd[1])
 def cmd_to(cmd):     return ord(cmd[2])
 def cmd_armies(cmd): return ord(cmd[3])
 
-class Client:
+class Client(Observable):
     def __init__(self, host='localhost', port=7483):
         self.sock = socket.socket()
         self.sock.connect((host, port))
@@ -57,16 +57,13 @@ class Client:
             self.countries.append(Country(pack('>4b',c,0,0,0)))
         cmd = self.sock.recv(4)
         self.player_id = cmd_from(cmd)
+        self.players = self.player_id + 1
         print "I am player", self.player_id
-        for i in range(self.player_id+1):
+        for i in range(self.players):
             Player(i,players)
-        self.available = pygame.sprite.Sprite(players)
-        self.set_reserve(0)
-
-    def set_reserve(self, reserve):
-        self.reserve = reserve
-        self.available.image = big.render(" %i armies in reserve " % (reserve), True, black, PLAYER_COLORS[self.player_id])
-        self.available.rect = self.available.image.get_rect().move(250,300)
+        self.reserve = 0
+        self.state = "Waiting for players"
+        self.sock.setblocking(0)
 
     def send_command(self, command, f=0, t=0, armies=0):
         command = command.replace(' ', '_').upper()
@@ -80,7 +77,7 @@ class Client:
 
     def recv_command(self):
         try:
-            cmd = self.sock.recv(4,socket.MSG_DONTWAIT)
+            cmd = self.sock.recv(4)
         except:
             return (False,None)
         c = cmd_cmd(cmd)
@@ -88,27 +85,34 @@ class Client:
             print ERRORS[ord(cmd[1])]
             return (True, None)
         elif (c == 12 or c == 13):
+            self.sock.setblocking(1)
             msg = self.sock.recv(4)
             self.countries[ord(msg[0])].update(msg)
             msg = self.sock.recv(4)
             self.countries[ord(msg[0])].update(msg)
+            self.sock.setblocking(0)
             return (True, 'UPDATE')
         elif (c == self.command_map['GET_ARMIES']):
-            self.set_reserve(cmd_armies(cmd))
+            self.reserve = cmd_armies(cmd)
             return (True, 'GET_ARMIES')
         elif (c == self.command_map['COUNTRY_STATUS']):
+            self.sock.setblocking(1)
             msg = self.sock.recv(4)
             self.countries[ord(msg[0])].update(msg)
+            self.sock.setblocking(0)
             return (True, 'UPDATE')
         elif (c == self.command_map['GAME_STATUS']):
             lands = self.countries
+            self.sock.setblocking(1)
             for i in range(42):
                 msg = self.sock.recv(4)
                 self.countries[ord(msg[0])].update(msg)
+            self.sock.setblocking(0)
             return (True, 'UPDATE')
         elif (c == self.command_map['PLAYER_JOIN']):
             print "%2i%2i%2i%2i" % (ord(cmd[0]),ord(cmd[1]),ord(cmd[2]),ord(cmd[3]))
             Player(cmd_from(cmd),players)
+            self.players = self.players + 1
             return (True, 'joined')
         else:
             return (True, COMMANDS[c])
@@ -126,37 +130,44 @@ class Country(Observable):
 def color(code, str):
     return "%c[%im%s%c[0m" % (27, code, str, 27)
 
-class Player(pygame.sprite.Sprite):
-    def __init__(self, id, group):
-        print "Adding Player", id
-        pygame.sprite.Sprite.__init__(self, group)
-        self.id = id
-        self.image = font.render("Player %i" % id, True, PLAYER_COLORS[id])
-        self.rect = self.image.get_rect()
-        scr_rect = pygame.display.get_surface().get_rect()
-        self.rect.topleft = (20, scr_rect.bottom - (20 * (id + 1)))
-        print "Player will be drawn at", self.rect.topleft
-
 class CountryDisplay(pygame.sprite.Sprite):
     def __init__(self, group, img, x, y, lx, ly, country):
         pygame.sprite.Sprite.__init__(self, group)
-        self.rect = img.get_rect().move(x,y)
-        self.image = img
+        self.sprites = [self]
+        self.setup(img, x, y, lx, ly, country, False)
+        self.country.add_observer(self,['armies','owner'])
+        self.render_token()
+
+    def add_image(self, img, x, y, lx, ly):
+        sprite = pygame.sprite.Sprite(self.groups())
+        self.sprites.append(sprite)
+        sprite.set_selected = self.set_selected
+        self.setup(img, x, y, lx, ly, self.country, self.selected, sprite)
+
+    def setup(self, img, x, y, lx, ly, country, selected, sprite=None):
+        '''I apologize in advance for this method.  Apparently, there is 
+             type checking, and you can't just pass something in that
+             supports all the operations you want to do'''
+        if sprite != None: self = sprite
         self.country = country
         self.name = COUNTRIES[country.id]
-        self.owner = -1
-        self.sprites = [self]
-        self.selected = False
+        self.image = img
+        self.rect = img.get_rect().move(x,y)
+        self.set_selected(selected)
+        self.token_pos = (lx, ly)
+
+    def render_token(self):
         self.token = font.render(str(self.country.armies), True, black)
-        self.token_pos = self.token.get_rect().move(lx, ly)
-        self.country.add_observer(self,['armies'])
 
     def handle_observation(self, c, field, old, new):
-        self.token = font.render(str(new), True, black)
+        if field == 'armies':
+            self.render_token()
+        else: # field == 'owner'
+            self.set_selected(self.selected)
 
     def set_selected(self, selected):
         self.selected = selected
-        color = PLAYER_COLORS[self.owner]
+        color = PLAYER_COLORS[self.country.owner]
         if selected:
            color = (255 - color[0], 255 - color[1], 255 - color[2])
         for s in self.sprites:
@@ -165,30 +176,9 @@ class CountryDisplay(pygame.sprite.Sprite):
             del c
 
     def update(self, screen):
-        if self.owner != self.country.owner:
-            self.owner = self.country.owner
-            color = PLAYER_COLORS[self.owner]
-            if self.selected:
-               color = (255 - color[0], 255 - color[1], 255 - color[2])
-            for s in self.sprites:
-                c = pygame.surfarray.pixels3d(s.image)
-                c[::] = color
-                del c
         for s in self.sprites:
             screen.blit(s.image, s.rect)
             screen.blit(self.token, s.token_pos)
-
-    def add_image(self, img, x, y, lx, ly):
-        sprite = pygame.sprite.Sprite(self.groups())
-        sprite.image = img
-        sprite.rect = img.get_rect().move(x,y)
-        sprite.country = self.country
-        sprite.name = self.name
-        sprite.set_selected = self.set_selected
-        sprite.token_pos = self.token_pos.move(0,0)
-        sprite.token_pos.topleft = (lx, ly)
-        self.sprites.append(sprite)
-        self.owner = -1
 
 class CountryGroup(pygame.sprite.RenderPlain):
     def collidepoint(self, point):
@@ -200,6 +190,27 @@ class CountryGroup(pygame.sprite.RenderPlain):
                 if pixel[3] > 0:
                     return s
         return None
+
+class Status(pygame.sprite.Sprite):
+    def __init__(self, client):
+        client.add_observer(self, ['players','state','reserve'])
+        self.handle_observation(client, None, None, None)
+
+    def handle_observation(self, c, field, old, new):
+        self.image = big.render("%s\n %i armies in reserve " % (c.state, c.reserve), True, black, PLAYER_COLORS[c.player_id])
+        self.rect = self.image.get_rect().move(250,300)
+
+    def draw(self, screen):
+        screen.blit(self.image, self.rect)
+
+class Player(pygame.sprite.Sprite):
+    def __init__(self, id, group):
+        pygame.sprite.Sprite.__init__(self, group)
+        self.id = id
+        self.image = font.render("Player %i" % id, True, PLAYER_COLORS[id])
+        self.rect = self.image.get_rect()
+        scr_rect = pygame.display.get_surface().get_rect()
+        self.rect.topleft = (20, scr_rect.bottom - (20 * (id + 1)))
 
 class Picker:
     def __init__(self, screen_size):
@@ -260,6 +271,7 @@ class SpeedRiskUI:
         self.fg = pygame.color.Color('white')
         self.bg = pygame.color.Color('black')
         self.client = Client()
+        self.status = Status(self.client)
         self.load_images()
         self.selected_country = None
         self.choosing_count = False
@@ -303,10 +315,11 @@ class SpeedRiskUI:
                         int(x), int(y), int(lx), int(ly), obj)
 
     def draw_screen(self):
-        self.screen.fill(self.bg)
+        #self.screen.fill(self.bg)
         self.screen.blit(self.background,(0,0))
         self.overlays.update(self.screen)
         players.draw(self.screen)
+        self.status.draw(self.screen)
         self.picker.draw(self.screen)
         pygame.display.flip()
 
