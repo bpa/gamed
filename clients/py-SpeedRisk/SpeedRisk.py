@@ -1,15 +1,12 @@
 #!/usr/local/bin/python
 
-import socket, os
-from struct import pack, unpack
-from sys import stdout
-from exceptions import RuntimeError
+import os
 import pygame
-from pygame.locals import *
 import traceback
+from pygame.locals import *
 from Borders import borders
-from observing import Observable
 from math import ceil
+from Client import *
 
 color = pygame.color.THECOLORS
 PLAYER_COLORS = (color['darkolivegreen'][:-1],
@@ -18,117 +15,6 @@ PLAYER_COLORS = (color['darkolivegreen'][:-1],
                  color[          'gold'][:-1],
                  color[        'purple'][:-1],
                  color[         'white'][:-1])
-
-COUNTRIES = [ 'EASTERN US', 'NORTHWEST TERRITORY', 'WESTERN US', 'ONTARIO',
-  'CENTRAL AMERICA', 'ALBERTA', 'GREENLAND', 'ALASKA', 'QUEBEC', 'BRAZIL',
-  'VENEZUELA', 'ARGENTINA', 'PERU', 'ICELAND', 'SOUTHERN EUROPE', 'UKRAINE',
-  'SCANDINAVIA', 'GREAT BRITAIN', 'WESTERN EUROPE', 'NORTHERN EUROPE', 'EGYPT',
-  'CONGO', 'MADAGASCAR', 'SOUTH AFRICA', 'EAST AFRICA', 'NORTH AFRICA',
-  'AFGHANISTAN', 'MONGOLIA', 'URAL', 'JAPAN', 'IRKUTSK', 'INDIA', 'SIAM',
-  'YAKUTSK', 'SIBERIA', 'CHINA', 'KAMCHATKA', 'MIDDLE EAST', 'NEW GUINEA',
-  'INDONESIA', 'WESTERN AUSTRALIA', 'EASTERN AUSTRALIA',
-]
-
-ERRORS = ['Invalid command','Not enough players', 'Not enough armies',
-  'Do not own country', 'Invalid destination']
-
-COMMANDS = [ 'NOP', 'PLAYER_JOIN', 'MESSAGE', 'ERROR', 'READY', 'NOTREADY',
-  'START_PLACING', 'BEGIN', 'MOVE', 'ATTACK', 'PLACE', 'GET_ARMIES',
-  'ATTACK_RESULT', 'MOVE_RESULT', 'GAME_STATUS', 'PLAYER_STATUS',
-  'COUNTRY_STATUS', 'DEFEAT', 'VICTORY' ]
-
-def cmd_cmd(cmd):    return ord(cmd[0])
-def cmd_from(cmd):   return ord(cmd[1])
-def cmd_to(cmd):     return ord(cmd[2])
-def cmd_armies(cmd): return ord(cmd[3])
-
-class Client(Observable):
-    def __init__(self, host='localhost', port=7483):
-        self.sock = socket.socket()
-        self.sock.connect((host, port))
-        self.country_map = {}
-        self.command_map = {}
-        for c in range(len(COUNTRIES)):
-            self.country_map[COUNTRIES[c]] = c
-        for c in range(len(COMMANDS)):
-            self.command_map[COMMANDS[c]] = c
-        self.countries = []
-        for c in range(42):
-            self.countries.append(Country(pack('>4b',c,0,0,0)))
-        cmd = self.sock.recv(4)
-        self.player_id = cmd_from(cmd)
-        self.players = self.player_id + 1
-        print "I am player", self.player_id
-        for i in range(self.players):
-            Player(i,players)
-        self.reserve = 0
-        self.state = "Waiting for players"
-        self.sock.setblocking(0)
-
-    def send_command(self, command, f=0, t=0, armies=0):
-        command = command.replace(' ', '_').upper()
-        if (self.command_map.has_key(command)):
-            cmd = self.command_map[command]
-            print command
-        else:
-            raise RuntimeError("Unrecognized command: %s" % command)
-        packet = pack(">4b", cmd, f, t, armies)
-        self.sock.send(packet, 4)
-
-    def recv_command(self):
-        try:
-            cmd = self.sock.recv(4)
-        except:
-            return (False,None)
-        c = cmd_cmd(cmd)
-        if (c == self.command_map['ERROR']):
-            print ERRORS[ord(cmd[1])]
-            return (True, None)
-        elif (c == 12 or c == 13):
-            self.sock.setblocking(1)
-            msg = self.sock.recv(4)
-            self.countries[ord(msg[0])].update(msg)
-            msg = self.sock.recv(4)
-            self.countries[ord(msg[0])].update(msg)
-            self.sock.setblocking(0)
-            return (True, 'UPDATE')
-        elif (c == self.command_map['GET_ARMIES']):
-            self.reserve = cmd_armies(cmd)
-            return (True, 'GET_ARMIES')
-        elif (c == self.command_map['COUNTRY_STATUS']):
-            self.sock.setblocking(1)
-            msg = self.sock.recv(4)
-            self.countries[ord(msg[0])].update(msg)
-            self.sock.setblocking(0)
-            return (True, 'UPDATE')
-        elif (c == self.command_map['GAME_STATUS']):
-            lands = self.countries
-            self.sock.setblocking(1)
-            for i in range(42):
-                msg = self.sock.recv(4)
-                self.countries[ord(msg[0])].update(msg)
-            self.sock.setblocking(0)
-            return (True, 'UPDATE')
-        elif (c == self.command_map['PLAYER_JOIN']):
-            print "%2i%2i%2i%2i" % (ord(cmd[0]),ord(cmd[1]),ord(cmd[2]),ord(cmd[3]))
-            Player(cmd_from(cmd),players)
-            self.players = self.players + 1
-            return (True, 'joined')
-        else:
-            return (True, COMMANDS[c])
-
-class Country(Observable):
-    def __init__(self, cmd):
-        (self.id, self.owner, self.armies) = unpack(">BBBx", cmd)
-
-    def update(self, cmd):
-        (self.id, self.owner, self.armies) = unpack(">BBBx", cmd)
-
-    def __repr__(self):
-        return "[%15s: %i]" % (color(self.owner + 31, COUNTRIES[self.id]), self.armies)
-
-def color(code, str):
-    return "%c[%im%s%c[0m" % (27, code, str, 27)
 
 class CountryDisplay(pygame.sprite.Sprite):
     def __init__(self, group, img, x, y, lx, ly, country):
@@ -266,13 +152,16 @@ class SpeedRiskUI:
         ss = pygame.Rect(0,0,650,375)
         self.screen_size = ss
         self.screen = pygame.display.set_mode(ss.size,HWACCEL)
-        self.picker = Picker(ss)
         self.clock = pygame.time.Clock()
         self.fg = pygame.color.Color('white')
         self.bg = pygame.color.Color('black')
         self.client = Client()
+        for i in range(self.client.players):
+            Player(i,players)
+        self.client.add_observer(self, ['players'])
         self.status = Status(self.client)
         self.load_images()
+        self.picker = Picker(ss)
         self.selected_country = None
         self.choosing_count = False
         self.last_click = 0
@@ -289,7 +178,14 @@ class SpeedRiskUI:
                 reading = True
                 while reading:
                     (reading, action) = self.client.recv_command()
-                    if reading: print action
+                    if reading:
+                        print action
+                        if action == 'UPDATE':
+                            if self.selected_country != None:
+                                if self.selected_country.country.owner \
+                                        != self.client.player_id:
+                                    self.selected_country.set_selected(False)
+                                    self.selected_country = None
             except Exception, e:
                 traceback.print_exc()
             self.clock.tick(40);
@@ -298,7 +194,7 @@ class SpeedRiskUI:
         self.overlays = CountryGroup()
         self.overlay_info = []
         for i in range(42): self.overlay_info.append(None)
-        os.chdir('overlays')
+        os.chdir('images')
         self.background = pygame.image.load('world_map_relief.jpg')
         countries = open('manifest')
         for c in countries.readlines():
@@ -356,13 +252,15 @@ class SpeedRiskUI:
                                 self.picker.deactivate()
                         else:
                             if self.selected_country != None:
-                                self.selected_country.set_selected(False)
                                 if borders(self.selected_country, c):
                                     self.init_move_or_attack(event.pos,c)
                                 else:
                                     self.picker.deactivate()
-                            self.selected_country = c
-                            c.set_selected(True)
+                            if c.country.owner == self.client.player_id:
+                                if self.selected_country != None:
+                                    self.selected_country.set_selected(False)
+                                self.selected_country = c
+                                c.set_selected(True)
                         self.last_click = now
 
     def init_place(self, pos, to_country):
@@ -391,6 +289,10 @@ class SpeedRiskUI:
                 self.picker.deactivate()
         else:
             self.picker.deactivate()
+
+    def handle_observation(self, c, field, old, new):
+        #if field == 'players':
+            Player(old, players)
 
 if __name__ == "__main__":
     pygame.init()
