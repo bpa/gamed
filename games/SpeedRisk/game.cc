@@ -7,7 +7,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#define SR_GENERATION_PERIOD 60
+#define SR_GENERATION_PERIOD 30
 
 SR_Command msg_command;
 SR_Country msg_country;
@@ -278,6 +278,8 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                         status->countries[cmd->to].armies += cmd->armies;
                         srd->players[p->in_game_id].armies -= cmd ->armies;
                         give_country_status(game, NULL, cmd->to);
+                        player_cmd_a(p, SR_CMD_GET_ARMIES,
+                            srd->players[p->in_game_id].armies);
                     }
                 default:
                     player_error(p, SR_ERR_INVALID_CMD);
