@@ -2,6 +2,7 @@ import socket
 from struct import pack, unpack
 from exceptions import RuntimeError
 from observing import Observable
+from ConfigParser import RawConfigParser
 
 COUNTRIES = [ 'EASTERN US', 'NORTHWEST TERRITORY', 'WESTERN US', 'ONTARIO',
   'CENTRAL AMERICA', 'ALBERTA', 'GREENLAND', 'ALASKA', 'QUEBEC', 'BRAZIL',
@@ -27,7 +28,13 @@ def cmd_to(cmd):     return ord(cmd[2])
 def cmd_armies(cmd): return ord(cmd[3])
 
 class Client(Observable):
-    def __init__(self, host='localhost', port=7483):
+    def __init__(self):
+        config = RawConfigParser()
+        cnf_file = open("config.ini")
+        config.readfp(cnf_file)
+        cnf_file.close()
+        host = config.get('client','host')
+        port = config.getint('client','port')
         self.sock = socket.socket()
         self.sock.connect((host, port))
         self.country_map = {}
