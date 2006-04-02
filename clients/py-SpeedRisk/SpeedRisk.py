@@ -19,6 +19,10 @@ PLAYER_COLORS = (color['darkolivegreen'][:-1],
 
 class CountryDisplay(pygame.sprite.Sprite):
     def __init__(self, group, img, x, y, lx, ly, country):
+        if pygame.display.Info().bitsize == 32:
+            self.set_selected = self.set_selected3d
+        else:
+            self.set_selected = self.set_selected2d
         pygame.sprite.Sprite.__init__(self, group)
         self.sprites = [self]
         self.setup(img, x, y, lx, ly, country, False)
@@ -54,7 +58,7 @@ class CountryDisplay(pygame.sprite.Sprite):
         else: # field == 'owner'
             self.set_selected(self.selected)
 
-    def set_selected(self, selected):
+    def set_selected3d(self, selected):
         global dirty
         dirty = True
         self.selected = selected
@@ -65,6 +69,24 @@ class CountryDisplay(pygame.sprite.Sprite):
                 c = pygame.surfarray.pixels3d(s.image)
                 #c[1::2,1::2] = (0,0,0)
                 c[::] = (0,0,0)
+                c[ ::2, ::2] = color
+                c[1::4,1::4] = color
+                del c
+        else:
+            for s in self.sprites:
+                c = pygame.surfarray.pixels3d(s.image)
+                c[::] = color
+                del c
+    def set_selected2d(self, selected):
+        global dirty
+        dirty = True
+        self.selected = selected
+        color = PLAYER_COLORS[self.country.owner]
+        if selected:
+            for s in self.sprites:
+                c = pygame.surfarray.pixels3d(s.image)
+                #c[1::2,1::2] = (0,0,0)
+                c[::] = 0
                 c[ ::2, ::2] = color
                 c[1::4,1::4] = color
                 del c
