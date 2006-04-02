@@ -35,6 +35,7 @@ class Client(Observable):
         cnf_file.close()
         host = config.get('client','host')
         port = config.getint('client','port')
+        name = config.get('player','name')
         self.sock = socket.socket()
         self.sock.connect((host, port))
         self.country_map = {}
@@ -49,10 +50,12 @@ class Client(Observable):
         cmd = self.sock.recv(4)
         self.player_id = cmd_from(cmd)
         self.players = self.player_id + 1
+        self.sock.send("/name %s" % name)
         self.reserve = 0
         self.state = "Waiting for players"
         self.sock.setblocking(0)
 
+    def set_status(self, status): self.status = status
     def send_command(self, command, f=0, t=0, armies=0):
         command = command.replace(' ', '_').upper()
         if (self.command_map.has_key(command)):
@@ -69,7 +72,14 @@ class Client(Observable):
         except:
             return (False,None)
         c = cmd_cmd(cmd)
-        if (c == self.command_map['ERROR']):
+        if (c == 0):
+            (len,) = unpack(">xxH", cmd)
+            self.sock.setblocking(1)
+            msg = self.sock.recv(len)
+            self.status.add_player(msg)
+            self.sock.setblocking(0)
+            return (True, None)
+        elif (c == self.command_map['ERROR']):
             print ERRORS[ord(cmd[1])]
             return (True, None)
         elif (c == 12 or c == 13):

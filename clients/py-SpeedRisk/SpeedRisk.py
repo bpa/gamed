@@ -8,6 +8,7 @@ from Borders import borders
 from math import ceil
 from Client import *
 
+dirty = True
 color = pygame.color.THECOLORS
 PLAYER_COLORS = (color['darkolivegreen'][:-1],
                  color[     'firebrick'][:-1],
@@ -32,8 +33,8 @@ class CountryDisplay(pygame.sprite.Sprite):
 
     def setup(self, img, x, y, lx, ly, country, selected, sprite=None):
         '''I apologize in advance for this method.  Apparently, there is 
-             type checking, and you can't just pass something in that
-             supports all the operations you want to do'''
+             type checking for object methods, and you can't just pass
+             something in that supports all the operations of the base object'''
         if sprite != None: self = sprite
         self.country = country
         self.name = COUNTRIES[country.id]
@@ -46,20 +47,32 @@ class CountryDisplay(pygame.sprite.Sprite):
         self.token = font.render(str(self.country.armies), True, black)
 
     def handle_observation(self, c, field, old, new):
+        global dirty
         if field == 'armies':
             self.render_token()
+            dirty = True
         else: # field == 'owner'
             self.set_selected(self.selected)
 
     def set_selected(self, selected):
+        global dirty
+        dirty = True
         self.selected = selected
         color = PLAYER_COLORS[self.country.owner]
         if selected:
-           color = (255 - color[0], 255 - color[1], 255 - color[2])
-        for s in self.sprites:
-            c = pygame.surfarray.pixels3d(s.image)
-            c[::] = color
-            del c
+            reverse = (255 - color[0], 255 - color[1], 255 - color[2])
+            for s in self.sprites:
+                c = pygame.surfarray.pixels3d(s.image)
+                #c[1::2,1::2] = (0,0,0)
+                c[::] = (0,0,0)
+                c[ ::2, ::2] = color
+                c[1::4,1::4] = color
+                del c
+        else:
+            for s in self.sprites:
+                c = pygame.surfarray.pixels3d(s.image)
+                c[::] = color
+                del c
 
     def update(self, screen):
         for s in self.sprites:
@@ -77,26 +90,41 @@ class CountryGroup(pygame.sprite.RenderPlain):
                     return s
         return None
 
-class Status(pygame.sprite.Sprite):
+class Status:
     def __init__(self, client):
         client.add_observer(self, ['players','state','reserve'])
+        client.set_status(self)
+        self.client = client
         self.handle_observation(client, None, None, None)
+        self.players = []
+        self.update_players()
 
     def handle_observation(self, c, field, old, new):
+        global dirty
         self.image = big.render("%s\n %i armies in reserve " % (c.state, c.reserve), True, black, PLAYER_COLORS[c.player_id])
         self.rect = self.image.get_rect().move(250,300)
+        dirty = True
 
     def draw(self, screen):
         screen.blit(self.image, self.rect)
+        for s in self.players:
+            screen.blit(s.image, s.rect)
 
-class Player(pygame.sprite.Sprite):
-    def __init__(self, id, group):
-        pygame.sprite.Sprite.__init__(self, group)
-        self.id = id
-        self.image = font.render("Player %i" % id, True, PLAYER_COLORS[id])
-        self.rect = self.image.get_rect()
-        scr_rect = pygame.display.get_surface().get_rect()
-        self.rect.topleft = (20, scr_rect.bottom - (20 * (id + 1)))
+    def update_players(self):
+        self.client.sock.send("/players")
+
+    def add_player(self, cmd):
+        global dirty
+        if len(self.players) < self.client.players:
+            dirty = True
+            sprite = pygame.sprite.Sprite()
+            self.players.append(sprite)
+            id = len(self.players)
+            sprite.id = id
+            sprite.image = font.render("Player %i" % id, True, PLAYER_COLORS[id-1])
+            sprite.rect = self.image.get_rect()
+            scr_rect = pygame.display.get_surface().get_rect()
+            sprite.rect.topleft = (20, scr_rect.bottom - (20 * (id + 1)))
 
 class Picker:
     def __init__(self, screen_size):
@@ -128,6 +156,8 @@ class Picker:
             self.group.draw(screen)
             
     def activate(self, pos, armies):
+        global dirty
+        dirty = True
         self.active = True
         self.scale.rect.topleft = pos
         self.scale.rect.clamp_ip(self.screen_size)
@@ -135,7 +165,10 @@ class Picker:
         self.render_range()
 
     def deactivate(self):
-        self.active = False
+        global dirty
+        if self.active:
+            self.active = False
+            dirty = True
 
     def armies_chosen(self, point):
         if self.active:
@@ -156,10 +189,8 @@ class SpeedRiskUI:
         self.fg = pygame.color.Color('white')
         self.bg = pygame.color.Color('black')
         self.client = Client()
-        for i in range(self.client.players):
-            Player(i,players)
-        self.client.add_observer(self, ['players'])
         self.status = Status(self.client)
+        self.client.add_observer(self, ['players'])
         self.load_images()
         self.picker = Picker(ss)
         self.selected_country = None
@@ -179,7 +210,8 @@ class SpeedRiskUI:
                 while reading:
                     (reading, action) = self.client.recv_command()
                     if reading:
-                        print action
+                        if action != None:
+                            print action
                         if action == 'UPDATE':
                             if self.selected_country != None:
                                 if self.selected_country.country.owner \
@@ -211,13 +243,16 @@ class SpeedRiskUI:
                         int(x), int(y), int(lx), int(ly), obj)
 
     def draw_screen(self):
+        global dirty
         #self.screen.fill(self.bg)
-        self.screen.blit(self.background,(0,0))
-        self.overlays.update(self.screen)
-        players.draw(self.screen)
-        self.status.draw(self.screen)
-        self.picker.draw(self.screen)
-        pygame.display.flip()
+        if dirty:
+            self.screen.blit(self.background,(0,0))
+            self.overlays.update(self.screen)
+            players.draw(self.screen)
+            self.status.draw(self.screen)
+            self.picker.draw(self.screen)
+            pygame.display.flip()
+            dirty = False
 
     def handle_user_events(self):
         for event in pygame.event.get():
@@ -292,7 +327,7 @@ class SpeedRiskUI:
 
     def handle_observation(self, c, field, old, new):
         #if field == 'players':
-            Player(old, players)
+            self.status.update_players()
 
 if __name__ == "__main__":
     pygame.init()

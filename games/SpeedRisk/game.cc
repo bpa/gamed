@@ -7,8 +7,6 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-#define SR_GENERATION_PERIOD 30
-
 SR_Command msg_command;
 SR_Country msg_country;
 SR_Error   msg_error;
@@ -99,28 +97,35 @@ void produce_armies(Game *game) {
 }
 
 void init_board(Game *game) {
-    int c, i, armies, player;
+    int c, i, armies, player, pass;
+    int playing = game->playing;
     SpeedRiskData *board = (SpeedRiskData*)game->data;
     SR_Game_Status *status = &board->status;
-    armies = int(SR_NUM_COUNRIES / game->playing);
-    if (SR_NUM_COUNRIES % game->playing != 0) armies++;
-    for (i=0; i < game->playing; i++) {
+    armies = int(SR_NUM_COUNRIES / playing);
+    if (SR_NUM_COUNRIES % playing != 0) armies++;
+    for (i=0; i < playing; i++) {
         board->players[i].ready = false;
         board->players[i].armies = armies;
         board->players[i].countries_held = 0;
     }
     for (c=0; c < SR_NUM_COUNRIES; c++) {
+        player = c % playing;
         status->countries[c].country = c;
         status->countries[c].armies = 1;
-        do {
-            player = get_random(game->playing);
-        }
-        while (board->players[player].armies == 0);
         board->players[player].armies--;
         board->players[player].countries_held++;
         status->countries[c].owner = player;
     }
-    for (i=0; i < game->playing; i++) {
+    for (pass=0; pass < 2; pass++) {
+        for (c=0; c < SR_NUM_COUNRIES; c++) {
+            i = get_random(SR_NUM_COUNRIES);
+            player = status->countries[c].owner;
+            status->countries[c].owner = status->countries[i].owner;
+            status->countries[i].owner = player;
+        }
+    }
+    for (i=0; i < playing; i++) {
+        board->players[i].armies *= 2;
         board->players[i].armies += SR_STARTING_ARMIES;
         player_cmd_a(board->players[i].player, SR_CMD_GET_ARMIES, 
             board->players[i].armies);
@@ -174,7 +179,7 @@ bool player_join (Game *g, Player *p) {
     }
     SpeedRiskData *board = (SpeedRiskData*)g->data;
     if (board->state == SR_WAITING_FOR_PLAYERS) {
-        if (g->playing < 5) {
+        if (g->playing < SR_MAX_PLAYERS) {
             LIST_INSERT_HEAD(&g->players, p, players);
             p->in_game_id = g->playing;
             board->players[g->playing].player = p;

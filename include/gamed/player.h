@@ -9,6 +9,7 @@ typedef struct st_player_list_head PlayerList;
 
 struct st_player {
     LIST_ENTRY(st_player) players;
+    char name[16];
     int sock;
     int in_game_id;
 };

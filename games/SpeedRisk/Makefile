@@ -1,21 +1,23 @@
 .SUFFIXES:
-.SUFFIXES: .so .cc
+.SUFFIXES: .so .cc .o
 SOFLAGS = -shared -Wl,-x
-CFLAGS = -Wall
+CFLAGS = -Wall -g
 LIBS = -L/usr/local/lib -levent
-CC = g++
+OBJS = borders.o game.o
+INC = -I.. -I../../include -I/usr/local/include
+CC = gcc
 
-run: tests
+run: tests libgame.so
 
 tests:
 	@make -C test
 
-.cc.so:
-	$(CC) $(CFLAGS) $(SOFLAGS) $(INC) $< -o $@ -Wl,-soname,$@
-	cp $@ ../../lib
+libgame.so: $(OBJS)
+	$(CC) $(CFLAGS) $(SOFLAGS) $(INC) $(OBJS) -o libgame.so -Wl,-soname,libgame.so
+	cp libgame.so ../../lib
 
 .cc.o:
-	$(CC) $(CFLAGS) $(INC) $< -o $@
+	$(CC) $(CFLAGS) $(INC) $< -c -o $@
 
 clean:
 	rm -f *.o *.so

@@ -65,7 +65,7 @@ public:
         for (i=0; i<4; i++) {
             surplus = ((SR_Command*)&mock_plr_buff[i])->armies;
             if (surplus != base) {
-                TS_ASSERT_EQUALS(base+1, surplus);
+                TS_ASSERT_EQUALS(base+2, surplus);
             }
         }
 
@@ -84,11 +84,13 @@ public:
             }
             TS_ASSERT(srd->players[i].countries_held >= 10);
             TS_ASSERT(srd->players[i].countries_held <= 11);
-            TS_ASSERT(srd->players[i].armies < base + 2);
+            if (srd->players[i].armies != base) {
+                TS_ASSERT_EQUALS(base + 2, srd->players[i].armies);
+            }
             TS_ASSERT_EQUALS(false, srd->players[i].ready);
             left_to_place += srd->players[i].armies;
         }
-        TS_ASSERT_EQUALS(2 + game.playing * SR_STARTING_ARMIES, left_to_place);
+        TS_ASSERT_EQUALS(4 + game.playing * SR_STARTING_ARMIES, left_to_place);
     }
 
     void place(Player *p, int c, int8_t armies) {

@@ -12,10 +12,6 @@
 class SpeedRiskJoiningTest: public CxxTest::TestSuite {
 public:
 
-    SpeedRiskJoiningTest() {
-        srd = (SpeedRiskData*)game.data;
-    }
-
 	void setUp()    {
         game.playing = 0;
         game_init (&game);
@@ -27,6 +23,7 @@ public:
 
 	void tearDown() {
         free(game.data);
+        game.data = NULL;
     }
 
     void simple_command_all_test(Player *player, int command, int exp) {
@@ -102,6 +99,22 @@ public:
         simple_command_all_test(&p1, SR_CMD_READY, SR_CMD_READY);
         TS_ASSERT_EQUALS(SR_WAITING_FOR_PLAYERS, srd->state);
         simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
+        all_res = (SR_Command*)&mock_all_buff[1];
+        TS_ASSERT_EQUALS(SR_CMD_START_PLACING, all_res->command);
+        TS_ASSERT_EQUALS(SR_PLACING, srd->state);
+    }
+
+    void test_max_players() {
+        int i;
+        Player players[SR_MAX_PLAYERS];
+        for (i=0; i<SR_MAX_PLAYERS; i++) {
+            TS_ASSERT(player_join(&game, &players[i]));
+            TS_ASSERT_EQUALS(i+1, game.playing);
+        }
+        TS_ASSERT_EQUALS(SR_WAITING_FOR_PLAYERS, srd->state);
+        for (i=0; i<SR_MAX_PLAYERS; i++) {
+            simple_command_all_test(&players[i], SR_CMD_READY, SR_CMD_READY);
+        }
         all_res = (SR_Command*)&mock_all_buff[1];
         TS_ASSERT_EQUALS(SR_CMD_START_PLACING, all_res->command);
         TS_ASSERT_EQUALS(SR_PLACING, srd->state);

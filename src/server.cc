@@ -19,6 +19,7 @@ using namespace Gamed;
 void handle_sig_hup(int sock, short event, void *args);
 void handle_connect(int sock, short event, void *args);
 void handle_network_event(int sock, short event, void *args);
+void handle_command(Client *, int len);
 void handle_timer(int sock, short event, void *args);
 struct event ev_connection;
 struct event ev_sig_hup;
@@ -126,7 +127,12 @@ void handle_network_event(int sock, short event, void *args) {
     Client *client = (Client*)args;
     r = recv(sock, buff, 1024,0);
     if (r > 0) {
-        handle_request(client->game, &client->player, &buff[0], r);
+        if (buff[0] == '/') {
+            handle_command(client, r);
+        }
+        else {
+            handle_request(client->game, &client->player, &buff[0], r);
+        }
     }
     else {
         shutdown(sock, SHUT_RDWR);
@@ -146,6 +152,38 @@ void handle_network_event(int sock, short event, void *args) {
 }
 /******************************************************************************/
 
+void handle_command(Client *client, int len) {
+    Player *plr;
+    uint16_t buff_len;
+    uint16_t *ptr_len = (uint16_t*)&buff[2];
+    if (strncmp("/name ", &buff[0], 6) == 0) {
+        strncpy(client->player.name, &buff[6], 16);
+        client->player.name[15] = '\0';
+        client->player.name[len-6] = '\0';
+        memset(&buff[0], 0, 4);
+        buff_len = sprintf(&buff[4], "rename %i %s",
+             client->player.in_game_id, &client->player.name[0]);
+        *ptr_len = htons(buff_len);
+        tell_all(client->game, &buff[0], buff_len+4);
+        printf("bl: %i %s\n", buff_len, &buff[4]);
+        return;
+    }
+    if (strncmp("/players", &buff[0], 8) == 0) {
+        memset(&buff[0], 0, 4);
+        buff_len = 4;
+        buff_len += sprintf(&buff[4], "players");
+        LIST_FOREACH(plr, &client->game->players, players) {
+            buff_len += sprintf(&buff[buff_len], ":%i %s",
+                 plr->in_game_id, &plr->name[0]);
+        }
+        buff_len -= 4;
+        *ptr_len = htons(buff_len);
+        printf("bl: %i %s\n", buff_len, &buff[4]);
+        tell_all(client->game, &buff[0], buff_len+4);
+        return;
+    }
+}
+/******************************************************************************/
 void tell_player (Player *p, const char *msg, size_t len) {
     if (send(p->sock, msg, len, MSG_NOSIGNAL) == -1) {
         /* No current recourse */
