@@ -77,6 +77,7 @@ class CountryDisplay(pygame.sprite.Sprite):
                 c = pygame.surfarray.pixels3d(s.image)
                 c[::] = color
                 del c
+
     def set_selected2d(self, selected):
         global dirty
         dirty = True
@@ -92,7 +93,7 @@ class CountryDisplay(pygame.sprite.Sprite):
                 del c
         else:
             for s in self.sprites:
-                c = pygame.surfarray.pixels3d(s.image)
+                c = pygame.surfarray.pixels2d(s.image)
                 c[::] = color
                 del c
 
