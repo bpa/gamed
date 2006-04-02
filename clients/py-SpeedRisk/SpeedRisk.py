@@ -84,7 +84,7 @@ class CountryDisplay(pygame.sprite.Sprite):
         color = PLAYER_COLORS[self.country.owner]
         if selected:
             for s in self.sprites:
-                c = pygame.surfarray.pixels3d(s.image)
+                c = pygame.surfarray.pixels2d(s.image)
                 #c[1::2,1::2] = (0,0,0)
                 c[::] = 0
                 c[ ::2, ::2] = color
