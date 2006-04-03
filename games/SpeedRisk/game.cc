@@ -173,7 +173,9 @@ void player_quit   (Game *g, Player *p);
 void handle_request(Game *g, Player *p, char *, int len);
 
 bool player_join (Game *g, Player *p) {
+    int id;
     Player *plr;
+    SR_Player *sr_player;
     LIST_FOREACH(plr, &g->players, players) {
         if (plr == p) return false;
     }
@@ -188,6 +190,16 @@ bool player_join (Game *g, Player *p) {
             g->playing++;
             
             all_cmd_f(g, SR_CMD_PLAYER_JOIN, p->in_game_id);
+            LIST_FOREACH(plr, &g->players, players) {
+                id = plr->in_game_id;
+                sr_player = &board->players[id];
+                if (sr_player->ready) {
+                    player_cmd_f(p, SR_CMD_READY, id);
+                }
+                else {
+                    player_cmd_f(p, SR_CMD_NOTREADY, id);
+                }
+            }
             return true;
         }
     }
@@ -219,8 +231,8 @@ void handle_request (Game *game, Player *p, char *req, int len) {
         case SR_WAITING_FOR_PLAYERS:
             switch (cmd->command) {
                 case SR_CMD_READY:
-                    srd->players[p->in_game_id].ready = true;
                     if (game->playing > 1) {
+                        srd->players[p->in_game_id].ready = true;
                         all_cmd_f(game, SR_CMD_READY, p->in_game_id);
                         all_ready = true;
                         for (i=0; i< game->playing; i++) {
@@ -240,9 +252,7 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                     break;
                 case SR_CMD_NOTREADY:
                     srd->players[p->in_game_id].ready = false;
-                    msg_command.command = SR_CMD_NOTREADY;
-                    msg_command.from = p->in_game_id;
-                    tell_all(game,(char*)&msg_command,4);
+                    all_cmd_f(game, SR_CMD_NOTREADY, p->in_game_id);
                     break;
                 default:
                     player_error(p, SR_ERR_INVALID_CMD);

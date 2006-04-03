@@ -60,7 +60,6 @@ class Client(Observable):
         command = command.replace(' ', '_').upper()
         if (self.command_map.has_key(command)):
             cmd = self.command_map[command]
-            print command
         else:
             raise RuntimeError("Unrecognized command: %s" % command)
         packet = pack(">4b", cmd, f, t, armies)
@@ -107,17 +106,27 @@ class Client(Observable):
                 self.countries[ord(msg[0])].update(msg)
             self.sock.setblocking(0)
             return (True, 'UPDATE')
+        elif (c == self.command_map['READY']):
+            self.status.set_ready(cmd_from(cmd), True)
+            return (True, 'READY')
         elif (c == self.command_map['PLAYER_JOIN']):
             self.players = self.players + 1
             return (True, 'PLAYER_JOIN')
         elif (c == self.command_map['START_PLACING']):
+            for p in range(self.players):
+                self.status.set_ready(p, False)
             self.state = "Placing Armies"
         elif (c == self.command_map['BEGIN']):
+            for p in range(self.players):
+                self.status.set_ready(p, False)
             self.state = "At war"
+        elif (c == self.command_map['DEFEAT']):
+            self.status.players[cmd_from(cmd)].set_result(False)
+            self.status.redraw()
         elif (c == self.command_map['VICTORY']):
+            self.status.players[cmd_from(cmd)].set_result(True)
             self.state = "Game Over"
-        else:
-            return (True, COMMANDS[c])
+        return (True, COMMANDS[c])
 
 class Country(Observable):
     def __init__(self, cmd):

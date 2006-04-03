@@ -161,7 +161,7 @@ void handle_command(Client *client, int len) {
         client->player.name[15] = '\0';
         client->player.name[len-6] = '\0';
         memset(&buff[0], 0, 4);
-        buff_len = sprintf(&buff[4], "rename %i %s",
+        buff_len = sprintf(&buff[4], "rename:%i:%s",
              client->player.in_game_id, &client->player.name[0]);
         *ptr_len = htons(buff_len);
         tell_all(client->game, &buff[0], buff_len+4);
@@ -173,7 +173,7 @@ void handle_command(Client *client, int len) {
         buff_len = 4;
         buff_len += sprintf(&buff[4], "players");
         LIST_FOREACH(plr, &client->game->players, players) {
-            buff_len += sprintf(&buff[buff_len], ":%i %s",
+            buff_len += sprintf(&buff[buff_len], ":%i:%s",
                  plr->in_game_id, &plr->name[0]);
         }
         buff_len -= 4;

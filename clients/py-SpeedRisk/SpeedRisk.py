@@ -19,10 +19,10 @@ PLAYER_COLORS = (color['darkolivegreen'][:-1],
 
 class CountryDisplay(pygame.sprite.Sprite):
     def __init__(self, group, img, x, y, lx, ly, country):
-        if pygame.display.Info().bitsize == 32:
-            self.set_selected = self.set_selected3d
+        if pygame.display.Info().bitsize % 16 == 0:
+            self.pixels = pygame.surfarray.pixels3d
         else:
-            self.set_selected = self.set_selected2d
+            self.pixels = pygame.surfarray.pixels2d
         pygame.sprite.Sprite.__init__(self, group)
         self.sprites = [self]
         self.setup(img, x, y, lx, ly, country, False)
@@ -58,7 +58,7 @@ class CountryDisplay(pygame.sprite.Sprite):
         else: # field == 'owner'
             self.set_selected(self.selected)
 
-    def set_selected3d(self, selected):
+    def set_selected(self, selected):
         global dirty
         dirty = True
         self.selected = selected
@@ -66,7 +66,7 @@ class CountryDisplay(pygame.sprite.Sprite):
         if selected:
             reverse = (255 - color[0], 255 - color[1], 255 - color[2])
             for s in self.sprites:
-                c = pygame.surfarray.pixels3d(s.image)
+                c = self.pixels(s.image)
                 #c[1::2,1::2] = (0,0,0)
                 c[::] = (0,0,0)
                 c[ ::2, ::2] = color
@@ -74,26 +74,7 @@ class CountryDisplay(pygame.sprite.Sprite):
                 del c
         else:
             for s in self.sprites:
-                c = pygame.surfarray.pixels3d(s.image)
-                c[::] = color
-                del c
-
-    def set_selected2d(self, selected):
-        global dirty
-        dirty = True
-        self.selected = selected
-        color = PLAYER_COLORS[self.country.owner]
-        if selected:
-            for s in self.sprites:
-                c = pygame.surfarray.pixels2d(s.image)
-                #c[1::2,1::2] = (0,0,0)
-                c[::] = 0
-                c[ ::2, ::2] = color
-                c[1::4,1::4] = color
-                del c
-        else:
-            for s in self.sprites:
-                c = pygame.surfarray.pixels2d(s.image)
+                c = self.pixels(s.image)
                 c[::] = color
                 del c
 
@@ -113,41 +94,154 @@ class CountryGroup(pygame.sprite.RenderPlain):
                     return s
         return None
 
+class Player:
+    def __init__(self, id, font):
+        self.id = id
+        self.font = font
+        self.rect = pygame.Rect(0,0,1,1)
+        self.set_name("Player %i" % id)
+        self.ready = False
+        self.result = None
+        self.status = font.render(' ', True, (0,0,0))
+
+    def set_name(self, name):
+        self.name = name
+        self.rect.size = self.font.size(self.name)
+
+    def set_ready(self, ready):
+        self.ready = ready
+        if ready:
+            self.status = self.font.render('R', True, (0,0,0))
+        else:
+            self.status = self.font.render(' ', True, (0,0,0))
+        
+    def set_result(self, result):
+        '''Win(True) or lose(False)'''
+        self.result = result
+        if result:
+            self.status = font.render('V', True, (0,0,0))
+        else:
+            self.status = font.render('D', True, (0,0,0))
+            
 class Status:
     def __init__(self, client):
+        self.players = []
+        self.font = pygame.font.Font(None, 24)
+        self.background_rect = pygame.Rect(0,0,1,1)
         client.add_observer(self, ['players','state','reserve'])
         client.set_status(self)
         self.client = client
+        self.status = "Waiting for players"
+        self.status_rect = pygame.Rect(0,0,10,10)
+        self.armies = "0 in reserve"
+        self.armies_rect = pygame.Rect(0,0,10,10)
+        self.handle_observation(client, 'state', None, None)
         self.handle_observation(client, None, None, None)
-        self.players = []
+        self.add_player('start')
         self.update_players()
 
     def handle_observation(self, c, field, old, new):
+        if field == 'state':
+            self.status_rect.size = self.font.size(c.state)
+        else:
+            self.armies = "%i armies in reserve" % c.reserve
+            self.armies_rect.size = self.font.size(self.armies)
+        self.realign()
+        self.redraw()
+
+    def realign(self):
         global dirty
-        self.image = big.render("%s\n %i armies in reserve " % (c.state, c.reserve), True, black, PLAYER_COLORS[c.player_id])
-        self.rect = self.image.get_rect().move(250,300)
         dirty = True
 
+        pad = self.font.get_linesize()
+        bottom = pygame.display.get_surface().get_rect().bottom - pad
+
+        players = len(self.players)
+        pad = self.font.get_linesize()
+        width = max(self.status_rect.width, self.armies_rect.width)
+        width = width + int(pad * 0.25)
+        for p in self.players:
+            width = max(width, pad + p.rect.width)
+        height = pad * ( 2 + players )
+
+        if (self.background_rect.size != (width, height)):
+            self.background = pygame.Surface((width, height))
+            self.background_rect = self.background.get_rect()
+        bg = self.background_rect
+        bg.bottomleft = (pad, bottom)
+
+        y = 0
+        for p in self.players:
+            p.rect.size = (width - pad, pad)
+            p.rect.topleft = (pad, y)
+            y = y + pad
+
+        self.status_rect.centerx = bg.centerx - bg.left
+        self.status_rect.centery = bg.height - pad * 1.5
+        self.armies_rect.centerx = bg.centerx - bg.left
+        self.armies_rect.centery = bg.height - pad * 0.5
+        
     def draw(self, screen):
-        screen.blit(self.image, self.rect)
-        for s in self.players:
-            screen.blit(s.image, s.rect)
+        screen.blit(self.background, self.background_rect)
+
+    def redraw(self):
+        global dirty
+        dirty = True
+        line = pygame.draw.line
+        rect = pygame.draw.rect
+        pad = self.font.get_linesize()
+        (right, bottom) = self.background_rect.size
+        color = PLAYER_COLORS[self.client.player_id]
+        players = len(self.players)
+        bg = self.background
+        white = (255,255,255)
+
+        bg.fill(color)
+        y = 0
+        x = pad * 1.25
+        for p in self.players:
+            rect(bg, PLAYER_COLORS[p.id], p.rect)
+            name = self.font.render(p.name, True, black)
+            bg.blit(name, (x, y))
+            r = p.status.get_rect()
+            r.midtop = (pad/2, y)
+            bg.blit(p.status, r)
+            y = y + pad
+        y = 0
+        for l in range(2 + players):
+            line(bg, black, (0, y), (right, y))
+            y = y + pad
+        line(bg, black, (0, y-1), (right, y-1))
+        line(bg, black, (0, 0), (0, bottom))
+        line(bg, black, (right-1, 0), (right-1, bottom))
+        line(bg, black, (pad, 0), (pad, players*pad))
+        text = self.font.render(self.client.state, True, black)
+        bg.blit(text, self.status_rect)
+        text = self.font.render(self.armies, True, black)
+        bg.blit(text, self.armies_rect)
+
+    def set_ready(self, player, ready):
+        global dirty
+        if self.players[player].ready != ready:
+            self.players[player].set_ready(ready)
+            self.redraw()
+            dirty = True
 
     def update_players(self):
+        '''Bad me, breaking encapsulation, this will be fixed in refactor'''
         self.client.sock.send("/players")
 
     def add_player(self, cmd):
-        global dirty
-        if len(self.players) < self.client.players:
-            dirty = True
-            sprite = pygame.sprite.Sprite()
-            self.players.append(sprite)
-            id = len(self.players)
-            sprite.id = id
-            sprite.image = font.render("Player %i" % id, True, PLAYER_COLORS[id-1])
-            sprite.rect = self.image.get_rect()
-            scr_rect = pygame.display.get_surface().get_rect()
-            sprite.rect.topleft = (20, scr_rect.bottom - (20 * (id + 1)))
+        while len(self.players) < self.client.players:
+            self.players.append(Player(len(self.players), self.font))
+        names = cmd.split(':')
+        names.pop(0)
+        while len(names) > 0:
+            id = int(names.pop(0))
+            name = names.pop(0)
+            self.players[id].set_name(name)
+        self.realign()
+        self.redraw()
 
 class Picker:
     def __init__(self, screen_size):
@@ -233,8 +327,6 @@ class SpeedRiskUI:
                 while reading:
                     (reading, action) = self.client.recv_command()
                     if reading:
-                        if action != None:
-                            print action
                         if action == 'UPDATE':
                             if self.selected_country != None:
                                 if self.selected_country.country.owner \
@@ -355,7 +447,6 @@ class SpeedRiskUI:
 if __name__ == "__main__":
     pygame.init()
     font = pygame.font.Font(None, 20)
-    big = pygame.font.Font(None, 40)
     black = pygame.color.Color('black')
     players = pygame.sprite.RenderPlain()
     ui = SpeedRiskUI()
