@@ -28,7 +28,8 @@ def cmd_to(cmd):     return ord(cmd[2])
 def cmd_armies(cmd): return ord(cmd[3])
 
 class Client(Observable):
-    def __init__(self):
+    def __init__(self, ui):
+        self.ui = ui
         config = RawConfigParser()
         cnf_file = open("config.ini")
         config.readfp(cnf_file)
@@ -86,7 +87,13 @@ class Client(Observable):
             msg = self.sock.recv(4)
             self.countries[ord(msg[0])].update(msg)
             msg = self.sock.recv(4)
-            self.countries[ord(msg[0])].update(msg)
+            cid = int(ord(msg[0]))
+            new_owner = ord(msg[1])
+            old_owner = self.countries[cid].owner
+            self.countries[cid].update(msg)
+            if new_owner != old_owner:
+                if new_owner == self.player_id:
+                    self.ui.finish_attack(cid)
             self.sock.setblocking(0)
             return (True, 'UPDATE')
         elif (c == self.command_map['GET_ARMIES']):

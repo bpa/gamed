@@ -305,7 +305,7 @@ class SpeedRiskUI:
         self.clock = pygame.time.Clock()
         self.fg = pygame.color.Color('white')
         self.bg = pygame.color.Color('black')
-        self.client = Client()
+        self.client = Client(self)
         self.status = Status(self.client)
         self.client.add_observer(self, ['players'])
         self.load_images()
@@ -381,6 +381,7 @@ class SpeedRiskUI:
                     self.client.send_command('READY')
             elif event.type == MOUSEBUTTONDOWN:
                 if event.button == 1:
+                    self.last_click_pos = event.pos
                     chosen = self.picker.armies_chosen(event.pos)
                     if chosen > 0:
                         self.client.send_command(self.action, self.action_from, 
@@ -443,6 +444,15 @@ class SpeedRiskUI:
     def handle_observation(self, c, field, old, new):
         #if field == 'players':
             self.status.update_players()
+
+    def finish_attack(self, cid):
+        c = self.overlay_info[cid]
+        if self.selected_country != None:
+            if borders(self.selected_country, c):
+                self.init_move_or_attack(self.last_click_pos,c)
+                self.selected_country.set_selected(False)
+                self.selected_country = c
+                c.set_selected(True)
 
 if __name__ == "__main__":
     pygame.init()

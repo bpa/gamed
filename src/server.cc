@@ -114,10 +114,15 @@ void handle_connect(int listener, short event, void *args) {
     */
     client->game = &game;
     client->player.sock = sock;
-    player_join(client->game, &client->player);
-    event_set((struct event*)&client->ev, sock, EV_READ | EV_PERSIST,
-        &handle_network_event, client);
-    event_add((struct event*)&client->ev,NULL);
+    if (player_join(client->game, &client->player)) {
+        event_set((struct event*)&client->ev, sock, EV_READ | EV_PERSIST,
+            &handle_network_event, client);
+        event_add((struct event*)&client->ev,NULL);
+    }
+    else {
+        close(sock);
+        free(client);
+    }
 }
 
 /******************************************************************************/
