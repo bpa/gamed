@@ -64,7 +64,7 @@ class Client(Observable):
         else:
             raise RuntimeError("Unrecognized command: %s" % command)
         packet = pack(">4b", cmd, f, t, armies)
-        self.sock.send(packet, 4)
+        self.sock.send(packet)
 
     def recv_command(self):
         try:

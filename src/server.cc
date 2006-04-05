@@ -11,6 +11,7 @@
 #include <string.h>
 #include <strings.h>
 #include <unistd.h>
+#include <syslog.h>
 #include <sysexits.h>
 #include <gamed/server.h>
 #include <gamed/player.h>
@@ -36,6 +37,7 @@ long get_random(long max) {
 /******************************************************************************/
 
 Gamed::Server::Server() {
+  openlog("gamed", NULL, LOG_USER);
   event_init();
   initstate(time(NULL), &rand_state[0],8);
   bzero(&game, sizeof(Game));

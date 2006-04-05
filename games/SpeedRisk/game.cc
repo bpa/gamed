@@ -4,6 +4,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <syslog.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 
@@ -99,6 +100,7 @@ void produce_armies(Game *game) {
 void init_board(Game *game) {
     int c, i, armies, player, pass;
     int playing = game->playing;
+    Player *plr;
     SpeedRiskData *board = (SpeedRiskData*)game->data;
     SR_Game_Status *status = &board->status;
     armies = int(SR_NUM_COUNRIES / playing);
@@ -130,6 +132,11 @@ void init_board(Game *game) {
         player_cmd_a(board->players[i].player, SR_CMD_GET_ARMIES, 
             board->players[i].armies);
     }
+    syslog(LOG_INFO, "Starting SpeedRisk");
+    LIST_FOREACH(plr, &game->players, players) {
+        syslog(LOG_INFO, "Player: %s", plr->name);
+    }
+    syslog(LOG_INFO, "Countries assigned");
 }
 
 void give_game_status(Game *game, Player *p=NULL) {
@@ -373,10 +380,13 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                             cmd->from, cmd->to);
                         if (srd->players[defender].countries_held == 0) {
                             all_cmd_f(game, SR_CMD_DEFEAT, defender);
+                            syslog(LOG_INFO, "%s defeated", srd->players[defender].player->name);
                         }
                         if (srd->players[p->in_game_id].countries_held == 42) {
                             all_cmd_f(game, SR_CMD_VICTORY, p->in_game_id);
                             srd->state = SR_DONE;
+                            syslog(LOG_INFO, "%s victorious", p->name);
+                            closelog();
                         }
                     }
                     break;
