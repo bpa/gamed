@@ -132,11 +132,6 @@ void init_board(Game *game) {
         player_cmd_a(board->players[i].player, SR_CMD_GET_ARMIES, 
             board->players[i].armies);
     }
-    syslog(LOG_INFO, "Starting SpeedRisk");
-    LIST_FOREACH(plr, &game->players, players) {
-        syslog(LOG_INFO, "Player: %s", plr->name);
-    }
-    syslog(LOG_INFO, "Countries assigned");
 }
 
 void give_game_status(Game *game, Player *p=NULL) {
@@ -282,6 +277,7 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                         period.tv_sec = SR_GENERATION_PERIOD;
                         period.tv_usec = 0;
                         add_timer(game, &period, true);
+                        syslog(LOG_INFO, "Starting SpeedRisk");
                     }
                     break;
                 case SR_CMD_NOTREADY:
