@@ -8,10 +8,10 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 
-SR_Command msg_command;
-SR_Country msg_country;
-SR_Error   msg_error;
-SR_Move_Result msg_move;
+static SR_Command msg_command;
+static SR_Country msg_country;
+static SR_Error   msg_error;
+static SR_Move_Result msg_move;
 
 #define all_cmd_f(g, cmd, f) \
     msg_command.command = cmd; \

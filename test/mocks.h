@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <gamed/game.h>
+#include <gamed/cards.h>
 
 long next_rand[5];
 char rand_state[8];
@@ -76,6 +77,7 @@ void tell_all (Game *g, const char *msg, size_t len) {
     if (mock_all_pos==5) mock_all_pos = 0;
 }
 
+void shuffle   (Deck *) {}
 void add_timer (Game *g, struct timeval *tv, bool persistent) { }
 
 #endif
