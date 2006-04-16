@@ -43,6 +43,7 @@ typedef enum SR_COMMAND {
     SR_CMD_COUNTRY_STATUS,
     SR_CMD_DEFEAT,
     SR_CMD_VICTORY,
+    SR_CMD_PLAYER_QUIT,
 } SR_COMMAND;
 
 typedef struct {

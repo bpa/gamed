@@ -9,9 +9,10 @@
 #include <sys/socket.h>
 
 static SR_Command msg_command;
-static SR_Country msg_country;
+/* static SR_Country msg_country; */
 static SR_Error   msg_error;
 static SR_Move_Result msg_move;
+static int STARTING_ARMIES[] = { 0, 0, 26, 21, 19, 16, 13 };
 
 #define all_cmd_f(g, cmd, f) \
     msg_command.command = cmd; \
@@ -99,8 +100,7 @@ void produce_armies(Game *game) {
 
 void init_board(Game *game) {
     int c, i, armies, player, pass;
-    int playing = game->playing;
-    Player *plr;
+    int playing = game->playing == 2 ? 3 : game->playing;
     SpeedRiskData *board = (SpeedRiskData*)game->data;
     SR_Game_Status *status = &board->status;
     armies = int(SR_NUM_COUNRIES / playing);
@@ -126,9 +126,9 @@ void init_board(Game *game) {
             status->countries[i].owner = player;
         }
     }
-    for (i=0; i < playing; i++) {
+    for (i=0; i < game->playing; i++) {
         board->players[i].armies *= 2;
-        board->players[i].armies += SR_STARTING_ARMIES;
+        board->players[i].armies += STARTING_ARMIES[game->playing];
         player_cmd_a(board->players[i].player, SR_CMD_GET_ARMIES, 
             board->players[i].armies);
     }
@@ -163,6 +163,7 @@ void game_init (Game *g) {
     LIST_INIT(&(g->players));
     SpeedRiskData *data = (SpeedRiskData*)malloc(sizeof(SpeedRiskData));
     g->data = (char*)data;
+    bzero(g->data, sizeof(SpeedRiskData));
     data->status.command.command = SR_CMD_GAME_STATUS;
     g->playing = 0;
     msg_error.command = SR_CMD_ERROR;
@@ -174,25 +175,30 @@ bool player_join   (Game *g, Player *p);
 void player_quit   (Game *g, Player *p);
 void handle_request(Game *g, Player *p, char *, int len);
 
-bool player_join (Game *g, Player *p) {
+bool player_join (Game *game, Player *p) {
     int id;
     Player *plr;
     SR_Player *sr_player;
-    LIST_FOREACH(plr, &g->players, players) {
+    LIST_FOREACH(plr, &game->players, players) {
         if (plr == p) return false;
     }
-    SpeedRiskData *board = (SpeedRiskData*)g->data;
+    SpeedRiskData *board = (SpeedRiskData*)game->data;
     if (board->state == SR_WAITING_FOR_PLAYERS) {
-        if (g->playing < SR_MAX_PLAYERS) {
-            LIST_INSERT_HEAD(&g->players, p, players);
-            p->in_game_id = g->playing;
-            board->players[g->playing].player = p;
-            board->players[g->playing].ready = false;
-            board->players[g->playing].armies = 0;
-            g->playing++;
+        if (game->playing < SR_MAX_PLAYERS) {
+            LIST_INSERT_HEAD(&game->players, p, players);
+            for(id=0; id<SR_MAX_PLAYERS; id++) {
+                if (board->players[id].player == NULL) {
+                    p->in_game_id = id;
+                    break;
+                }
+            }
+            board->players[p->in_game_id].player = p;
+            board->players[p->in_game_id].ready = false;
+            board->players[p->in_game_id].armies = 0;
+            game->playing++;
             
-            all_cmd_f(g, SR_CMD_PLAYER_JOIN, p->in_game_id);
-            LIST_FOREACH(plr, &g->players, players) {
+            all_cmd_f(game, SR_CMD_PLAYER_JOIN, p->in_game_id);
+            LIST_FOREACH(plr, &game->players, players) {
                 id = plr->in_game_id;
                 sr_player = &board->players[id];
                 if (sr_player->ready) {
@@ -208,10 +214,15 @@ bool player_join (Game *g, Player *p) {
     return false;
 }
 
-void player_quit (Game *g, Player *p) {
-    printf("Player quit\n");
+void player_quit (Game *game, Player *p) {
+    SpeedRiskData *srd = (SpeedRiskData*)game->data;
     LIST_REMOVE(p, players);
-    g->playing--;
+    game->playing--;
+    all_cmd_f(game, SR_CMD_PLAYER_QUIT, p->in_game_id);
+    srd->players[p->in_game_id].player = NULL;
+    if (srd->state == SR_RUNNING) {
+        syslog(LOG_INFO, "%s dropped", p->name);
+    }
 }
 
 void handle_request (Game *game, Player *p, char *req, int len) {
@@ -376,7 +387,9 @@ void handle_request (Game *game, Player *p, char *req, int len) {
                             cmd->from, cmd->to);
                         if (srd->players[defender].countries_held == 0) {
                             all_cmd_f(game, SR_CMD_DEFEAT, defender);
-                            syslog(LOG_INFO, "%s defeated", srd->players[defender].player->name);
+                            if (srd->players[defender].player != NULL) {
+                                syslog(LOG_INFO, "%s defeated", srd->players[defender].player->name);
+                            }
                         }
                         if (srd->players[p->in_game_id].countries_held == 42) {
                             all_cmd_f(game, SR_CMD_VICTORY, p->in_game_id);

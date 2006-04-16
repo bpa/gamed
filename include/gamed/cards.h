@@ -8,7 +8,7 @@ typedef struct s_card {
 
 typedef struct s_deck {
     int cards;
-    char card;
+    unsigned char card;
 } Deck;
 
 void shuffle(Deck *);
@@ -26,5 +26,10 @@ void shuffle(Deck *);
     ((0xF0 & one & two) && (one & 0x0F > two & 0x0F))
 #define card_beats_w_trump(T, one, two) \
     (card_beats(one, two) || ( T & one && !(T & two)))
+
+#define has_card(deck, card, tmp, iterator) \
+    tmp = (unsigned char*)&deck->card; \
+    for(iterator=0; iterator<deck->cards; iterator++) { \
+        
 
 #endif

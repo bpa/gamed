@@ -3,23 +3,23 @@
 
 #include <gamed/player.h>
 
-#define DECKSIZE 14 * 4 + 1
+#define DECKSIZE 11 * 4 + 1
 typedef struct st_rook_player {
     Player *player;
     bool pass;
-    char hand[12    + sizeof(int)];
+    unsigned char hand[15    + sizeof(int)];
 } RookPlayer;
 
 typedef struct st_rook_gamet {
-    char deck   [DECKSIZE + sizeof(int)];
-    char discard[DECKSIZE + sizeof(int)];
-    char nest   [5        + sizeof(int)];
+    unsigned char deck   [DECKSIZE + sizeof(int)];
+    unsigned char discard[DECKSIZE + sizeof(int)];
+    unsigned char nest   [5        + sizeof(int)];
     int points  [2];
     int bidder;
     int passed;
     int state;
     int current_player;
-    char trump;
+    unsigned char trump;
     unsigned int bid;
     RookPlayer players[4];
 } Rook;
@@ -34,12 +34,14 @@ enum ROOK_STATES {
 
 enum ROOK_COMMANDS {
     ROOK_CMD_NOP = 0,
-    ROOK_CMD_ERROR = 0,
+    ROOK_CMD_ERROR,
     ROOK_CMD_PLAYER_JOIN,
     ROOK_CMD_BIDDING,
     ROOK_CMD_BID,
     ROOK_CMD_PASS,
     ROOK_CMD_PICKING_TRUMP,
+    ROOK_CMD_CHOOSE_TRUMP,
+    ROOK_CMD_CHOOSE_WIDOW,
     ROOK_CMD_DEAL_HAND,
     ROOK_CMD_PLAY_CARD,
     ROOK_CMD_TAKE_TRICK,
@@ -53,6 +55,8 @@ enum ROOK_ERRORS {
     ROOK_ERR_BID_TOO_LOW,
     ROOK_ERR_BID_TOO_HIGH,
     ROOK_ERR_NOT_YOUR_TURN,
+    ROOK_ERR_INVALID_TRUMP,
+    ROOK_ERR_TRUMP_CHOSEN,
     ROOK_ERR_INVALID_PLAY,
     ROOK_ERR_DONT_HOLD_CARD
 };
@@ -65,9 +69,9 @@ typedef struct {
 } RookCommand;
 
 typedef struct {
-    int command    :  8;
-    int error      :  8;
-    unsigned none  : 16;
+    int command :  8;
+    int error   :  8;
+    unsigned    : 16;
 } RookError;
 
 typedef struct {

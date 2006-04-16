@@ -22,6 +22,14 @@ public:
     }
 
 	void tearDown() {
+        Player *first, *next;
+        first = LIST_FIRST(&game.players);
+        while (first != NULL) {
+            next = LIST_NEXT(first, players);
+            LIST_REMOVE(first, players);
+            first = next;
+        }
+        game.playing = 0;
         free(game.data);
         game.data = NULL;
     }
@@ -102,6 +110,17 @@ public:
         all_res = (SR_Command*)&mock_all_buff[1];
         TS_ASSERT_EQUALS(SR_CMD_START_PLACING, all_res->command);
         TS_ASSERT_EQUALS(SR_PLACING, srd->state);
+    }
+
+    void test_drop_rejoin_out_of_order() {
+        TS_ASSERT(player_join(&game, &p1));
+        TS_ASSERT(player_join(&game, &p2));
+        TS_ASSERT(player_join(&game, &p3));
+        player_quit(&game, &p2);
+        TS_ASSERT_EQUALS(0, p1.in_game_id);
+        TS_ASSERT_EQUALS(2, p3.in_game_id);
+        TS_ASSERT(player_join(&game, &p2));
+        TS_ASSERT_EQUALS(1, p2.in_game_id);
     }
 
     void test_max_players() {

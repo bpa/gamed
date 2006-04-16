@@ -103,6 +103,7 @@ class Player:
         self.ready = False
         self.result = None
         self.status = font.render(' ', True, (0,0,0))
+        self.playing = False
 
     def set_name(self, name):
         self.name = name
@@ -125,8 +126,8 @@ class Player:
             
 class Status:
     def __init__(self, client):
-        self.players = []
         self.font = pygame.font.Font(None, 24)
+        self.players = map(lambda p: Player(p, self.font), range(6))
         self.background_rect = pygame.Rect(0,0,1,1)
         client.add_observer(self, ['players','state','reserve'])
         client.set_status(self)
@@ -137,7 +138,6 @@ class Status:
         self.armies_rect = pygame.Rect(0,0,10,10)
         self.handle_observation(client, 'state', None, None)
         self.handle_observation(client, None, None, None)
-        self.add_player('start')
         self.update_players()
 
     def handle_observation(self, c, field, old, new):
@@ -156,10 +156,10 @@ class Status:
         pad = self.font.get_linesize()
         bottom = pygame.display.get_surface().get_rect().bottom - pad
 
-        players = len(self.players)
         pad = self.font.get_linesize()
         width = max(self.status_rect.width, self.armies_rect.width)
         width = width + int(pad * 0.25)
+        players = sum(map(lambda p: p.playing, self.players))
         for p in self.players:
             width = max(width, pad + p.rect.width)
         height = pad * ( 2 + players )
@@ -174,7 +174,8 @@ class Status:
         for p in self.players:
             p.rect.size = (width - pad, pad)
             p.rect.topleft = (pad, y)
-            y = y + pad
+            if p.playing:
+                y = y + pad
 
         self.status_rect.centerx = bg.centerx - bg.left
         self.status_rect.centery = bg.height - pad * 1.5
@@ -192,7 +193,7 @@ class Status:
         pad = self.font.get_linesize()
         (right, bottom) = self.background_rect.size
         color = PLAYER_COLORS[self.client.player_id]
-        players = len(self.players)
+        players = self.client.players
         bg = self.background
         white = (255,255,255)
 
@@ -200,13 +201,14 @@ class Status:
         y = 0
         x = pad * 1.25
         for p in self.players:
-            rect(bg, PLAYER_COLORS[p.id], p.rect)
-            name = self.font.render(p.name, True, black)
-            bg.blit(name, (x, y))
-            r = p.status.get_rect()
-            r.midtop = (pad/2, y)
-            bg.blit(p.status, r)
-            y = y + pad
+            if p.playing:
+                rect(bg, PLAYER_COLORS[p.id], p.rect)
+                name = self.font.render(p.name, True, black)
+                bg.blit(name, (x, y))
+                r = p.status.get_rect()
+                r.midtop = (pad/2, y)
+                bg.blit(p.status, r)
+                y = y + pad
         y = 0
         for l in range(2 + players):
             line(bg, black, (0, y), (right, y))
@@ -231,15 +233,12 @@ class Status:
         '''Bad me, breaking encapsulation, this will be fixed in refactor'''
         self.client.sock.send("/players")
 
-    def add_player(self, cmd):
-        while len(self.players) < self.client.players:
-            self.players.append(Player(len(self.players), self.font))
-        names = cmd.split(':')
-        names.pop(0)
+    def add_player(self, names):
         while len(names) > 0:
             id = int(names.pop(0))
             name = names.pop(0)
             self.players[id].set_name(name)
+            self.players[id].playing = True
         self.realign()
         self.redraw()
 
@@ -443,6 +442,7 @@ class SpeedRiskUI:
 
     def handle_observation(self, c, field, old, new):
         #if field == 'players':
+        if old != new:
             self.status.update_players()
 
     def finish_attack(self, cid):

@@ -20,7 +20,28 @@ ERRORS = ['Invalid command','Not enough players', 'Not enough armies',
 COMMANDS = [ 'NOP', 'PLAYER_JOIN', 'MESSAGE', 'ERROR', 'READY', 'NOTREADY',
   'START_PLACING', 'BEGIN', 'MOVE', 'ATTACK', 'PLACE', 'GET_ARMIES',
   'ATTACK_RESULT', 'MOVE_RESULT', 'GAME_STATUS', 'PLAYER_STATUS',
-  'COUNTRY_STATUS', 'DEFEAT', 'VICTORY' ]
+  'COUNTRY_STATUS', 'DEFEAT', 'VICTORY', 'PLAYER_QUIT'] 
+
+NOP            =  0
+PLAYER_JOIN    =  1
+MESSAGE        =  2
+ERROR          =  3
+READY          =  4
+NOTREADY       =  5
+START_PLACING  =  6
+BEGIN          =  7
+MOVE           =  8
+ATTACK         =  9
+PLACE          = 10
+GET_ARMIES     = 11
+ATTACK_RESULT  = 12
+MOVE_RESULT    = 13
+GAME_STATUS    = 14
+PLAYER_STATUS  = 15
+COUNTRY_STATUS = 16
+DEFEAT         = 17
+VICTORY        = 18
+PLAYER_QUIT    = 19
 
 def cmd_cmd(cmd):    return ord(cmd[0])
 def cmd_from(cmd):   return ord(cmd[1])
@@ -73,16 +94,19 @@ class Client(Observable):
             return (False,None)
         c = cmd_cmd(cmd)
         if (c == 0):
-            (len,) = unpack(">xxH", cmd)
+            (msg_len,) = unpack(">xxH", cmd)
             self.sock.setblocking(1)
-            msg = self.sock.recv(len)
-            self.status.add_player(msg)
+            msg = self.sock.recv(msg_len)
+            names = msg.split(':')
+            names.pop(0)
+            self.players = len(names) / 2
+            self.status.add_player(names)
             self.sock.setblocking(0)
             return (True, None)
-        elif (c == self.command_map['ERROR']):
+        elif (c == ERROR):
             print ERRORS[ord(cmd[1])]
             return (True, None)
-        elif (c == 12 or c == 13):
+        elif (c == ATTACK_RESULT or c == MOVE_RESULT):
             self.sock.setblocking(1)
             msg = self.sock.recv(4)
             self.countries[ord(msg[0])].update(msg)
@@ -96,16 +120,16 @@ class Client(Observable):
                     self.ui.finish_attack(cid)
             self.sock.setblocking(0)
             return (True, 'UPDATE')
-        elif (c == self.command_map['GET_ARMIES']):
+        elif (c == GET_ARMIES):
             self.reserve = cmd_armies(cmd)
             return (True, 'GET_ARMIES')
-        elif (c == self.command_map['COUNTRY_STATUS']):
+        elif (c == COUNTRY_STATUS):
             self.sock.setblocking(1)
             msg = self.sock.recv(4)
             self.countries[ord(msg[0])].update(msg)
             self.sock.setblocking(0)
             return (True, 'UPDATE')
-        elif (c == self.command_map['GAME_STATUS']):
+        elif (c == GAME_STATUS):
             lands = self.countries
             self.sock.setblocking(1)
             for i in range(42):
@@ -113,24 +137,28 @@ class Client(Observable):
                 self.countries[ord(msg[0])].update(msg)
             self.sock.setblocking(0)
             return (True, 'UPDATE')
-        elif (c == self.command_map['READY']):
+        elif (c == READY):
             self.status.set_ready(cmd_from(cmd), True)
             return (True, 'READY')
-        elif (c == self.command_map['PLAYER_JOIN']):
+        elif (c == PLAYER_JOIN):
             self.players = self.players + 1
             return (True, 'PLAYER_JOIN')
-        elif (c == self.command_map['START_PLACING']):
+        elif (c == PLAYER_QUIT):
+            self.players = self.players - 1
+            self.status.players[cmd_from(cmd)].playing = False
+            return (True, 'PLAYER_QUIT')
+        elif (c == START_PLACING):
             for p in range(self.players):
                 self.status.set_ready(p, False)
             self.state = "Placing Armies"
-        elif (c == self.command_map['BEGIN']):
+        elif (c == BEGIN):
             for p in range(self.players):
                 self.status.set_ready(p, False)
             self.state = "At war"
-        elif (c == self.command_map['DEFEAT']):
+        elif (c == DEFEAT):
             self.status.players[cmd_from(cmd)].set_result(False)
             self.status.redraw()
-        elif (c == self.command_map['VICTORY']):
+        elif (c == VICTORY):
             self.status.players[cmd_from(cmd)].set_result(True)
             self.state = "Game Over"
         return (True, COMMANDS[c])

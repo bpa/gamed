@@ -6,7 +6,6 @@
 #include <SpeedRisk/protocol.h>
 
 #define SR_GENERATION_PERIOD 30
-#define SR_STARTING_ARMIES   20
 #define SR_MAX_PLAYERS        6
 
 enum SR_GAME_STATE {

@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <strings.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 static RookCommand msg_command;
 static RookError   msg_error;
@@ -31,6 +32,12 @@ void do_playing   (Game *, Player *, RookCommand *);
     msg_command.command = cmd; \
     msg_command.player = p; \
     msg_command.score = s; \
+    tell_all(g,(char*)&msg_command,4);
+
+#define all_cmd_pc(g, cmd, p, c) \
+    msg_command.command = cmd; \
+    msg_command.player = p; \
+    msg_command.card = c; \
     tell_all(g,(char*)&msg_command,4);
 
 void game_init (Game *g) {
@@ -61,6 +68,7 @@ void init_round (Rook *rook) {
     rook->bid = 95;
     rook->bidder = rook->current_player;
     rook->passed = 0;
+    rook->trump = '\0';
 }
 
 bool player_join (Game *g, Player *p) {
@@ -157,5 +165,44 @@ void do_bid(Game *game, Player *p, RookCommand *cmd) {
     }
 }
 
-void do_pick_trump(Game *game, Player *p, RookCommand *cmd) {}
+void do_pick_trump(Game *game, Player *p, RookCommand *cmd) {
+    int i, mask_count = 0;
+    unsigned char mask, trump;
+    unsigned char card;
+    Rook *rook = (Rook*)game->data;
+    RookPlayer *rp = &rook->players[p->in_game_id];
+    if (p->in_game_id != rook->bidder) {
+        give_error(p, ROOK_ERR_NOT_YOUR_TURN);
+    }
+    else if (cmd->command == ROOK_CMD_CHOOSE_TRUMP) {
+        if (rook->trump) {
+            give_error(p, ROOK_ERR_TRUMP_CHOSEN);
+            return;
+        }
+        trump = cmd->card & 0xF0;
+        mask = 0x10;
+        for (i=0; i<4; i++) {
+            if (trump & mask) {
+                mask_count++;
+            }
+            mask <<= 1;
+        } 
+        if (mask_count == 1) {
+            rook->trump = trump;
+            all_cmd_pc(game, ROOK_CMD_CHOOSE_TRUMP, rook->bidder, trump);
+        }
+        else {
+            give_error(p, ROOK_ERR_INVALID_TRUMP);
+        }
+    }
+    else if (cmd->command == ROOK_CMD_CHOOSE_WIDOW) {
+        for (i=1; i<6; i++) {
+            card = ((unsigned char*)cmd)[i];
+            if (!has_card(rp->hand, card)) {
+                give_error(p, ROOK_ERR_DONT_HOLD_CARD);
+            }
+        }
+    }
+}
+
 void do_playing(Game *game, Player *p, RookCommand *cmd) {}

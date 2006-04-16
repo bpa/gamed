@@ -31,7 +31,14 @@ public:
         TS_ASSERT(player_join(&game, &p1));
         TS_ASSERT(player_join(&game, &p2));
         TS_ASSERT(player_join(&game, &p3));
-        srd->state = SR_RUNNING;
+        simple_command_all_test(&p1, SR_CMD_READY, SR_CMD_READY);
+        simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
+        simple_command_all_test(&p3, SR_CMD_READY, SR_CMD_READY);
+        TS_ASSERT_EQUALS(SR_PLACING, srd->state);
+        simple_command_all_test(&p1, SR_CMD_READY, SR_CMD_READY);
+        simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
+        simple_command_all_test(&p3, SR_CMD_READY, SR_CMD_READY);
+        TS_ASSERT_EQUALS(SR_RUNNING, srd->state);
 
         for (int i=0; i<3; i++) {
             srd->status.countries[i].owner = i;
@@ -41,7 +48,16 @@ public:
     }
 
 	void tearDown() {
+        Player *first, *next;
+        first = LIST_FIRST(&game.players);
+        while (first != NULL) {
+            next = LIST_NEXT(first, players);
+            LIST_REMOVE(first, players);
+            first = next;
+        }
+        game.playing = 0;
         free(game.data);
+        game.data = NULL;
     }
 
     void simple_command_all_test(Player *player, int command, int exp) {
@@ -286,6 +302,7 @@ public:
         SR_Country_Status *status = (SR_Country_Status*)&mock_all_buff[0];
         
         //Don't have armies to place
+        srd->players[0].armies = 0;
         send_cmd(&p1, SR_CMD_PLACE, 0, 0, 1);
         TS_ASSERT_EQUALS(SR_CMD_ERROR, err->command);
         TS_ASSERT_EQUALS(SR_ERR_NOT_ENOUGH_ARMIES, err->error);
