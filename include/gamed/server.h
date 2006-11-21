@@ -13,15 +13,7 @@ typedef struct st_client{
     event ev;
 } Client;
 
-namespace Gamed {
+void run_server();
+void run_as_daemon();
 
-class Server {
-public:
-    Server();
-    void run_as_daemon();
-    void run();
-    void listen_on_port(int port);
-};
-
-}
 #endif

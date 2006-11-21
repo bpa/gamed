@@ -8,7 +8,7 @@ LIBS = -L/usr/local/lib -levent
 #GAMES = -L../lib -lgame
 CC = g++
 
-server: $(OBJS) main.o
+server: $(OBJS) main.o server.o
 	$(CC) $(CFLAGS) -o server $(OBJS) main.o $(LIBS) $(GAMES)
 	$(CC) $(CFLAGS) -Wl,-x -shared -o ../lib/libgamed.so -Wl,-soname,libgamed.so $(OBJS)
 

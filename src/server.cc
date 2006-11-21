@@ -1,6 +1,8 @@
+#include <time.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+#include <gamed/queue.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <event.h>
@@ -16,7 +18,7 @@
 #include <gamed/server.h>
 #include <gamed/player.h>
 
-using namespace Gamed;
+void listen_on_port(int port);
 void handle_sig_hup(int sock, short event, void *args);
 void handle_connect(int sock, short event, void *args);
 void handle_network_event(int sock, short event, void *args);
@@ -36,38 +38,35 @@ long get_random(long max) {
 }
 /******************************************************************************/
 
-Gamed::Server::Server() {
-  openlog("gamed", NULL, LOG_USER);
+void run_server() {
+    void openlog(const char *ident, int logopt, int facility);
+  openlog("gamed", LOG_CONS, LOG_USER);
   event_init();
   initstate(time(NULL), &rand_state[0],8);
   bzero(&game, sizeof(Game));
   game_init(&game);
+  listen_on_port(GAMED_PORT);
   signal(SIGPIPE,SIG_IGN);
   event_set(&ev_sig_hup, SIGHUP, EV_SIGNAL | EV_PERSIST, handle_sig_hup, NULL);
   event_add(&ev_sig_hup,NULL);
+  event_dispatch();
   //lt_dlinit();
 }
 
 /******************************************************************************/
 
-void Gamed::Server::run_as_daemon() {
+void run_as_daemon() {
   if (daemon(1, 0) == -1) {
     perror("daemonize");
     //return EX_OSERR;
   }
-  run();
-}
-
-/******************************************************************************/
-
-void Gamed::Server::run() {
   listen_on_port(GAMED_PORT);
   event_dispatch();
 }
 
 /******************************************************************************/
 
-void Gamed::Server::listen_on_port(int port) {
+void listen_on_port(int port) {
     int listener;
     struct sockaddr_in sa;
     listener = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
@@ -107,7 +106,7 @@ void handle_connect(int listener, short event, void *args) {
     }
     char ip_str[16];
     inet_ntop(AF_INET,&sa.sin_addr, ip_str, 15);
-    fprintf(stderr, "Recieved connection from %s\n");
+    fprintf(stderr, "Recieved connection from %s\n", ip_str);
     client = (Client*)malloc(sizeof(Client));
     bzero(client,sizeof(Client));
     /* 
