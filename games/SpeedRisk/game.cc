@@ -1,5 +1,6 @@
 #include <gamed/game.h>
 #include <gamed/utils.h>
+#include <gamed/queue.h>
 #include <SpeedRisk/board.h>
 #include <string.h>
 #include <stdlib.h>

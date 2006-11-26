@@ -211,7 +211,7 @@ void tell_all (Game *g, const char *msg, size_t len) {
 
 void add_timer (Game *g, struct timeval *period, bool persistent) {
     printf("Adding timer\n");
-    event_set(&g->timer, NULL, EV_TIMEOUT | EV_PERSIST, handle_timer, g);
+    event_set(&g->timer, 0, EV_TIMEOUT | EV_PERSIST, handle_timer, g);
     event_add(&g->timer, period);
 }
 /******************************************************************************/

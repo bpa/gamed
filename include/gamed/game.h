@@ -4,6 +4,7 @@
 #ifndef GAMED_GAME_H
 #define GAMED_GAME_H
 
+#include <sys/types.h>
 #include <sys/time.h>
 #include <event.h>
 #include <string.h>
@@ -24,8 +25,10 @@ bool player_join   (Game *g, Player *p);
 void player_quit   (Game *g, Player *p);
 void handle_request(Game *g, Player *p, char *, int len);
 void handle_timer  (int sock, short event, void *args);
-//void player_kicked (Game *g, Player *p, char *why);
-//void player_dropped(Game *g, Player *p);
+/*
+void player_kicked (Game *g, Player *p, char *why);
+void player_dropped(Game *g, Player *p);
+*/
 
 void tell_player (Player *p, const char *, size_t len);
 void tell_all (Game *g, const char *, size_t len);

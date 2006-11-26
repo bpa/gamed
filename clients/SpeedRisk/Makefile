@@ -3,7 +3,7 @@
 SOFLAGS = -shared -Wl,-x
 CFLAGS = -Wall
 INC = -I../../include -I/usr/local/include -I..
-CC = g++
+CC = gcc
 
 run: sr
 
