@@ -455,7 +455,8 @@ class SpeedRiskUI:
                 c.set_selected(True)
 
 if __name__ == "__main__":
-    pygame.init()
+    pygame.display.init()
+    pygame.font.init()
     font = pygame.font.Font(None, 20)
     black = pygame.color.Color('black')
     players = pygame.sprite.RenderPlain()
