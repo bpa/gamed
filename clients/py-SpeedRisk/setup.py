@@ -6,6 +6,7 @@ setup(windows=["SpeedRisk.py"],
             ("images",glob.glob("images\\*.png")),
             ("images",glob.glob("images\\*.jpg")),
             ("images",["images\\manifest"]),
+            (".",["config.ini"]),
         ],
         includes=['Numeric'],
      )
