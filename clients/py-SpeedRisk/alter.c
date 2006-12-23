@@ -1,8 +1,9 @@
 #include <png.h>
+#include <stdlib.h>
 
 int main (int argc, char *argv[]) {
     static png_FILE_p read_fp, write_fp;
-    int is_png, width, height, i, j;
+    int is_png, width, height, i, j, k, a;
     png_byte bit_depth, rowbytes;
     png_bytep header, row, pixel;
     png_bytepp row_pointers;
@@ -60,14 +61,28 @@ int main (int argc, char *argv[]) {
             pixel = &row[j*2+1];
             if (*pixel) {
                 *pixel = 127;
-                if (i==0        || !row_pointers[i-1][  j  *2+1]) { *pixel = 255; }
-                if (i==height-1 || !row_pointers[i+1][  j  *2+1]) { *pixel = 255; }
-                if (j==0        || !row_pointers[ i ][(j-1)*2+1]) { *pixel = 255; }
-                if (j==width-1  || !row_pointers[ i ][(j+1)*2+1]) { *pixel = 255; }
+                if (i==0        || !row_pointers[i-1][  j  *2+1]) { *pixel = 223; }
+                if (i==height-1 || !row_pointers[i+1][  j  *2+1]) { *pixel = 223; }
+                if (j==0        || !row_pointers[ i ][(j-1)*2+1]) { *pixel = 223; }
+                if (j==width-1  || !row_pointers[ i ][(j+1)*2+1]) { *pixel = 223; }
             }
-            printf("%3i ", row[j*2+1]);
         }
-        printf("\n");
+    }
+
+    for (k=64; k>0; k>>=1) {
+        a = 127 + k;
+        for (i=0; i<height; i++) {
+            row = row_pointers[i];
+            for (j=0; j<width; j++) {
+                pixel = &row[j*2+1];
+                if (*pixel && *pixel < a) {
+                    if (row_pointers[i-1][  j  *2+1] > a) { *pixel = a; }
+                    if (row_pointers[i+1][  j  *2+1] > a) { *pixel = a; }
+                    if (row_pointers[ i ][(j-1)*2+1] > a) { *pixel = a; }
+                    if (row_pointers[ i ][(j+1)*2+1] > a) { *pixel = a; }
+                }
+            }
+        }
     }
 
     write_ptr = png_create_write_struct(PNG_LIBPNG_VER_STRING, png_voidp_NULL,

@@ -10,12 +10,30 @@ from Client import *
 
 dirty = True
 color = pygame.color.THECOLORS
-PLAYER_COLORS = (color['darkolivegreen'][:-1],
-                 color[     'firebrick'][:-1],
-                 color[    'mediumblue'][:-1],
-                 color[          'gold'][:-1],
-                 color[        'purple'][:-1],
-                 color[         'white'][:-1])
+client = None
+#for c in color:
+    #print c
+PLAYER_COLORS = (color[     'firebrick'][:-1],
+                 color[     'lawngreen'][:-1],
+                 color[         'white'][:-1],
+                 color[  'midnightblue'][:-1],
+                 color['darkgoldenrod3'][:-1],
+                 color[         'plum1'][:-1])
+
+TOKEN_COLORS = (color[     'indianred'][:-1],
+                color[     'lawngreen'][:-1],
+                color[         'white'][:-1],
+                color[    'dodgerblue'][:-1],
+                color['darkgoldenrod3'][:-1],
+                color[         'plum1'][:-1])
+# Need to use colorblind friendly colors
+#    grey = red * 30 + green * 59 + blue * 11
+#1  3643  3457 midnightblue
+#2  7286  7720 firebrick
+#3 14571 15073 darkgoldenrod3
+#4 18214 18588 lawngreen
+#5 21857 21488 plum1
+#6 25500 25500 white
 
 class CountryDisplay(pygame.sprite.Sprite):
     def __init__(self, group, img, x, y, lx, ly, country):
@@ -48,14 +66,19 @@ class CountryDisplay(pygame.sprite.Sprite):
         self.token_pos = (lx, ly)
 
     def render_token(self):
-        self.token = font.render(str(self.country.armies), True, black)
+        global client
+        if self.country.owner == client.player_id:
+            self.token = font.render(str(self.country.armies), True, \
+                black, TOKEN_COLORS[self.country.owner])
+            pygame.draw.rect(self.token, black, self.token.get_rect(), 1)
+        else:
+            self.token = font.render(str(self.country.armies), True, black)
 
     def handle_observation(self, c, field, old, new):
         global dirty
-        if field == 'armies':
-            self.render_token()
-            dirty = True
-        else: # field == 'owner'
+        dirty = True
+        self.render_token()
+        if field == 'owner':
             self.set_selected(self.selected)
 
     def set_selected(self, selected):
@@ -298,6 +321,7 @@ class SpeedRiskUI:
     def __init__(self):
         #pygame.key.set_repeat(500,15)
         #pygame.display.list_modes(0,FULLSCREEN|HWACCEL)
+        global client
         ss = pygame.Rect(0,0,650,375)
         self.screen_size = ss
         self.screen = pygame.display.set_mode(ss.size,HWACCEL)
@@ -305,6 +329,7 @@ class SpeedRiskUI:
         self.fg = pygame.color.Color('white')
         self.bg = pygame.color.Color('black')
         self.client = Client(self)
+        client = self.client
         self.status = Status(self.client)
         self.client.add_observer(self, ['players'])
         self.load_images()
