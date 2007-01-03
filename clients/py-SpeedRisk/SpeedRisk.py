@@ -37,10 +37,6 @@ TOKEN_COLORS = (color[     'indianred'][:-1],
 
 class CountryDisplay(pygame.sprite.Sprite):
     def __init__(self, group, img, x, y, lx, ly, country):
-        if pygame.display.Info().bitsize % 16 == 0:
-            self.pixels = pygame.surfarray.pixels3d
-        else:
-            self.pixels = pygame.surfarray.pixels2d
         pygame.sprite.Sprite.__init__(self, group)
         self.sprites = [self]
         self.setup(img, x, y, lx, ly, country, False)
@@ -89,7 +85,7 @@ class CountryDisplay(pygame.sprite.Sprite):
         if selected:
             reverse = (255 - color[0], 255 - color[1], 255 - color[2])
             for s in self.sprites:
-                c = self.pixels(s.image)
+                c = pygame.surfarray.pixels3d(s.image)
                 #c[1::2,1::2] = (0,0,0)
                 c[::] = (0,0,0)
                 c[ ::2, ::2] = color
@@ -97,7 +93,7 @@ class CountryDisplay(pygame.sprite.Sprite):
                 del c
         else:
             for s in self.sprites:
-                c = self.pixels(s.image)
+                c = pygame.surfarray.pixels3d(s.image)
                 c[::] = color
                 del c
 
