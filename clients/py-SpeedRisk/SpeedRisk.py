@@ -362,7 +362,8 @@ class SpeedRiskUI:
         self.overlay_info = []
         for i in range(42): self.overlay_info.append(None)
         os.chdir('images')
-        self.background = pygame.image.load('world_map_relief.jpg')
+        img = pygame.image.load('world_map_relief.jpg')
+        self.background = img.convert_alpha()
         countries = open('manifest')
         for c in countries.readlines():
             (id, name, x, y, lx, ly) = c.split(':')
