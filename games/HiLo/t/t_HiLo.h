@@ -1,20 +1,17 @@
-#ifndef HILO_TEST_H__
-#define HILO_TEST_H__
+#include <cunit/testcase.h>
+#include <stdio.h>
 
-#include <cxxtest/TestSuite.h>
-#include <gamed/game.h>
-using namespace Gamed;
+/* TEST_CASE(HiLo); */
+#define TEST_NAME HiLo
 
-class HiLoTest: public CxxTest::TestSuite {
-public:
+SETUP {
+   printf("In setup\n");
+}
 
-	void setUp()    {};
-	void tearDown() {};
+TEST(fail) {
+    assert(1 == 2);
+}
 
-	void test_join() {
-
-    }
-
-};
-
-#endif
+TEST(pass) {
+    assert_equal(1, 2);
+}

@@ -12,7 +12,7 @@ void build_border_table() {
     }
     bzero(&border_table[0][0], sizeof(border_table));
 
-// North America
+/* North America */
     set_border(SR_ALASKA, SR_KAMCHATKA);
     set_border(SR_ALASKA, SR_NORTHWEST_TERRITORY);
     set_border(SR_ALASKA, SR_ALBERTA);
@@ -41,7 +41,7 @@ void build_border_table() {
 
     set_border(SR_CENTRAL_AMERICA, SR_VENEZUELA);
 
-// South America
+/* South America */
     set_border(SR_VENEZUELA, SR_BRAZIL);
     set_border(SR_VENEZUELA, SR_PERU);
 
@@ -51,7 +51,7 @@ void build_border_table() {
     set_border(SR_BRAZIL, SR_NORTH_AFRICA);
     set_border(SR_BRAZIL, SR_ARGENTINA);
 
-// Europe
+/* Europe */
     set_border(SR_ICELAND, SR_SCANDINAVIA);
     set_border(SR_ICELAND, SR_GREAT_BRITAIN);
 
@@ -78,7 +78,7 @@ void build_border_table() {
     set_border(SR_SOUTHERN_EUROPE, SR_EGYPT);
     set_border(SR_SOUTHERN_EUROPE, SR_NORTH_AFRICA);
 
-// Africa
+/* Africa */
     set_border(SR_NORTH_AFRICA, SR_EGYPT);
     set_border(SR_NORTH_AFRICA, SR_EAST_AFRICA);
     set_border(SR_NORTH_AFRICA, SR_CONGO);
@@ -95,7 +95,7 @@ void build_border_table() {
 
     set_border(SR_SOUTH_AFRICA, SR_MADAGASCAR);
 
-// Asia
+/* Asia */
   set_border(SR_URAL, SR_SIBERIA);
   set_border(SR_URAL, SR_CHINA);
   set_border(SR_URAL, SR_AFGHANISTAN);
@@ -130,7 +130,7 @@ void build_border_table() {
 
   set_border(SR_SIAM, SR_INDONESIA);
 
-// Australia
+/* Australia */
   set_border(SR_INDONESIA, SR_NEW_GUINEA);
   set_border(SR_INDONESIA, SR_WESTERN_AUSTRALIA);
 

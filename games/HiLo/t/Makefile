@@ -1,12 +1,15 @@
-CFLAGS = -Wall -I.. -I../../../include -I../../../include/cxxtest
-CC = g++
-TESTS != ls *.h
+.SUFFIXES:
+.SUFFIXES: .o .c .h
 
-test: runtests
-	@./runtests
+CFLAGS = -Wall -pedantic -g
+OBJS := $(patsubst %.h,%.o,$(wildcard *.h))
+INC = -I../.. -I../../../include
+CC = gcc
 
-runtests: runtests.cpp $(TESTS)
-	$(CC) $(CFLAGS) -o runtests runtests.cpp $(TESTS)
+build: $(OBJS)
+	
+.h.o:
+	$(CC) $< -o $@ $(INC)
 
 clean:
-	rm -f runtests runtests.cpp
+	rm -f *.o

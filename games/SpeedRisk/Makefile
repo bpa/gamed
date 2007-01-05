@@ -1,5 +1,5 @@
 .SUFFIXES:
-.SUFFIXES: .so .cc .o
+.SUFFIXES: .so .c .o
 SOFLAGS = -shared -Wl,-x
 CFLAGS = -Wall -g
 LIBS = -L/usr/local/lib -levent
@@ -10,13 +10,13 @@ CC = gcc
 run: tests libgame.so
 
 tests:
-	@make -C test
+	@make -C t
 
 libgame.so: $(OBJS)
 	$(CC) $(CFLAGS) $(SOFLAGS) $(INC) $(OBJS) -o libgame.so -Wl,-soname,libgame.so
 	cp libgame.so ../../lib
 
-.cc.o:
+.c.o:
 	$(CC) $(CFLAGS) $(INC) $< -c -o $@
 
 clean:

@@ -1,5 +1,5 @@
-#ifndef GAMED_QUEUE
-#define GAMED_QUEUE
+#ifndef GAMED_QUEUE_H
+#define GAMED_QUEUE_H
 
 #include <sys/queue.h>
 
@@ -23,6 +23,10 @@
     for ((var) = LIST_FIRST((head));                        \
             (var) && ((tvar) = LIST_NEXT((var), field), 1); \
             (var) = (tvar))
+#endif
+
+#ifndef LIST_EMPTY
+#define LIST_EMPTY(head)    ((head)->lh_first == NULL)
 #endif
 
 #endif

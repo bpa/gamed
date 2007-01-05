@@ -3,9 +3,6 @@
 
 #include <gamed/game.h>
 
-typedef struct {
-    int number;
-    int guesses;
-} HiLoData;
+extern Game HiLo;
 
 #endif

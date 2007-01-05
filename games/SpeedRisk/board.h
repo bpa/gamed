@@ -2,7 +2,6 @@
 #define SPEED_RISK_BOARD
 
 #include <gamed/game.h>
-#include <gamed/player.h>
 #include <SpeedRisk/protocol.h>
 
 #define SR_GENERATION_PERIOD 30
@@ -30,6 +29,6 @@ typedef struct {
 
 bool borders(int, int);
 void build_border_table();
-void produce_armies(Game *game);
+void produce_armies(GameInstance *game);
 
 #endif

@@ -1,18 +1,19 @@
 .SUFFIXES:
-.SUFFIXES: .so .cc
-SOFLAGS = -shared -Wl,-x
-CFLAGS = -Wall
+.SUFFIXES: .o .c .h
+CFLAGS = -Wall -pedantic
+TESTS != t/*.h
 INC = -I../../include -I/usr/local/include
 CC = g++
 
 run: HiLo.so tests
 
-tests:
-	@make -C test
+tests: runtests
+	@./runtests
 
-.cc.so:
-	$(CC) $(CFLAGS) $(SOFLAGS) $(INC) $< -o $@ -Wl,-soname,$@
-	cp $@ ../../lib
+runtests: $(TESTS)
+	@make -C t
+	@mktestsuite t
 
 clean:
-	rm -f *.o *.so
+	rm -f *.o runtests*
+	@make -C t clean

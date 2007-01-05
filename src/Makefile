@@ -1,18 +1,19 @@
 .SUFFIXES:
-.SUFFIXES: .o .cc
-SOURCE != ls [^m]*.cc
-OBJS = $(SOURCE:.cc=.o)
-CFLAGS = -Wall -O2 -I/usr/local/include -I../include -I../games -g
+.SUFFIXES: .o .c
+#SOURCE != ls [^m]*.cc
+#OBJS = $(SOURCE:.cc=.o)
+OBJS := $(patsubst %.c,%.o,$(wildcard *.c))
+CFLAGS = -Wall -pedantic -ansi -O2 -I/usr/local/include -I../include -I../games
 SOFLAGS = -fpic -shared -Wl,--export-dynamic
 LIBS = -L/usr/local/lib -levent
 #GAMES = -L../lib -lgame
-CC = gcc
+CC = gcc -g
 
-server: $(OBJS) main.o server.o
-	$(CC) $(CFLAGS) -o server $(OBJS) server.o main.o $(LIBS) $(GAMES)
+server: $(OBJS)
+	$(CC) $(CFLAGS) -o server $(OBJS) $(LIBS) $(GAMES)
 	$(CC) $(CFLAGS) -Wl,-x -shared -o ../lib/libgamed.so -Wl,-soname,libgamed.so $(OBJS)
 
-.cc.o:
+.c.o:
 	$(CC) $(CFLAGS) -c $<
 
 clean:
