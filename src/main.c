@@ -21,6 +21,6 @@ int main(int argc, char *argv[]) {
     available_games = malloc(2*sizeof(Game*));
     available_games[0] = &SpeedRisk;
     available_games[1] = &HiLo;
-    run_server(port);
+    run_as_daemon(port);
     return 0;
 }

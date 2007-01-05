@@ -63,15 +63,13 @@ void run_server(int port) {
 
 /******************************************************************************/
 
-/*TODO write this correctly to work with run_server */
-void run_as_daemon() {
-    return;
+void run_as_daemon(int port) {
   if (daemon(1, 0) == -1) {
     perror("daemonize");
+    exit(0);
     /* return EX_OSERR; */
   }
-  listen_on_port(GAMED_PORT);
-  event_dispatch();
+  run_server(port);
 }
 
 /******************************************************************************/
