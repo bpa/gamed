@@ -35,6 +35,7 @@ extern ChatInstanceList chat_list;
 extern Game **available_games;
 
 void run_server(int port);
+void run_as_daemon(int port);
 void handle_command(Client *, int len);
 
 #endif
