@@ -1,23 +1,17 @@
 #include <stdlib.h>
 #include <string.h>
+#include <gamed/game.h>
 #include <HiLo/HiLo.h>
 
-typedef struct {
-    int number;
-    int guesses;
-} HiLoData;
-
-static void game_init     (GameInstance *g);
-static bool player_join   (GameInstance *g, Player *p);
-static void player_quit   (GameInstance *g, Player *p);
-static void handle_request(GameInstance *g, Player *p, char *, int len);
-Game HiLo = { &game_init, &player_join, &player_quit, &handle_request, NULL };
+void handle_request (GameInstance *game, Player *p, char *req, int len);
+State STANDARD = { NULL, &handle_request, NULL, NULL };
 
 void game_init (GameInstance *g) {
     HiLoData *data = (HiLoData*)malloc(sizeof(HiLoData));
+    g->state = &STANDARD;
     LIST_INIT(&g->players);
     g->data = (char*)data;
-    data->number = g->functions->random(100);
+    data->number = g->functions->random(100) + 1;
     data->guesses = 0;
 }
 
@@ -54,7 +48,7 @@ void handle_request (GameInstance *game, Player *p, char *req, int len) {
         g->guesses = 0;
     }
     else if (guess > g->number) {
-        s->tellf_player(p, "Too High\n>> ");
+        s->tellf_player(p, "Too high\n>> ");
     }
     else {
         s->tellf_player(p, "Too low\n>> ");

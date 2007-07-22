@@ -7,6 +7,9 @@
 extern char buff[1024];
 struct st_chat_instance;
 
+extern char game_tell_buff[1024];
+extern int  game_tell_len;
+
 typedef struct st_client {
     Player player;
     GameInstance *game;

@@ -1,19 +1,23 @@
 .SUFFIXES:
 .SUFFIXES: .o .c .h
 CFLAGS = -Wall -pedantic
-TESTS != t/*.h
-INC = -I../../include -I/usr/local/include
-CC = g++
+INC = -I.. -I../../include
+CC = gcc
 
-run: HiLo.so tests
+all: game_HiLo.so tests
 
-tests: runtests
-	@./runtests
+game_HiLo.so: HiLo.o
+	$(CC) $(CFLAGS) -Wl,-x -shared -fPIC -o game_HiLo.so HiLo.o
 
-runtests: $(TESTS)
+libHiLo.so: HiLo.o
+	$(CC) $(CFLAGS) -Wl,-x -shared -fPIC -o libHiLo.so HiLo.o
+
+.c.o:
+	$(CC) $(CFLAGS) $(INC) -c $<
+
+tests: $(TESTS)
 	@make -C t
-	@mktestsuite t
 
 clean:
-	rm -f *.o runtests*
+	rm -f *.o *.so
 	@make -C t clean
