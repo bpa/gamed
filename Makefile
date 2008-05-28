@@ -1,34 +1,28 @@
-all: lib server tests game client
+all: lib daemon game-modules game-clients
 
 lib:
 	mkdir -p lib
 
-server:
-	@echo "----  Making all in src  ----"
-	@make -C src
+daemon:
+	@echo "----  Making all in server  ----"
+	@make -C server
 
-tests:
-	@echo "---- Making all in tests ----"
-	@make -C test
-
-game:
+game-modules:
 	@echo "---- Making all in games ----"
 	@make -C games
 
-client:
+game-clients:
 	@echo "---- Making all in clients ----"
 	@make -C clients
 
-doc:
+docs:
 	@echo "---- Making all in docs  ----"
 	@make -C docs
 
 clean:
 	rm -rf lib
-	@echo "----  Cleaning for src  ----"
-	@make clean -C src
-	@echo "---- Cleaning for tests ----"
-	@make clean -C test
+	@echo "----  Cleaning for server  ----"
+	@make clean -C server
 	@echo "---- Cleaning for games ----"
 	@make clean -C games
 	@echo "---- Cleaning for clients ----"
