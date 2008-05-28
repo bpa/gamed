@@ -1,26 +1,13 @@
-INC = -I../.. -I../../../include -I../../../include/cxxtest -I../../../test -I/usr/local/include 
-CFLAGS = -Wall $(INC) -g
+OBJS := $(patsubst %.c,%.o,$(wildcard ../*.c))
+INC = -I../.. -I../../../include -I../../../include/cxxtest -I/usr/include
+CFLAGS = -Wall -g
 CC = g++
-TESTS != ls *.h
-LIBS = -L/usr/local/lib -levent
 
-test: runtests
-	@./runtests
+runtests: runtests.cpp ../*.c ../*.h
+	$(CC) $(CFLAGS) $(INC) -o runtests runtests.cpp $(OBJS)
 
-runtests: tests.o game.o borders.o
-	$(CC) $(CFLAGS) $(LIBS) -o runtests game.o borders.o tests.o
-
-runtests.cpp: $(TESTS)
+runtests.cpp: *.h
 	../../../include/cxxtest/cxxtestgen.pl --error-printer -o runtests.cpp *.h
 
-tests.o: runtests.cpp
-	$(CC) $(CFLAGS) -c runtests.cpp -o tests.o
-
-game.o: ../game.cc
-	$(CC) $(CFLAGS) ../game.cc -c -o game.o
-
-borders.o: ../borders.cc
-	$(CC) $(CFLAGS) ../borders.cc -c -o borders.o
-
 clean:
-	rm -f runtests runtests.cpp *.o
+	rm -f runtests* *.so

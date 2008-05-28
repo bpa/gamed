@@ -18,7 +18,9 @@ int  mock_all_len[5];
 int  mock_plr_pos;
 int  mock_all_pos;
 bool init_utils_run = false;
+bool game_quit = false;
 char buff[1024];
+static Server *server;
 
 void init_utils() {
     if (!init_utils_run) {
@@ -56,6 +58,25 @@ void reset_mocks() {
         memset(&mock_plr_buff[i][0], 0x00, 1024);
         memset(&mock_all_buff[i][0], 0x00, 1024);
     }
+	game_quit = false;
+}
+
+void game_over (GameInstance *g) {
+	Player *first, *next;
+	first = LIST_FIRST(&g->players);
+	while (first != NULL) {
+		next = LIST_NEXT(first, player);
+		LIST_REMOVE(first, player);
+		first = next;
+	}
+	g->playing = 0;
+	game_quit = true;
+	if (g->game->destroy != NULL) {
+		g->game->destroy(g, server);
+	}
+	else {
+		if (g->data != NULL) free(g->data);
+	}
 }
 
 int write_buff(const char *fmt, va_list ap) {
@@ -140,7 +161,9 @@ void tellf_all(GameInstance *g, const char *fmt, ...) {
 void add_timer (GameInstance *g, struct timeval *tv, bool persistent) { }
 
 void init_server(Server *s) {
+	server = s;
     s->random       = &get_random;
+    s->game_over    = &game_over;
     s->tellf_player = &tellf_player;
     s->tell_player  = &tell_player;
     s->tellf_all    = &tellf_all;

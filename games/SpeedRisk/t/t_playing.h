@@ -6,9 +6,9 @@
 
 #include <cxxtest/TestSuite.h>
 #include <gamed/game.h>
-#include <mocks.h>
 #include <SpeedRisk/board.h>
 #include <SpeedRisk/protocol.h>
+#include <test/server.h>
 
 #define cmd_res(i) ((SR_Command*)&mock_plr_buff[i])
 
@@ -16,29 +16,28 @@ class SpeedRiskPlayingTest: public CxxTest::TestSuite {
 public:
 
     SpeedRiskPlayingTest() {
-        srd = (SpeedRiskData*)game.data;
+		game.game = &SpeedRisk;
+		init_server(&s);
     }
 
 	void setUp()    {
-        game.playing = 0;
-        game_init (&game);
+        SpeedRisk.initialize(&game, &s);
         srd = (SpeedRiskData*)game.data;
         plr_res = (SR_Command*)&mock_plr_buff[0];
         all_res = (SR_Command*)&mock_all_buff[0];
         err = (SR_Error*)&mock_plr_buff[0];
 
-        srd->state = SR_WAITING_FOR_PLAYERS;
-        TS_ASSERT(player_join(&game, &p1));
-        TS_ASSERT(player_join(&game, &p2));
-        TS_ASSERT(player_join(&game, &p3));
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p1));
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p2));
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p3));
         simple_command_all_test(&p1, SR_CMD_READY, SR_CMD_READY);
         simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
         simple_command_all_test(&p3, SR_CMD_READY, SR_CMD_READY);
-        TS_ASSERT_EQUALS(SR_PLACING, srd->state);
+        TS_ASSERT_EQUALS(&SR_PLACING, game.state);
         simple_command_all_test(&p1, SR_CMD_READY, SR_CMD_READY);
         simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
         simple_command_all_test(&p3, SR_CMD_READY, SR_CMD_READY);
-        TS_ASSERT_EQUALS(SR_RUNNING, srd->state);
+        TS_ASSERT_EQUALS(&SR_RUNNING, game.state);
 
         for (int i=0; i<3; i++) {
             srd->status.countries[i].owner = i;
@@ -48,29 +47,20 @@ public:
     }
 
 	void tearDown() {
-        Player *first, *next;
-        first = LIST_FIRST(&game.players);
-        while (first != NULL) {
-            next = LIST_NEXT(first, players);
-            LIST_REMOVE(first, players);
-            first = next;
-        }
-        game.playing = 0;
-        free(game.data);
         game.data = NULL;
     }
 
     void simple_command_all_test(Player *player, int command, int exp) {
         reset_mocks();
         cmd.command = command;
-        handle_request(&game, player, (char*)&cmd, 4);
+        game.state->player_event(&game, &s, player, (char*)&cmd, 4);
         TS_ASSERT_EQUALS(exp, all_res->command);
     }
 
     void simple_command_plr_test(Player *player, int command, int exp) {
         reset_mocks();
         cmd.command = command;
-        handle_request(&game, player, (char*)&cmd, 4);
+        game.state->player_event(&game, &s, player, (char*)&cmd, 4);
         TS_ASSERT_EQUALS(exp, plr_res->command);
     }
 
@@ -80,7 +70,7 @@ public:
         cmd.from = from;
         cmd.to = to;
         cmd.armies = armies;
-        handle_request(&game, player, (char*)&cmd, 4);
+        game.state->player_event(&game, &s, player, (char*)&cmd, 4);
     }
 
     void setup_country(int c, int owner, int armies) {
@@ -112,11 +102,11 @@ public:
         send_cmd(&p2, SR_CMD_MOVE, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 2);
         TS_ASSERT_EQUALS(SR_CMD_MOVE_RESULT, all_res->command);
         TS_ASSERT_EQUALS(SR_WESTERN_AUSTRALIA, (int)mv->country1.country);
-        TS_ASSERT_EQUALS(1, mv->country1.owner);
-        TS_ASSERT_EQUALS(1, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int)1, mv->country1.owner);
+        TS_ASSERT_EQUALS((unsigned int)1, mv->country1.armies);
         TS_ASSERT_EQUALS(SR_NEW_GUINEA,        (int)mv->country2.country);
-        TS_ASSERT_EQUALS(1, mv->country2.owner);
-        TS_ASSERT_EQUALS(3, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)1, mv->country2.owner);
+        TS_ASSERT_EQUALS((unsigned int)3, mv->country2.armies);
 
         //Can't move last guy or more than you have
         send_cmd(&p2, SR_CMD_MOVE, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 1);
@@ -159,6 +149,21 @@ public:
         TS_ASSERT_EQUALS(SR_ERR_NOT_OWNER, err->error);
     }
 
+	void test_fake_random() {
+		set_random(1,2,3,4,5);
+		TS_ASSERT_EQUALS(1, s.random(6));
+		TS_ASSERT_EQUALS(2, s.random(6));
+		TS_ASSERT_EQUALS(3, s.random(6));
+		TS_ASSERT_EQUALS(4, s.random(6));
+		TS_ASSERT_EQUALS(5, s.random(6));
+		set_random(0,0,0,0,0);
+		TS_ASSERT_EQUALS(0, s.random(6));
+		TS_ASSERT_EQUALS(0, s.random(6));
+		TS_ASSERT_EQUALS(0, s.random(6));
+		TS_ASSERT_EQUALS(0, s.random(6));
+		TS_ASSERT_EQUALS(0, s.random(6));
+	}
+
 	void test_single_valid_attacks() {
         SR_Move_Result *mv = (SR_Move_Result*)all_res;
         setup_country(SR_WESTERN_AUSTRALIA, 0, 5);
@@ -168,26 +173,26 @@ public:
         set_random(5,1);
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 1);
         TS_ASSERT_EQUALS((int)SR_CMD_ATTACK_RESULT, mv->command.command);
-        TS_ASSERT_EQUALS((int)SR_WESTERN_AUSTRALIA, mv->country1.country);
-        TS_ASSERT_EQUALS(0, mv->country1.owner);
-        TS_ASSERT_EQUALS(5, mv->country1.armies);
-        TS_ASSERT_EQUALS((int)SR_NEW_GUINEA,        mv->country2.country);
-        TS_ASSERT_EQUALS(1, mv->country2.owner);
-        TS_ASSERT_EQUALS(4, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)SR_WESTERN_AUSTRALIA, mv->country1.country);
+        TS_ASSERT_EQUALS((unsigned int)0, mv->country1.owner);
+        TS_ASSERT_EQUALS((unsigned int)5, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int)SR_NEW_GUINEA,        mv->country2.country);
+        TS_ASSERT_EQUALS((unsigned int)1, mv->country2.owner);
+        TS_ASSERT_EQUALS((unsigned int)4, mv->country2.armies);
 
         //Tie
         set_random(5,5);
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 1);
         TS_ASSERT_EQUALS((int)SR_CMD_ATTACK_RESULT, mv->command.command);
-        TS_ASSERT_EQUALS(4, mv->country1.armies);
-        TS_ASSERT_EQUALS(4, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)4, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int)4, mv->country2.armies);
 
         //Attacker loses
         set_random(1,5);
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 1);
         TS_ASSERT_EQUALS(SR_CMD_ATTACK_RESULT, mv->command.command);
-        TS_ASSERT_EQUALS(3, mv->country1.armies);
-        TS_ASSERT_EQUALS(4, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)3, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int)4, mv->country2.armies);
     }
 
 	void test_attack_order() {
@@ -199,8 +204,8 @@ public:
         set_random(2,3,5,2,3);
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 3);
         TS_ASSERT_EQUALS((int)SR_CMD_ATTACK_RESULT, mv->command.command);
-        TS_ASSERT_EQUALS(10, mv->country1.armies);
-        TS_ASSERT_EQUALS( 8, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)10, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int) 8, mv->country2.armies);
     }
 
 	void test_multi_valid_attacks() {
@@ -212,29 +217,29 @@ public:
         set_random(5,3,4,2);
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 2);
         TS_ASSERT_EQUALS((int)SR_CMD_ATTACK_RESULT, mv->command.command);
-        TS_ASSERT_EQUALS(10, mv->country1.armies);
-        TS_ASSERT_EQUALS( 8, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)10, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int) 8, mv->country2.armies);
 
         //Attacker wins & ties
         set_random(5,5,5,4);
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 2);
         TS_ASSERT_EQUALS((int)SR_CMD_ATTACK_RESULT, mv->command.command);
-        TS_ASSERT_EQUALS(9, mv->country1.armies);
-        TS_ASSERT_EQUALS(7, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)9, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int)7, mv->country2.armies);
 
         //Attacker ties & loses
         set_random(3,5,5,4);
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 2);
         TS_ASSERT_EQUALS((int)SR_CMD_ATTACK_RESULT, mv->command.command);
-        TS_ASSERT_EQUALS(7, mv->country1.armies);
-        TS_ASSERT_EQUALS(7, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)7, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int)7, mv->country2.armies);
 
         //Attacker loses
         set_random(3,2,5,4);
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 2);
         TS_ASSERT_EQUALS(SR_CMD_ATTACK_RESULT, mv->command.command);
-        TS_ASSERT_EQUALS(5, mv->country1.armies);
-        TS_ASSERT_EQUALS(7, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)5, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int)7, mv->country2.armies);
     }
 
 	void test_bad_attacks() {
@@ -316,13 +321,13 @@ public:
         //Normal placement
         send_cmd(&p1, SR_CMD_PLACE, 0, 0, 1);
         TS_ASSERT_EQUALS(SR_CMD_COUNTRY_STATUS, all_res->command);
-        TS_ASSERT_EQUALS(2, status->country.armies);
-        TS_ASSERT_EQUALS(9, srd->players[0].armies);
+        TS_ASSERT_EQUALS((unsigned int)2, status->country.armies);
+        TS_ASSERT_EQUALS((unsigned int)9, srd->players[0].armies);
 
         send_cmd(&p1, SR_CMD_PLACE, 0, 0, 5);
         TS_ASSERT_EQUALS(SR_CMD_COUNTRY_STATUS, all_res->command);
-        TS_ASSERT_EQUALS(7, status->country.armies);
-        TS_ASSERT_EQUALS(4, srd->players[0].armies);
+        TS_ASSERT_EQUALS((unsigned int)7, status->country.armies);
+        TS_ASSERT_EQUALS((unsigned int)4, srd->players[0].armies);
 
         //Negative armies
         send_cmd(&p1, SR_CMD_PLACE, 0, 0, -1);
@@ -359,22 +364,22 @@ public:
 
         srd->players[1].countries_held = 11;
         srd->players[2].countries_held = 12;
-        produce_armies(&game);
+        produce_armies(&game, &s);
 
-        TS_ASSERT_EQUALS(3, cmd_res(0)->armies);
-        TS_ASSERT_EQUALS(3, cmd_res(1)->armies);
-        TS_ASSERT_EQUALS(4, cmd_res(2)->armies);
+        TS_ASSERT_EQUALS((unsigned int)3, cmd_res(0)->armies);
+        TS_ASSERT_EQUALS((unsigned int)3, cmd_res(1)->armies);
+        TS_ASSERT_EQUALS((unsigned int)4, cmd_res(2)->armies);
 
         for(int i=0; i<3; i++) {
             srd->players[i].countries_held = 30 + i;
             srd->players[i].armies = 0;
         }
         reset_mocks();
-        produce_armies(&game);
+        produce_armies(&game, &s);
 
-        TS_ASSERT_EQUALS(10, cmd_res(0)->armies);
-        TS_ASSERT_EQUALS(10, cmd_res(1)->armies);
-        TS_ASSERT_EQUALS(10, cmd_res(2)->armies);
+        TS_ASSERT_EQUALS((unsigned int)10, cmd_res(0)->armies);
+        TS_ASSERT_EQUALS((unsigned int)10, cmd_res(1)->armies);
+        TS_ASSERT_EQUALS((unsigned int)10, cmd_res(2)->armies);
     }
 
     void test_produce_min_max_armies() {
@@ -383,59 +388,59 @@ public:
         srd->players[2].armies = 0;
         srd->players[0].countries_held = 40;
         srd->players[2].countries_held = 0;
-        produce_armies(&game);
-        TS_ASSERT_EQUALS(255, srd->players[0].armies);
-        TS_ASSERT_EQUALS(255, cmd_res(0)->armies);
-        TS_ASSERT_EQUALS(0,   srd->players[2].armies);
-        TS_ASSERT_EQUALS(0,   cmd_res(2)->armies);
+        produce_armies(&game, &s);
+        TS_ASSERT_EQUALS((unsigned int)255, srd->players[0].armies);
+        TS_ASSERT_EQUALS((unsigned int)255, cmd_res(0)->armies);
+        TS_ASSERT_EQUALS((unsigned int)0,   srd->players[2].armies);
+        TS_ASSERT_EQUALS((unsigned int)0,   cmd_res(2)->armies);
     }
 
     void test_produce_armies_continent() {
-        SR_Game_Status *s = &srd->status;
+        SR_Game_Status *st = &srd->status;
         clear_board();
-        s->countries[SR_EASTERN_US].owner = 1;
-        s->countries[SR_VENEZUELA].owner = 1;
-        s->countries[SR_NEW_GUINEA].owner = 1;
+        st->countries[SR_EASTERN_US].owner = 1;
+        st->countries[SR_VENEZUELA].owner = 1;
+        st->countries[SR_NEW_GUINEA].owner = 1;
 
-        s->countries[SR_ICELAND].owner = 1;
-        s->countries[SR_SOUTHERN_EUROPE].owner = 1;
-        s->countries[SR_UKRAINE].owner = 1;
-        s->countries[SR_SCANDINAVIA].owner = 1;
-        s->countries[SR_GREAT_BRITAIN].owner = 1;
-        s->countries[SR_WESTERN_EUROPE].owner = 1;
-        s->countries[SR_NORTHERN_EUROPE].owner = 1;
+        st->countries[SR_ICELAND].owner = 1;
+        st->countries[SR_SOUTHERN_EUROPE].owner = 1;
+        st->countries[SR_UKRAINE].owner = 1;
+        st->countries[SR_SCANDINAVIA].owner = 1;
+        st->countries[SR_GREAT_BRITAIN].owner = 1;
+        st->countries[SR_WESTERN_EUROPE].owner = 1;
+        st->countries[SR_NORTHERN_EUROPE].owner = 1;
 
-        s->countries[SR_EGYPT].owner = 2;
-        s->countries[SR_CONGO].owner = 2;
-        s->countries[SR_MADAGASCAR].owner = 2;
-        s->countries[SR_SOUTH_AFRICA].owner = 2;
-        s->countries[SR_EAST_AFRICA].owner = 2;
-        s->countries[SR_NORTH_AFRICA].owner = 2;
+        st->countries[SR_EGYPT].owner = 2;
+        st->countries[SR_CONGO].owner = 2;
+        st->countries[SR_MADAGASCAR].owner = 2;
+        st->countries[SR_SOUTH_AFRICA].owner = 2;
+        st->countries[SR_EAST_AFRICA].owner = 2;
+        st->countries[SR_NORTH_AFRICA].owner = 2;
 
-        produce_armies(&game);
-        TS_ASSERT_EQUALS(10, cmd_res(0)->armies); //3 + Asia (7) = 10
-        TS_ASSERT_EQUALS( 8, cmd_res(1)->armies); //3 + Europe(5) = 8
-        TS_ASSERT_EQUALS( 6, cmd_res(2)->armies); //3 + Africa(3) = 6
+        produce_armies(&game, &s);
+        TS_ASSERT_EQUALS((unsigned int)10, cmd_res(0)->armies); //3 + Asia (7) = 10
+        TS_ASSERT_EQUALS((unsigned int) 8, cmd_res(1)->armies); //3 + Europe(5) = 8
+        TS_ASSERT_EQUALS((unsigned int) 6, cmd_res(2)->armies); //3 + Africa(3) = 6
 
         clear_board();
-        s->countries[SR_NORTH_AFRICA].owner = 1;
-        s->countries[SR_ICELAND].owner = 1;
-        s->countries[SR_JAPAN].owner = 1;
+        st->countries[SR_NORTH_AFRICA].owner = 1;
+        st->countries[SR_ICELAND].owner = 1;
+        st->countries[SR_JAPAN].owner = 1;
 
-        s->countries[SR_BRAZIL].owner = 1;
-        s->countries[SR_VENEZUELA].owner = 1;
-        s->countries[SR_ARGENTINA].owner = 1;
-        s->countries[SR_PERU].owner = 1;
+        st->countries[SR_BRAZIL].owner = 1;
+        st->countries[SR_VENEZUELA].owner = 1;
+        st->countries[SR_ARGENTINA].owner = 1;
+        st->countries[SR_PERU].owner = 1;
 
-        s->countries[SR_NEW_GUINEA].owner = 2;
-        s->countries[SR_INDONESIA].owner = 2;
-        s->countries[SR_WESTERN_AUSTRALIA].owner = 2;
-        s->countries[SR_EASTERN_AUSTRALIA].owner = 2;
+        st->countries[SR_NEW_GUINEA].owner = 2;
+        st->countries[SR_INDONESIA].owner = 2;
+        st->countries[SR_WESTERN_AUSTRALIA].owner = 2;
+        st->countries[SR_EASTERN_AUSTRALIA].owner = 2;
 
-        produce_armies(&game);
-        TS_ASSERT_EQUALS(8, cmd_res(0)->armies); //3 + N. Am(5) = 8
-        TS_ASSERT_EQUALS(5, cmd_res(1)->armies); //3 + S. Am(2) = 5
-        TS_ASSERT_EQUALS(5, cmd_res(2)->armies); //3 + Austr(2) = 5
+        produce_armies(&game, &s);
+        TS_ASSERT_EQUALS((unsigned int)8, cmd_res(0)->armies); //3 + N. Am(5) = 8
+        TS_ASSERT_EQUALS((unsigned int)5, cmd_res(1)->armies); //3 + S. Am(2) = 5
+        TS_ASSERT_EQUALS((unsigned int)5, cmd_res(2)->armies); //3 + Austr(2) = 5
     }
 
     void test_conquer_country() {
@@ -447,12 +452,12 @@ public:
         set_random(5,5,5,1);
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 3);
         TS_ASSERT_EQUALS((int)SR_CMD_ATTACK_RESULT, mv->command.command);
-        TS_ASSERT_EQUALS(0, mv->country1.owner);
-        TS_ASSERT_EQUALS(6, mv->country1.armies);
-        TS_ASSERT_EQUALS(0, mv->country2.owner);
-        TS_ASSERT_EQUALS(3, mv->country2.armies);
-        TS_ASSERT_EQUALS(15, srd->players[0].countries_held);
-        TS_ASSERT_EQUALS(13, srd->players[1].countries_held);
+        TS_ASSERT_EQUALS((unsigned int)0, mv->country1.owner);
+        TS_ASSERT_EQUALS((unsigned int)6, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int)0, mv->country2.owner);
+        TS_ASSERT_EQUALS((unsigned int)3, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)15, srd->players[0].countries_held);
+        TS_ASSERT_EQUALS((unsigned int)13, srd->players[1].countries_held);
 
         //Attacker wins
         setup_country(SR_WESTERN_AUSTRALIA, 0, 9);
@@ -460,10 +465,10 @@ public:
         set_random(5,5,4,4);
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 2);
         TS_ASSERT_EQUALS((int)SR_CMD_ATTACK_RESULT, mv->command.command);
-        TS_ASSERT_EQUALS(0, mv->country1.owner);
-        TS_ASSERT_EQUALS(7, mv->country1.armies);
-        TS_ASSERT_EQUALS(0, mv->country2.owner);
-        TS_ASSERT_EQUALS(2, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)0, mv->country1.owner);
+        TS_ASSERT_EQUALS((unsigned int)7, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int)0, mv->country2.owner);
+        TS_ASSERT_EQUALS((unsigned int)2, mv->country2.armies);
 
         //Attacker wins
         setup_country(SR_WESTERN_AUSTRALIA, 0, 9);
@@ -471,10 +476,10 @@ public:
         set_random(5,5,5,1);
         send_cmd(&p1, SR_CMD_ATTACK, SR_WESTERN_AUSTRALIA, SR_NEW_GUINEA, 8);
         TS_ASSERT_EQUALS(SR_CMD_ATTACK_RESULT, mv->command.command);
-        TS_ASSERT_EQUALS(0, mv->country1.owner);
-        TS_ASSERT_EQUALS(1, mv->country1.armies);
-        TS_ASSERT_EQUALS(0, mv->country2.owner);
-        TS_ASSERT_EQUALS(8, mv->country2.armies);
+        TS_ASSERT_EQUALS((unsigned int)0, mv->country1.owner);
+        TS_ASSERT_EQUALS((unsigned int)1, mv->country1.armies);
+        TS_ASSERT_EQUALS((unsigned int)0, mv->country2.owner);
+        TS_ASSERT_EQUALS((unsigned int)8, mv->country2.armies);
     }
 
     void test_win_game() {
@@ -496,17 +501,18 @@ public:
         TS_ASSERT_EQUALS(SR_CMD_ATTACK_RESULT, mv->command.command);
         all_res = (SR_Command*)&mock_all_buff[1];
         TS_ASSERT_EQUALS(SR_CMD_DEFEAT, all_res->command);
-        TS_ASSERT_EQUALS(1, all_res->from);
-        TS_ASSERT_EQUALS(0, srd->players[1].countries_held);
+        TS_ASSERT_EQUALS((unsigned int)1, all_res->from);
+        TS_ASSERT_EQUALS((unsigned int)0, srd->players[1].countries_held);
         all_res = (SR_Command*)&mock_all_buff[2];
         TS_ASSERT_EQUALS(SR_CMD_VICTORY, all_res->command);
-        TS_ASSERT_EQUALS(0, all_res->from);
-        TS_ASSERT_EQUALS(42, srd->players[0].countries_held);
+        TS_ASSERT_EQUALS((unsigned int)0, all_res->from);
+        TS_ASSERT_EQUALS((unsigned int)42, srd->players[0].countries_held);
 
-        TS_ASSERT_EQUALS(SR_DONE, srd->state);
+        TS_ASSERT_EQUALS(&SR_DONE, game.state);
     }
 
-    Game game;
+    GameInstance game;
+	Server s;
     Player p1;
     Player p2;
     Player p3;

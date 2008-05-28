@@ -3,21 +3,21 @@
 
 #include <stdlib.h>
 #include <cxxtest/TestSuite.h>
+#include <SpeedRisk/SpeedRisk.h>
 #include <SpeedRisk/protocol.h>
 #include <SpeedRisk/board.h>
-#include <gamed/player.h>
 #include <gamed/game.h>
-#include <mocks.h>
+#include <test/server.h>
+#include "defs.h"
 
 class SpeedRiskFinishedTest: public CxxTest::TestSuite {
 public:
     SpeedRiskFinishedTest() {
-        game.playing = 0;
-        game_init (&game);
-        SpeedRiskData *srd = (SpeedRiskData*)game.data;
-        srd->state = SR_WAITING_FOR_PLAYERS;
-        player_join (&game, &player);
-        srd->state = SR_DONE;
+		init_server(&s);
+		game.game = &SpeedRisk;
+        SpeedRisk.initialize(&game, &s);
+        SpeedRisk.player_join(&game, &s, &player);
+        game.state = &SR_DONE;
         res = (SR_Command*)&mock_plr_buff[0];
     }
 
@@ -31,7 +31,7 @@ public:
     void simple_command_test(int command, SR_COMMAND exp) {
         reset_mocks();
         cmd.command = command;
-        handle_request(&game, &player, (char*)&cmd, 4);
+        game.state->player_event(&game, &s, &player, (char*)&cmd, 4);
         TS_ASSERT_EQUALS(exp, res->command);
     }
 
@@ -47,7 +47,8 @@ public:
         simple_command_test(SR_CMD_COUNTRY_STATUS, SR_CMD_COUNTRY_STATUS);
     }
 
-    Game game;
+	Server s;
+    GameInstance game;
     Player player;
     SR_Command cmd;
     SR_Command *res;

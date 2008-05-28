@@ -3,20 +3,24 @@
 #include <gamed/game.h>
 #include <HiLo/HiLo.h>
 
-void handle_request (GameInstance *game, Player *p, char *req, int len);
+static void game_init     (GameInstance *g, Server *s);
+static bool player_join   (GameInstance *g, Server *s, Player *p);
+static void player_quit   (GameInstance *g, Server *s, Player *p);
+static void handle_request(GameInstance *g, Server *s, Player *p, char *, int len);
+
+Game HiLo = { "HiLo", "0.1", &game_init, &player_join, &player_quit, NULL };
 State STANDARD = { NULL, &handle_request, NULL, NULL };
 
-void game_init (GameInstance *g) {
+void game_init (GameInstance *g, Server *s) {
     HiLoData *data = (HiLoData*)malloc(sizeof(HiLoData));
     g->state = &STANDARD;
     LIST_INIT(&g->players);
     g->data = (char*)data;
-    data->number = g->functions->random(100) + 1;
+    data->number = s->random(100) + 1;
     data->guesses = 0;
 }
 
-bool player_join (GameInstance *g, Player *p) {
-    Server *s = g->functions;
+bool player_join (GameInstance *g, Server *s, Player *p) {
     if (LIST_EMPTY(&g->players)) {
         LIST_INSERT_HEAD(&g->players, p, player);
         g->playing = 1;
@@ -30,14 +34,12 @@ bool player_join (GameInstance *g, Player *p) {
     }
 }
 
-void player_quit (GameInstance *g, Player *p) {
-    g->playing = 0;
-    LIST_REMOVE(p, player);
+void player_quit (GameInstance *g, Server *s, Player *p) {
+    s->game_over(g);
 }
 
-void handle_request (GameInstance *game, Player *p, char *req, int len) {
+void handle_request (GameInstance *game, Server *s, Player *p, char *req, int len) {
     long guess;
-    Server *s = game->functions;
     HiLoData *g = (HiLoData*)game->data;
     g->guesses++;
     guess = strtol(req, (char **)NULL, 10);

@@ -1,24 +1,21 @@
-.SUFFIXES:
-.SUFFIXES: .so .c .o
-SOFLAGS = -shared -Wl,-x
-CFLAGS = -Wall -g
-LIBS = -L/usr/local/lib -levent
+OBJS := $(patsubst %.c,%.o,$(wildcard ../*.c))
+CFLAGS = -Wall -g -fPIC
 OBJS = borders.o game.o
 INC = -I.. -I../../include -I/usr/local/include
 CC = gcc
 
-run: tests libgame.so
+run: tests libSpeedRisk.so
 
-tests:
+tests: $(OBJS)
 	@make -C t
+	t/runtests
 
-libgame.so: $(OBJS)
-	$(CC) $(CFLAGS) $(SOFLAGS) $(INC) $(OBJS) -o libgame.so -Wl,-soname,libgame.so
-	cp libgame.so ../../lib
+libSpeedRisk.so: *.c
+	ld -fPIC -shared -s -o libSpeedRisk.so $(OBJS)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) $< -c -o $@
 
 clean:
 	rm -f *.o *.so
-	@make -C test clean
+	@make -C t clean
