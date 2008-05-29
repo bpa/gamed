@@ -1,49 +1,25 @@
-#include <sys/time.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
+#define _BSD_SOURCE
 #include <arpa/inet.h>
-#include <errno.h>
-#include <stdarg.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <signal.h>
-#include <string.h>
 #include <strings.h>
-#include <unistd.h>
 #include <syslog.h>
-#include <sysexits.h>
-#include <gamed/server.h>
-#include <gamed/game.h>
-#include <gamed/queue.h>
+#include <unistd.h>
+#include "server.h"
 
 static void listen_on_port(int port);
 static void handle_sig_hup(int sock, short event, void *args);
 static void handle_connect(int sock, short event, void *args);
 static void handle_network_event(int sock, short event, void *args);
-static void handle_chat (Client *c, int len);
-static void tellf_player(Player *p, const char *fmt, ...);
-static void tell_player(Player *p, const char *fmt, size_t);
-static void tellf_all(GameInstance *g, const char *fmt, ...);
-static void tell_all(GameInstance *g, const char *fmt, size_t);
-static void add_timer(GameInstance *g, struct timeval *period, bool persistent);
 static struct event ev_connection;
 static struct event ev_sig_hup;
-static char rand_state[8];
-
-long get_random(long max);
+extern Server server_funcs;
 
 /******************************************************************************/
+
 GameInstanceList game_list;
 ChatInstanceList chat_list;
-Server server_funcs = { &get_random, &tellf_player, &tell_player,
-    &tellf_all, &tell_all, &add_timer };
-char buff[1024];
-/******************************************************************************/
-
-long get_random(long max) {
-    return random() % max;
-}
 
 /******************************************************************************/
 
@@ -122,6 +98,7 @@ void handle_connect(int listener, short event, void *args) {
     event_set((struct event*)&client->ev, sock, EV_READ | EV_PERSIST,
         &handle_network_event, client);
     event_add((struct event*)&client->ev,NULL);
+	/* TODO add to authenticating list */
 }
 
 /******************************************************************************/
@@ -137,11 +114,11 @@ void handle_network_event(int sock, short event, void *args) {
                 handle_command(client, r);
                 break;
             case ':':
-                handle_chat(client, r);
+                /* client->chat->(client, r); */
                 break;
             default:
                 if (client->game != NULL) {
-                    client->game->game->handle_request(client->game, &client->player, &buff[0], r);
+                    client->game->state->player_event(client->game, &server_funcs, &client->player, &buff[0], r);
                 }
         }
     }
@@ -149,14 +126,7 @@ void handle_network_event(int sock, short event, void *args) {
         shutdown(sock, SHUT_RDWR);
         event_del(&client->ev);
         if (client->game != NULL) {
-            client->game->game->player_quit(client->game, &client->player);
-            if (client->game->playing == 0) {
-                /*TODO check to see if timer was added before deleting */
-                event_del(&client->game->timer);
-                free(client->game->data);
-                free(client->game);
-            }
-            LIST_REMOVE(client->game, game_instance);
+            client->game->game->player_quit(client->game, &server_funcs, &client->player);
         }
         /*****************************
          * Add this when chat is ready
@@ -171,6 +141,19 @@ void handle_network_event(int sock, short event, void *args) {
         }
     }
 }
+
+/******************************************************************************/
+
+void handle_timer (int sock, short event, void *args) {
+	GameInstance *g = (GameInstance *)args;
+	if (g->state->timer_event != NULL) {
+		g->state->timer_event(g, &server_funcs);
+	}
+	else {
+		event_del(&g->timer);
+	}
+}
+
 /******************************************************************************/
 
 void handle_chat (Client *c, int len) {
@@ -179,99 +162,7 @@ void handle_chat (Client *c, int len) {
 
 /******************************************************************************/
 
-void tell_player (Player *p, const char *msg, size_t len) {
-    if (len == 0) {
-        len = strlen(msg);
-    }
-    if (send(p->sock, msg, len, MSG_NOSIGNAL) == -1) {
-        /* No current recourse */
-        /* TODO: add a pointer to game to player, or find
-                 some other way to join player to game */
-    }
-}
-/******************************************************************************/
-
-void tell_all (GameInstance *g, const char *msg, size_t len) {
-    Player *p, *tmp;
-    if (len == 0) {
-        len = strlen(msg);
-    }
-    LIST_FOREACH_SAFE(p, &g->players, player, tmp) {
-        if (send(p->sock, msg, len, MSG_NOSIGNAL) == -1) {
-            g->game->player_quit(g, p);
-        }
-    }
-}
-/******************************************************************************/
-
-void add_timer (GameInstance *g, struct timeval *period, bool persistent) {
-    printf("Adding timer\n");
-    event_set(&g->timer, 0, EV_TIMEOUT | EV_PERSIST, g->game->handle_timer, g);
-    event_add(&g->timer, period);
-}
-/******************************************************************************/
-
 void handle_sig_hup(int sock, short event, void *args) {
 }
+
 /******************************************************************************/
-
-static int write_buff(const char *fmt, va_list ap) {
-    int wrote, intval, len = 0;
-    char *p, *argptr;
-    char *ptr = &buff[0];
-
-    for (p = (char *)fmt; *p; p++) {
-        if (*p != '%') {
-            *ptr = *p;
-            ptr++;
-            len++;
-        }
-        else {
-            switch(*++p) {
-                case 'i':
-                case 'd':
-                    intval = va_arg(ap, int);
-                    wrote = sprintf(ptr, "%i", intval);
-                    ptr += wrote;
-                    len += wrote;
-                    break;
-                case 's':
-                    for (argptr = va_arg(ap, char *); *argptr; argptr++) {
-                        *ptr++ = *argptr;
-                        len++;
-                    }
-                    break;
-                default:
-                    *ptr++ = *p;
-                    len++;
-            }
-        }
-    }
-    *ptr = '\0';
-    return len;
-}
-/******************************************************************************/
-
-void tellf_player(Player *p, const char *fmt, ...) {
-    va_list ap;
-    int len;
-
-    va_start(ap, fmt);
-    len = write_buff(fmt, ap);
-    va_end(ap);
-
-    tell_player(p, &buff[0], len);
-}
-/******************************************************************************/
-
-void tellf_all(GameInstance *g, const char *fmt, ...) {
-    va_list ap;
-    int len;
-
-    va_start(ap, fmt);
-    len = write_buff(fmt, ap);
-    va_end(ap);
-
-    tell_all(g, &buff[0], len);
-}
-

@@ -1,10 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <gamed/server.h>
-#include <SpeedRisk/SpeedRisk.h>
-#include <HiLo/HiLo.h>
+#include "server.h"
 
-Game **available_games;
 int main(int argc, char *argv[]) {
     char **p_ptr = NULL;
     int port = GAMED_PORT;
@@ -18,9 +15,7 @@ int main(int argc, char *argv[]) {
             port = requested_port;
         }
     }
-    available_games = malloc(2*sizeof(Game*));
-    available_games[0] = &SpeedRisk;
-    available_games[1] = &HiLo;
-    run_as_daemon(port);
+    /* run_as_daemon(port); */
+    run_server(port);
     return 0;
 }

@@ -38,18 +38,22 @@ void player_quit (GameInstance *g, Server *s, Player *p) {
     s->game_over(g);
 }
 
-void handle_request (GameInstance *game, Server *s, Player *p, char *req, int len) {
+void handle_request (GameInstance *g, Server *s, Player *p, char *req, int len) {
     long guess;
-    HiLoData *g = (HiLoData*)game->data;
-    g->guesses++;
+    HiLoData *game = (HiLoData*)g->data;
+    game->guesses++;
     guess = strtol(req, (char **)NULL, 10);
-    if (guess == g->number) {
-        s->tellf_player(p, "You got it in %i tries!\n", g->guesses);
-        s->tellf_player(p, "I'll choose another number\n");
-        g->number = s->random(100);
-        g->guesses = 0;
+    if (guess == game->number) {
+        s->tellf_player(p, "You got it in %i tries!\n", game->guesses);
+        s->tell_player(p, "I'll choose another number\n",0);
+        game->number = s->random(100);
+        game->guesses = 0;
     }
-    else if (guess > g->number) {
+	else if (guess == -1) {
+		s->tell_player(p, "Thanks for playing!\n",0);
+		s->game_over(g);
+	}
+    else if (guess > game->number) {
         s->tellf_player(p, "Too high\n>> ");
     }
     else {

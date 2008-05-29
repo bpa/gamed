@@ -1,17 +1,16 @@
+#include <arpa/inet.h>
 #include <sys/types.h>
-#include <sys/param.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <syslog.h>
-#include <gamed/server.h>
+#include <HiLo/HiLo.h>
+#include "server.h"
 
 extern Server server_funcs;
 extern GameInstanceList game_list;
 extern ChatInstanceList chat_list;
 extern void handle_network_event(int sock, short event, void *args);
-extern void handle_network_event(int sock, short event, void *args);
-extern long get_random(long max);
 
 static int argc;
 static char *argv[5];
@@ -38,6 +37,7 @@ static void parse_args(int len) {
 
 void handle_command(Client *client, int len) {
     Player *plr;
+	Game *game;
     GameInstance *instance;
     u_int16_t buff_len;
     u_int16_t *ptr_len = (u_int16_t*)&buff[2];
@@ -82,17 +82,17 @@ void handle_command(Client *client, int len) {
          * Ignoring second argument
          ***********************************/
 
+        server_funcs.tell_player(&client->player, "Creating game\n", 0);
+		game = &HiLo;
         instance = (void*)malloc(sizeof(GameInstance));
         memset(instance, 0, sizeof(GameInstance));
         strncpy(instance->name, argv[2], 32);
         instance->name[31] = '\0';
-        instance->game = available_games[1];
+        instance->game = game;
         LIST_INSERT_HEAD(&game_list, instance, game_instance);
         LIST_INIT(&instance->players);
-        instance->playing = 0;
-        instance->functions = &server_funcs;
-        instance->game->game_init(instance);
-        if (instance->game->player_join(instance, &client->player)) {
+        instance->game->initialize(instance, &server_funcs);
+        if (instance->game->player_join(instance, &server_funcs, &client->player)) {
             syslog(LOG_INFO, "%s joined", client->player.name);
             client->game = instance;
         }
@@ -117,10 +117,16 @@ void handle_command(Client *client, int len) {
         }
 
         if (instance != NULL) {
-            if (instance->game->player_join(instance, &client->player)) {
+            if (instance->game->player_join(instance, &server_funcs, &client->player)) {
                 syslog(LOG_INFO, "%s joined", client->player.name);
             }
+			else {
+            	server_funcs.tell_player(&client->player, "Game full\n",0);
+			}
         }
+		else {
+            server_funcs.tell_player(&client->player, "No game found\n",0);
+		}
         return;
     }
     if (argc == 1 && strncmp("/quit", argv[0], 5) == 0) {
@@ -128,16 +134,10 @@ void handle_command(Client *client, int len) {
             server_funcs.tell_player(&client->player, "You aren't in a game\n",0);
         }
         else {
-            client->game->game->player_quit(client->game, &client->player);
-            if (client->game->playing == 0) {
-                /*TODO refactor to remove this duplication of code */
-                /*TODO check to see if timer was added before deleting */
-                event_del(&client->game->timer);
-                free(client->game->data);
-                free(client->game);
-            }
-            LIST_REMOVE(client->game, game_instance);
-            client->game = NULL;
+            client->game->game->player_quit(client->game, &server_funcs, &client->player);
+			LIST_REMOVE(&client->player, player);
+			client->game = NULL;
+			return;
         }
     }
     server_funcs.tell_player(&client->player, "Invalid command\n",0);
