@@ -1,7 +1,8 @@
 #ifndef SPEED_RISK_PROTOCOL
 #define SPEED_RISK_PROTOCOL
 
-#include "stdint.h"
+#include <stdint.h>
+#include <gamed/command.h>
 
 #define SR_NUM_COUNRIES 42
 typedef enum SR_COUNTRY {
@@ -24,8 +25,7 @@ typedef enum SR_COUNTRY {
 } SR_COUNTRY;
 
 typedef enum SR_COMMAND {
-    SR_CMD_NOP = 0,
-    SR_CMD_PLAYER_JOIN,
+    SR_CMD_PLAYER_JOIN = CMD_USER_GAME_START,
     SR_CMD_MESSAGE,
     SR_CMD_ERROR,
     SR_CMD_READY,

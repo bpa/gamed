@@ -4,14 +4,14 @@ OBJS = borders.o game.o
 INC = -I.. -I../../include -I/usr/local/include
 CC = gcc
 
-run: tests libSpeedRisk.so
+run: tests SpeedRisk.so
 
 tests: $(OBJS)
 	@make -C t
 	t/runtests
 
-libSpeedRisk.so: *.c
-	ld -fPIC -shared -s -o libSpeedRisk.so $(OBJS)
+SpeedRisk.so: *.c
+	ld -fPIC -shared -s -o SpeedRisk.so $(OBJS)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) $< -c -o $@

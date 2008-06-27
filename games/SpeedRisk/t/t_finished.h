@@ -15,7 +15,7 @@ public:
     SpeedRiskFinishedTest() {
 		init_server(&s);
 		game.game = &SpeedRisk;
-        SpeedRisk.initialize(&game, &s);
+        SpeedRisk.create(&game, &s);
         SpeedRisk.player_join(&game, &s, &player);
         game.state = &SR_DONE;
         res = (SR_Command*)&mock_plr_buff[0];
@@ -36,7 +36,6 @@ public:
     }
 
 	void test_finished_commands() {
-        simple_command_test(SR_CMD_NOP, SR_CMD_NOP);
         simple_command_test(SR_CMD_READY, SR_CMD_ERROR);
         simple_command_test(SR_CMD_NOTREADY, SR_CMD_ERROR);
         simple_command_test(SR_CMD_BEGIN, SR_CMD_ERROR);

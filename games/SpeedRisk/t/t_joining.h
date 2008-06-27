@@ -20,7 +20,7 @@ public:
 	}
 
 	void setUp() {
-        SpeedRisk.initialize(&game, &s);
+        SpeedRisk.create(&game, &s);
         srd = (SpeedRiskData*)game.data;
         reset_mocks();
         plr_res = (SR_Command*)&mock_plr_buff[0];
@@ -59,12 +59,12 @@ public:
         TS_ASSERT_EQUALS(2, game.playing);
         reset_mocks();
         TS_ASSERT(!SpeedRisk.player_join(&game, &s, &p1));
-        TS_ASSERT_EQUALS(SR_CMD_NOP, all_res->command);
+        TS_ASSERT_EQUALS(0, all_res->command);
         TS_ASSERT_EQUALS(0, p1.in_game_id);
         TS_ASSERT_EQUALS(2, game.playing);
         reset_mocks();
         TS_ASSERT(!SpeedRisk.player_join(&game, &s, &p2));
-        TS_ASSERT_EQUALS(SR_CMD_NOP, all_res->command);
+        TS_ASSERT_EQUALS(0, all_res->command);
         TS_ASSERT_EQUALS(1, p2.in_game_id);
         TS_ASSERT_EQUALS(2, game.playing);
     }
@@ -118,6 +118,48 @@ public:
         TS_ASSERT_EQUALS(2, p3.in_game_id);
         TS_ASSERT(SpeedRisk.player_join(&game, &s, &p2));
         TS_ASSERT_EQUALS(1, p2.in_game_id);
+    }
+
+    void test_can_start_with_dropped_player() {
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p1));
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p2));
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p3));
+        SpeedRisk.player_quit(&game, &s, &p1);
+
+        simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
+        simple_command_all_test(&p3, SR_CMD_READY, SR_CMD_READY);
+
+        all_res = (SR_Command*)&mock_all_buff[1];
+        TS_ASSERT_EQUALS(SR_CMD_START_PLACING, all_res->command);
+        TS_ASSERT_EQUALS(&SR_PLACING, game.state);
+    }
+
+    void test_drop_unready_player_starts_game() {
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p1));
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p2));
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p3));
+        simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
+        simple_command_all_test(&p3, SR_CMD_READY, SR_CMD_READY);
+        TS_ASSERT_EQUALS(&SR_WAITING_FOR_PLAYERS, game.state);
+
+		reset_mocks();
+        SpeedRisk.player_quit(&game, &s, &p1);
+        TS_ASSERT_EQUALS(SR_CMD_PLAYER_QUIT, all_res->command);
+        all_res = (SR_Command*)&mock_all_buff[1];
+        TS_ASSERT_EQUALS(SR_CMD_START_PLACING, all_res->command);
+        TS_ASSERT_EQUALS(&SR_PLACING, game.state);
+    }
+
+    void test_drop_unready_player_still_requires_two() {
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p1));
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p2));
+        simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
+        TS_ASSERT_EQUALS(&SR_WAITING_FOR_PLAYERS, game.state);
+
+		reset_mocks();
+        SpeedRisk.player_quit(&game, &s, &p1);
+        TS_ASSERT_EQUALS(SR_CMD_PLAYER_QUIT, all_res->command);
+        TS_ASSERT_EQUALS(&SR_WAITING_FOR_PLAYERS, game.state);
     }
 
     void test_max_players() {

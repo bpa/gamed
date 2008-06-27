@@ -21,7 +21,7 @@ public:
     }
 
 	void setUp()    {
-        SpeedRisk.initialize(&game, &s);
+        SpeedRisk.create(&game, &s);
         srd = (SpeedRiskData*)game.data;
         plr_res = (SR_Command*)&mock_plr_buff[0];
         all_res = (SR_Command*)&mock_all_buff[0];
@@ -508,6 +508,19 @@ public:
         TS_ASSERT_EQUALS((unsigned int)0, all_res->from);
         TS_ASSERT_EQUALS((unsigned int)42, srd->players[0].countries_held);
 
+        TS_ASSERT_EQUALS(&SR_DONE, game.state);
+    }
+
+    void test_last_player_wins_by_default() {
+		reset_mocks();
+        SpeedRisk.player_quit(&game, &s, &p1);
+        TS_ASSERT_EQUALS(SR_CMD_PLAYER_QUIT, all_res->command);
+		reset_mocks();
+        SpeedRisk.player_quit(&game, &s, &p2);
+        TS_ASSERT_EQUALS(SR_CMD_PLAYER_QUIT, all_res->command);
+
+        all_res = (SR_Command*)&mock_all_buff[1];
+        TS_ASSERT_EQUALS(SR_CMD_VICTORY, all_res->command);
         TS_ASSERT_EQUALS(&SR_DONE, game.state);
     }
 
