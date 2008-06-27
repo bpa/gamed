@@ -4,7 +4,7 @@
 #OBJS = $(SOURCE:.cc=.o)
 OBJS := $(patsubst %.c,%.o,$(wildcard *.c))
 CFLAGS = -Wall -pedantic -ansi -O2 -I/usr/local/include -I../include -I../games
-LIBS = -L/usr/local/lib -levent
+LIBS = -L/usr/local/lib -levent -ldl
 #GAMES = -L../lib -lgame
 CC = gcc -g
 
