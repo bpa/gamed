@@ -64,11 +64,13 @@ void cmd_rename_player (Client *client, int len) {
 void cmd_list_games (Client *client, int len) {
 	Game *game;
 	int buff_len = 4;
+	GamedCommand *cmd = (GamedCommand *)&buff[0];
 	LIST_FOREACH(game, &game_list, game) {
 		buff_len += sprintf(&buff[buff_len], "%s %s\n", game->name, game->version);
 	}
 	buff_len--;
 	buff[buff_len] = '\0';
+	cmd->length = htons(buff_len);
 	server_funcs.tell_player(&client->player, &buff[0], buff_len);
 }
 
@@ -113,6 +115,20 @@ void cmd_create_game (Client *client, int len) {
 		server_funcs.tell_player(&client->player, &buff[0], 4);
 		return;
 	}
+	instance = LIST_FIRST(&game_instances);
+	while (instance != NULL) {
+		if (strncmp(instance->name, &buff[4], 32) == 0) {
+			break;
+		}
+		instance = LIST_NEXT(instance, game_instance);
+	}
+	if (instance != NULL) {
+        cmd->command = CMD_ERROR;
+        cmd->subcmd = GAMED_ERR_GAME_EXISTS;
+        cmd->length = 0;
+        server_funcs.tell_player(&client->player, &buff[0], 4);
+        return;
+	}
 	LIST_FOREACH(game, &game_list, game) {
 		if (strncmp(game->name, &buff[4], 32) == 0) break;
 	}
@@ -146,6 +162,7 @@ void cmd_create_game (Client *client, int len) {
 void cmd_join_game (Client *client, int len) {
 	GameInstance *instance;
 	GamedCommand *cmd = (GamedCommand*)&buff[0];
+	buff[len] = '\0';
 	instance = LIST_FIRST(&game_instances);
 	while (instance != NULL) {
 		if (strncmp(instance->name, &buff[4], 32) == 0) {
@@ -156,7 +173,10 @@ void cmd_join_game (Client *client, int len) {
 
 	if (instance != NULL) {
 		if (instance->game->player_join(instance, &server_funcs, &client->player)) {
+			client->game = instance;
 			syslog(LOG_INFO, "%s joined", client->player.name);
+			cmd->length = 0;
+			server_funcs.tell_player(&client->player, &buff[0], 4);
 		}
 		else {
 			cmd->command = CMD_ERROR;
@@ -179,15 +199,18 @@ void cmd_list_players (Client *client, int len) {
 	int buff_len = 4;
 	GamedCommand *cmd = (GamedCommand *)&buff[0];
 	if (client->game != NULL) {
-		buff_len = sprintf(&buff[buff_len], "%i:", client->game->playing);
+		buff_len += sprintf(&buff[buff_len], "%i", client->game->playing);
 	    LIST_FOREACH(plr, &client->game->players, player) {
 	        buff_len += sprintf(&buff[buff_len], ":%i:%s",
 	             plr->in_game_id, &plr->name[0]);
 	    }
-	    cmd->length = htons(buff_len-4);
+		buff[buff_len] = '\0';
+	    cmd->length = htons(buff_len);
 	    server_funcs.tell_player(&client->player, &buff[0], buff_len);
 	}
 	else {
+		cmd->command = CMD_ERROR;
+		cmd->subcmd = GAMED_ERR_NO_GAME;
 		cmd->length = 0;
 	    server_funcs.tell_player(&client->player, &buff[0], 4);
 	}

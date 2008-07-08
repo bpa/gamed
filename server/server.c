@@ -112,6 +112,7 @@ void handle_connect(int listener, short event, void *args) {
         &handle_network_event, client);
     event_add((struct event*)&client->ev,NULL);
 	/* TODO add to authenticating list */
+	/* printf("Received connection\n"); */
 }
 
 /******************************************************************************/
@@ -134,6 +135,7 @@ void handle_network_event(int sock, short event, void *args) {
     r = recv(sock, buff, 1023,0);
     buff[r] = '\0';
     if (r > 0) {
+		/* printf("Received 0x%2X%2X%2X%2X[%s]\n", buff[0], buff[1], buff[2], buff[3], (char *)&buff[4]); */
 		cmd = (GamedCommand *)&buff[0];
         switch (cmd->command) {
             case CMD_NOP:
@@ -180,7 +182,7 @@ void drop_client(Client *client, int r) {
 	if (r == 0) {
 		fprintf(stderr,"Socket closed\n");
 	}
-	else { / * r == -1 * /
+	else { */ /* r == -1 */ /*
 		perror("Closed socket - recv");
 	}
 	*/
@@ -192,6 +194,9 @@ void handle_timer (int sock, short event, void *args) {
 	GameInstance *g = (GameInstance *)args;
 	if (g->state->timer_event != NULL) {
 		g->state->timer_event(g, &server_funcs);
+		if (g->timer_is_persistent) {
+    		event_add(&g->timer, &g->period);
+		}
 	}
 	else {
 		event_del(&g->timer);

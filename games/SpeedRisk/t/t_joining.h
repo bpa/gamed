@@ -182,7 +182,18 @@ public:
         for (i=0; i<SR_MAX_PLAYERS; i++) {
             LIST_REMOVE(&players[i], player);
 		}
-    }
+	}
+
+	void test_quit_when_all_leave() {
+        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p1));
+        TS_ASSERT_EQUALS(1, game.playing);
+		reset_mocks();
+        SpeedRisk.player_quit(&game, &s, &p1);
+        TS_ASSERT_EQUALS(0, all_res->command);
+        TS_ASSERT_EQUALS(true, game_quit);
+        SpeedRisk.create(&game, &s);
+        srd = (SpeedRiskData*)game.data;
+	}
 
     GameInstance game;
 	Server s;

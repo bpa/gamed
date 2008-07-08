@@ -108,7 +108,10 @@ void tell_all (GameInstance *g, const char *msg, size_t len) {
 /******************************************************************************/
 
 void add_timer (GameInstance *g, struct timeval *period, bool persistent) {
-    event_set(&g->timer, 0, EV_TIMEOUT | EV_PERSIST, &handle_timer, g);
+	g->period.tv_sec = period->tv_sec;
+	g->period.tv_usec = period->tv_usec;
+	g->timer_is_persistent = persistent;
+    event_set(&g->timer, 0, EV_TIMEOUT, &handle_timer, g);
     event_add(&g->timer, period);
 }
 /******************************************************************************/

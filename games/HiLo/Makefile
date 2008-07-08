@@ -4,10 +4,11 @@ CFLAGS = -fPIC -Wall -pedantic -g
 INC = -I.. -I../../include
 CC = gcc
 
-all: libHiLo.so tests
+all: HiLo.o tests HiLo.so
 
-libHiLo.so: HiLo.o
-	ld -fPIC -shared -s -o libHiLo.so HiLo.o
+HiLo.so: HiLo.o
+	ld -fPIC -shared -s -o HiLo.so HiLo.o
+	cp HiLo.so ../../server/
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $<

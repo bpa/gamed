@@ -3,45 +3,7 @@ from struct import pack, unpack
 from exceptions import RuntimeError
 from observing import Observable
 from ConfigParser import RawConfigParser
-
-COUNTRIES = [ 'EASTERN US', 'NORTHWEST TERRITORY', 'WESTERN US', 'ONTARIO',
-  'CENTRAL AMERICA', 'ALBERTA', 'GREENLAND', 'ALASKA', 'QUEBEC', 'BRAZIL',
-  'VENEZUELA', 'ARGENTINA', 'PERU', 'ICELAND', 'SOUTHERN EUROPE', 'UKRAINE',
-  'SCANDINAVIA', 'GREAT BRITAIN', 'WESTERN EUROPE', 'NORTHERN EUROPE', 'EGYPT',
-  'CONGO', 'MADAGASCAR', 'SOUTH AFRICA', 'EAST AFRICA', 'NORTH AFRICA',
-  'AFGHANISTAN', 'MONGOLIA', 'URAL', 'JAPAN', 'IRKUTSK', 'INDIA', 'SIAM',
-  'YAKUTSK', 'SIBERIA', 'CHINA', 'KAMCHATKA', 'MIDDLE EAST', 'NEW GUINEA',
-  'INDONESIA', 'WESTERN AUSTRALIA', 'EASTERN AUSTRALIA',
-]
-
-ERRORS = ['Invalid command','Not enough players', 'Not enough armies',
-  'Do not own country', 'Invalid destination']
-
-COMMANDS = [ 'NOP', 'PLAYER_JOIN', 'MESSAGE', 'ERROR', 'READY', 'NOTREADY',
-  'START_PLACING', 'BEGIN', 'MOVE', 'ATTACK', 'PLACE', 'GET_ARMIES',
-  'ATTACK_RESULT', 'MOVE_RESULT', 'GAME_STATUS', 'PLAYER_STATUS',
-  'COUNTRY_STATUS', 'DEFEAT', 'VICTORY', 'PLAYER_QUIT'] 
-
-NOP            =  0
-PLAYER_JOIN    =  1
-MESSAGE        =  2
-ERROR          =  3
-READY          =  4
-NOTREADY       =  5
-START_PLACING  =  6
-BEGIN          =  7
-MOVE           =  8
-ATTACK         =  9
-PLACE          = 10
-GET_ARMIES     = 11
-ATTACK_RESULT  = 12
-MOVE_RESULT    = 13
-GAME_STATUS    = 14
-PLAYER_STATUS  = 15
-COUNTRY_STATUS = 16
-DEFEAT         = 17
-VICTORY        = 18
-PLAYER_QUIT    = 19
+from Constants import *
 
 def cmd_cmd(cmd):    return ord(cmd[0])
 def cmd_from(cmd):   return ord(cmd[1])
@@ -50,6 +12,7 @@ def cmd_armies(cmd): return ord(cmd[3])
 
 class Client(Observable):
     def __init__(self, ui):
+        self.init_countries()
         self.ui = ui
         config = RawConfigParser()
         cnf_file = open("config.ini")
@@ -60,6 +23,31 @@ class Client(Observable):
         name = config.get('player','name')
         self.sock = socket.socket()
         self.sock.connect((host, port))
+        self.rename(name)
+        self.start_game()
+        self.sock.setblocking(0)
+
+    def start_game(self):
+        num = 0
+        while 1:
+            res = self.join("risk%i"%num)
+            if res == 'Join Game': break
+            if res == 'No Game':
+                res = self.create("risk%i"%num)
+                if res == 'Create Game':
+                    res = self.sock.recv(4)
+                    (cmd,sub) = unpack(">2Bxx", res) 
+                    self.player_id = sub
+                    # XXX This following line can easily be wrong if someone quit
+                    self.players = self.player_id + 1
+                    break
+                else:
+                    print res
+                    exit
+            print res
+            num = num + 1
+
+    def init_countries(self):
         self.country_map = {}
         self.command_map = {}
         for c in range(len(COUNTRIES)):
@@ -69,13 +57,37 @@ class Client(Observable):
         self.countries = []
         for c in range(42):
             self.countries.append(Country(pack('>4b',c,0,0,0)))
-        cmd = self.sock.recv(4)
-        self.player_id = cmd_from(cmd)
-        self.players = self.player_id + 1
-        self.sock.send("/name %s" % name)
         self.reserve = 0
         self.state = "Waiting for players"
-        self.sock.setblocking(0)
+
+    def rename(self, name):        
+        l = len(name)
+        self.sock.send(pack(">2BH%is" % l, 4, 1, l, name))
+    
+    def create(self, name):
+        game = 'SpeedRisk'
+        l = len(game)
+        g = len(name)
+        self.sock.send(pack(">2BH%iss%is" % (l,g), CMD_GAME, CMD_CREATE_GAME, l, game,':',name))
+        res = self.sock.recv(1024)
+        (cmd,sub,l,str) = unpack(">2BH%is" % (len(res)-4), res) 
+        return CMD_MAP[cmd][sub]
+
+    def join(self, instance):
+        l = len(instance)
+        self.sock.send(pack(">2BH%is" % l, CMD_GAME, CMD_JOIN_GAME, l, instance))
+        res = self.sock.recv(1024)
+        (cmd,sub,l,str) = unpack(">2BH%is" % (len(res)-4), res) 
+        print "Join: ", cmd, sub, l, str
+        if cmd == 7:
+            self.player_id = sub
+            # XXX This following line can easily be wrong if someone quit
+            self.players = self.player_id + 1
+            return 'Join Game'
+        return CMD_MAP[cmd][sub]
+
+    def update_players(self):
+        self.sock.send(pack(">2BH", CMD_GAME, CMD_LIST_PLAYERS, 0))
 
     def set_status(self, status): self.status = status
     def send_command(self, command, f=0, t=0, armies=0):
@@ -93,15 +105,21 @@ class Client(Observable):
         except:
             return (False,None)
         c = cmd_cmd(cmd)
-        if (c == 0):
-            (msg_len,) = unpack(">xxH", cmd)
-            self.sock.setblocking(1)
-            msg = self.sock.recv(msg_len)
-            names = msg.split(':')
-            names.pop(0)
-            self.players = len(names) / 2
-            self.status.add_player(names)
-            self.sock.setblocking(0)
+        print "read command: %s" % COMMANDS[c]
+        if (c == CMD_GAME):
+            (s, msg_len) = unpack(">xBH", cmd)
+            if s == CMD_LIST_PLAYERS:
+                self.sock.setblocking(1)
+                msg = self.sock.recv(msg_len)
+                print "Players => %s" % msg
+                names = msg.split(':')
+                names.pop(0)
+                self.players = len(names) / 2
+                self.status.add_player(names)
+                self.sock.setblocking(0)
+                return (True, None)
+        elif (c == CMD_ERROR):
+            print CMD_MAP[c][ord(cmd[1])]
             return (True, None)
         elif (c == ERROR):
             print ERRORS[ord(cmd[1])]

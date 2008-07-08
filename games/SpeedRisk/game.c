@@ -216,6 +216,10 @@ void player_quit (GameInstance *g, Server *s, Player *p) {
     SpeedRiskData *srd = (SpeedRiskData*)g->data;
     LIST_REMOVE(p, player);
     g->playing--;
+	if (g->playing == 0) {
+		s->game_over(g);
+		return;
+	}
     all_cmd_f(g, s, SR_CMD_PLAYER_QUIT, p->in_game_id);
     srd->players[p->in_game_id].player = NULL;
     if (g->state == &SR_RUNNING) {

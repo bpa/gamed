@@ -249,8 +249,7 @@ class Status:
             dirty = True
 
     def update_players(self):
-        '''Bad me, breaking encapsulation, this will be fixed in refactor'''
-        self.client.sock.send("/players")
+		self.client.update_players()
 
     def add_player(self, names):
         while len(names) > 0:

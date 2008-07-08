@@ -30,18 +30,21 @@ typedef struct st_server {
     
 typedef struct st_state {
     void (*enter_state) (GameInstance *g, Server *s);
-    void (*player_event)(GameInstance *g, Server *s, Player *p, char *, int len);
+    void (*player_event)(GameInstance *g, Server *s, Player *p, const char *, int len);
     void (*timer_event) (GameInstance *g, Server *s);
     void (*leave_state) (GameInstance *g, Server *s);
 } State;
 
+#define STANDARD_GAMED_GAME 1
+
 typedef struct st_game {
+	int  gamed_abi_version;
 	char name[32];
 	char version[32];
-	void (*initialize) (GameInstance *g, Server *s);
+	void (*create)     (GameInstance *g, Server *s);
+	void (*destroy)    (GameInstance *g, Server *s);
 	bool (*player_join)(GameInstance *g, Server *s, Player *p);
 	void (*player_quit)(GameInstance *g, Server *s, Player *p);
-	void (*destroy)    (GameInstance *g, Server *s);
     LIST_ENTRY(st_game) game;
 	/* TODO: Add config member */
 } Game;
@@ -54,6 +57,8 @@ struct st_game_instance {
     PlayerList players;
     int playing;
     struct event timer;
+	struct timeval period;
+	int timer_is_persistent;
     char *data;
 };
 
