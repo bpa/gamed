@@ -11,22 +11,19 @@ extern GameList game_list;
 void load_game(char *path);
 
 void read_config (const char *config) {
-	ssize_t read;
-	size_t len;
-	char *line = NULL;
+    char *ok;
 	FILE *c = fopen(config, "r");
 	if (c == NULL) {
 		fprintf(stderr, "Can't open %s: %s\n", config, strerror(errno));
 		return;
 	}
 	for (;;) {
-		read = getline(&line, &len, c);
-		if (read == -1) break;
-		if (strncmp("LoadGame ", line, 9) == 0) {
-			load_game(&line[9]);
+		ok = fgets(&buff[0], 1024, c);
+		if (ok == NULL) break;
+		if (strncmp("LoadGame ", &buff[0], 9) == 0) {
+			load_game(&buff[9]);
 		}
 	};
-	free(line);
 }
 
 void load_game(char *path) {

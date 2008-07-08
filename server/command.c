@@ -107,8 +107,8 @@ void cmd_create_game (Client *client, int len) {
 	}
 	game_name = strtok(&buff[4], ":");
 	instance_name = strtok(NULL, ":");
-	if (game_name == NULL     || strnlen(game_name,32) < 1 ||
-		instance_name == NULL || strnlen(instance_name, 32) < 1) {
+	if (game_name == NULL     || strlen(game_name) < 1 ||
+		instance_name == NULL || strlen(instance_name) < 1) {
 		cmd->command = CMD_INVALID;
 		cmd->subcmd = 0;
 		cmd->length = 0;

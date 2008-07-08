@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -38,12 +39,13 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+    if (fork) {
+        if (daemon(1, 0) == -1) {
+            perror("daemonize");
+            return 1;
+        }
+    }
 	init_server(port);
-	if (fork) {
-		run_as_daemon();
-	}
-	else {
-		run_server();
-	}
+	run_server();
 	return 0;
 }
