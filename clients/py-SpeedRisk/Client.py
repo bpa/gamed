@@ -29,18 +29,12 @@ class Client(Observable):
 
     def start_game(self):
         num = 0
-        while 1:
-            res = self.join("risk%i"%num)
+        while num < 3:
+            res = self.start(CMD_JOIN_GAME, "risk%i"%num)
             if res == 'Join Game': break
             if res == 'No Game':
-                res = self.create("risk%i"%num)
-                if res == 'Create Game':
-                    res = self.sock.recv(4)
-                    (cmd,sub) = unpack(">2Bxx", res) 
-                    self.player_id = sub
-                    # XXX This following line can easily be wrong if someone quit
-                    self.players = self.player_id + 1
-                    break
+                res = self.start(CMD_CREATE_GAME, "risk%i"%num)
+                if res == 'Join Game': break
                 else:
                     print res
                     exit
@@ -62,23 +56,16 @@ class Client(Observable):
 
     def rename(self, name):        
         l = len(name)
-        self.sock.send(pack(">2BH%is" % l, 4, 1, l, name))
+        self.sock.send(pack(">2BH%is" % l, CMD_PLAYER, CMD_RENAME, l, name))
     
-    def create(self, name):
-        game = 'SpeedRisk'
-        l = len(game)
-        g = len(name)
-        self.sock.send(pack(">2BH%iss%is" % (l,g), CMD_GAME, CMD_CREATE_GAME, l, game,':',name))
-        res = self.sock.recv(1024)
-        (cmd,sub,l,str) = unpack(">2BH%is" % (len(res)-4), res) 
-        return CMD_MAP[cmd][sub]
-
-    def join(self, instance):
+    def start(self, command, instance):
+        game = 'SpeedRisk:'
+        g = len(game)
         l = len(instance)
-        self.sock.send(pack(">2BH%is" % l, CMD_GAME, CMD_JOIN_GAME, l, instance))
+        self.sock.send(pack(">2BH%is%is" % (g,l), CMD_GAME, command, g+l+1, game, instance))
         res = self.sock.recv(1024)
         (cmd,sub,l,str) = unpack(">2BH%is" % (len(res)-4), res) 
-        print "Join: ", cmd, sub, l, str
+        print "Start: ", cmd, sub, l, str
         if cmd == 7:
             self.player_id = sub
             # XXX This following line can easily be wrong if someone quit
