@@ -53,6 +53,7 @@ void game_over(GameInstance *g) {
 	else {
 		if (g->data != NULL) free(g->data);
 	}
+	g->game->instances--;
     LIST_REMOVE(g, game_instance);
 	free(g);
 }

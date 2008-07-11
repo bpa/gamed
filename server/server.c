@@ -27,7 +27,6 @@ extern command_func game_commands[];
 /******************************************************************************/
 
 GameList game_list;
-GameInstanceList game_instances;
 ChatInstanceList chat_list;
 
 /******************************************************************************/
@@ -35,7 +34,6 @@ ChatInstanceList chat_list;
 void init_server(int port) {
   openlog("gamed", LOG_CONS, LOG_USER);
   LIST_INIT(&game_list);
-  LIST_INIT(&game_instances);
   LIST_INIT(&chat_list);
   event_init();
   initstate(time(NULL), &rand_state[0],8);

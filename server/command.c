@@ -8,17 +8,15 @@
 #include <string.h>
 #include <syslog.h>
 #include "server.h"
+#include "command.h"
 
 extern Server server_funcs;
 extern GameList game_list;
-extern GameInstanceList game_instances;
 extern ChatInstanceList chat_list;
 
-static void cmd_identify_client(Client *, int);
 static void cmd_rename_player  (Client *, int);
 
 command_func player_commands[] = {
-	cmd_identify_client,
 	cmd_rename_player,
 };
 
@@ -39,24 +37,16 @@ command_func game_commands[] = {
 };
 
 /******************************************************************************/
-void cmd_identify_client (Client *client, int len) {
-	/* TODO: Figure out how this would actually be used or delete it */
-}
-
-/******************************************************************************/
 void cmd_rename_player (Client *client, int len) {
-	int buff_len = 0;
+	int buff_len = 4;
 	char *data = &buff[4];
 	GamedCommand *cmd = (GamedCommand *)&buff[0];
 	strncpy(client->player.name, data, 16);
 	client->player.name[15] = '\0';
 	if (len < 20) client->player.name[len-4] = '\0';
 	if (client->game != NULL) {
-		buff_len = sprintf(data, "%i:%s", client->player.in_game_id, &client->player.name[0]);
-		cmd->command = CMD_RENAME;
-		cmd->subcmd = 0;
-		cmd->length = htons(buff_len);
-		server_funcs.tell_all(client->game, &buff[0], buff_len+4);
+		buff_len += sprintf(data, "%i:%s", client->player.in_game_id, &client->player.name[0]);
+		CMD_ALL_LEN(CMD_RENAME, 0);
 	}
 }
 
@@ -66,7 +56,7 @@ void cmd_list_games (Client *client, int len) {
 	int buff_len = 4;
 	GamedCommand *cmd = (GamedCommand *)&buff[0];
 	LIST_FOREACH(game, &game_list, game) {
-		buff_len += sprintf(&buff[buff_len], "%s %s\n", game->name, game->version);
+		buff_len += sprintf(&buff[buff_len], "%s:%s:%i\n", game->name, game->version, game->instances);
 	}
 	buff_len--;
 	buff[buff_len] = '\0';
@@ -77,18 +67,23 @@ void cmd_list_games (Client *client, int len) {
 /******************************************************************************/
 void cmd_list_instances (Client *client, int len) {
 	/* TODO: Figuire out how to deal with it when there are more games than will fit in a K */
-	/* TODO: Should we require you specify which game you are interested in?  This would require keeping
-	 *       a list of game instances connected to the main game instance instead of in a combined list */
 	/* XXX: if there are too many games, this will cause a core dump */
 	int buff_len = 4;
-	GamedCommand *cmd = (GamedCommand*)&buff[0];
+	Game *game = NULL;
 	GameInstance *instance;
-	LIST_FOREACH(instance, &game_instances, game_instance) {
-		buff_len += sprintf(&buff[buff_len], "%s %s %s\n", instance->name, instance->game->name, instance->game->version);
+	GamedCommand *cmd = (GamedCommand*)&buff[0];
+	LIST_FOREACH(game, &game_list, game) {
+		if (strncmp(game->name, &buff[4], 32) == 0) break;
 	}
-	buff_len--;
-	buff[buff_len] = '\0';
-	cmd->length = htons(buff_len);
+	if (game == NULL) {
+		CMD_PLAYER(CMD_INVALID, 0);
+		return;
+	}
+	buff_len += sprintf(&buff[buff_len], "%i", game->instances);
+	LIST_FOREACH(instance, &game->instance_list, game_instance) {
+		buff_len += sprintf(&buff[buff_len], ":%s", instance->name);
+	}
+	cmd->length = htons(buff_len-4);
 	server_funcs.tell_player(&client->player, &buff[0], buff_len);
 }
 
@@ -99,73 +94,79 @@ void cmd_create_game (Client *client, int len) {
 	GameInstance *instance;
 	GamedCommand *cmd = (GamedCommand*)&buff[0];
 	if (client->game != NULL) {
-		cmd->command = CMD_ERROR;
-		cmd->subcmd = GAMED_ERR_IN_GAME;
-		cmd->length = 0;
-		server_funcs.tell_player(&client->player, &buff[0], 4);
+		PLAYER_ERROR(GAMED_ERR_IN_GAME);
 		return;
 	}
 	game_name = strtok(&buff[4], ":");
 	instance_name = strtok(NULL, ":");
 	if (game_name == NULL     || strlen(game_name) < 1 ||
 		instance_name == NULL || strlen(instance_name) < 1) {
-		cmd->command = CMD_INVALID;
-		cmd->subcmd = 0;
-		cmd->length = 0;
-		server_funcs.tell_player(&client->player, &buff[0], 4);
+		CMD_PLAYER(CMD_INVALID, 0);
 		return;
 	}
-	instance = LIST_FIRST(&game_instances);
+	LIST_FOREACH(game, &game_list, game) {
+		if (strncmp(game->name, &buff[4], 32) == 0) break;
+	}
+	if (game == NULL) {
+		PLAYER_ERROR(GAMED_ERR_NO_GAME);
+		return;
+	}
+	instance = LIST_FIRST(&game->instance_list);
 	while (instance != NULL) {
-		if (strncmp(instance->name, &buff[4], 32) == 0) {
+		if (strncmp(instance->name, instance_name, 32) == 0) {
 			break;
 		}
 		instance = LIST_NEXT(instance, game_instance);
 	}
 	if (instance != NULL) {
-        cmd->command = CMD_ERROR;
-        cmd->subcmd = GAMED_ERR_GAME_EXISTS;
-        cmd->length = 0;
-        server_funcs.tell_player(&client->player, &buff[0], 4);
+		PLAYER_ERROR(GAMED_ERR_GAME_EXISTS);
         return;
 	}
-	LIST_FOREACH(game, &game_list, game) {
-		if (strncmp(game->name, &buff[4], 32) == 0) break;
-	}
-	if (game != NULL) {
-		game = game;
-		instance = (void*)malloc(sizeof(GameInstance));
-		memset(instance, 0, sizeof(GameInstance));
-		strncpy(instance->name, instance_name, 32);
-		/* TODO: clean up names passed in */
-		instance->name[31] = '\0';
+	game->instances++;
+	instance = (void*)malloc(sizeof(GameInstance));
+	memset(instance, 0, sizeof(GameInstance));
+	strncpy(instance->name, instance_name, 32);
+	/* TODO: clean up names passed in */
+	instance->name[31] = '\0';
+	instance->game = game;
+	LIST_INSERT_HEAD(&game->instance_list, instance, game_instance);
+	LIST_INIT(&instance->players);
+	game->create(instance, &server_funcs);
+	if (game->player_join(instance, &server_funcs, &client->player)) {
+		syslog(LOG_INFO, "%s joined", client->player.name);
+		client->game = instance;
 		cmd->length = 0;
 		server_funcs.tell_player(&client->player, &buff[0], 4);
-		instance->game = game;
-		LIST_INSERT_HEAD(&game_instances, instance, game_instance);
-		LIST_INIT(&instance->players);
-		game->create(instance, &server_funcs);
-		if (game->player_join(instance, &server_funcs, &client->player)) {
-			syslog(LOG_INFO, "%s joined", client->player.name);
-			client->game = instance;
-		}
 	}
 	else {
-		cmd->command = CMD_ERROR;
-		cmd->subcmd = GAMED_ERR_NO_GAME;
-		cmd->length = 0;
-		server_funcs.tell_player(&client->player, &buff[0], 4);
+		/* I really don't expect this to ever happen, its here for completeness */
+		PLAYER_ERROR(GAMED_ERR_GAME_FULL);
 	}
 }
 
 /******************************************************************************/
 void cmd_join_game (Client *client, int len) {
+	Game *game;
 	GameInstance *instance;
+	char *game_name, *instance_name;
 	GamedCommand *cmd = (GamedCommand*)&buff[0];
-	buff[len] = '\0';
-	instance = LIST_FIRST(&game_instances);
+	game_name = strtok(&buff[4], ":");
+	instance_name = strtok(NULL, ":");
+	if (game_name == NULL     || strlen(game_name) < 1 ||
+		instance_name == NULL || strlen(instance_name) < 1) {
+		CMD_PLAYER(CMD_INVALID, 0);
+		return;
+	}
+	LIST_FOREACH(game, &game_list, game) {
+		if (strncmp(game->name, &buff[4], 32) == 0) break;
+	}
+	if (game == NULL) {
+		PLAYER_ERROR(GAMED_ERR_NO_GAME);
+		return;
+	}
+	instance = LIST_FIRST(&game->instance_list);
 	while (instance != NULL) {
-		if (strncmp(instance->name, &buff[4], 32) == 0) {
+		if (strncmp(instance->name, instance_name, 32) == 0) {
 			break;
 		}
 		instance = LIST_NEXT(instance, game_instance);
@@ -173,23 +174,17 @@ void cmd_join_game (Client *client, int len) {
 
 	if (instance != NULL) {
 		if (instance->game->player_join(instance, &server_funcs, &client->player)) {
-			client->game = instance;
 			syslog(LOG_INFO, "%s joined", client->player.name);
+			client->game = instance;
 			cmd->length = 0;
 			server_funcs.tell_player(&client->player, &buff[0], 4);
 		}
 		else {
-			cmd->command = CMD_ERROR;
-			cmd->subcmd = GAMED_ERR_GAME_FULL;
-			cmd->length = 0;
-			server_funcs.tell_player(&client->player, &buff[0], 4);
+			PLAYER_ERROR(GAMED_ERR_GAME_FULL);
 		}
 	}
 	else {
-		cmd->command = CMD_ERROR;
-		cmd->subcmd = GAMED_ERR_NO_GAME;
-		cmd->length = 0;
-		server_funcs.tell_player(&client->player, &buff[0], 4);
+		PLAYER_ERROR(GAMED_ERR_NO_GAME);
 	}
 }
 
@@ -209,10 +204,7 @@ void cmd_list_players (Client *client, int len) {
 	    server_funcs.tell_player(&client->player, &buff[0], buff_len);
 	}
 	else {
-		cmd->command = CMD_ERROR;
-		cmd->subcmd = GAMED_ERR_NO_GAME;
-		cmd->length = 0;
-	    server_funcs.tell_player(&client->player, &buff[0], 4);
+		PLAYER_ERROR(GAMED_ERR_NO_GAME);
 	}
 }
 
@@ -220,10 +212,7 @@ void cmd_list_players (Client *client, int len) {
 void cmd_quit_game (Client *client, int len) {
 	GamedCommand *cmd = (GamedCommand *)&buff[0];
 	if (client->game == NULL) {
-		cmd->command = CMD_ERROR;
-		cmd->subcmd = GAMED_ERR_NO_GAME;
-		cmd->length = 0;
-		server_funcs.tell_player(&client->player, &buff[0], 4);
+		PLAYER_ERROR(GAMED_ERR_NO_GAME);
 	}
 	else {
 		client->game->game->player_quit(client->game, &server_funcs, &client->player);

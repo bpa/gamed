@@ -20,9 +20,6 @@ typedef struct st_client_list_head ClientList;
 LIST_HEAD(st_game_head, st_game);
 typedef struct st_game_head GameList;
 
-LIST_HEAD(st_game_instance_head, st_game_instance);
-typedef struct st_game_instance_head GameInstanceList;
-
 LIST_HEAD(st_chat_instance_head, st_chat_instance);
 typedef struct st_chat_instance_head ChatInstanceList;
 
