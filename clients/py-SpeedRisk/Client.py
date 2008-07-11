@@ -29,17 +29,20 @@ class Client(Observable):
 
     def start_game(self):
         num = 0
-        while num < 3:
+        while 1:
             res = self.start(CMD_JOIN_GAME, "risk%i"%num)
             if res == 'Join Game': break
             if res == 'No Game':
                 res = self.start(CMD_CREATE_GAME, "risk%i"%num)
-                if res == 'Join Game': break
+                if res == 'Create Game': break
                 else:
                     print res
                     exit
             print res
             num = num + 1
+        self.sock.send(pack(">2BH", PLAYER_STATUS, 0, 0))
+        res = self.sock.recv(4)
+        (cmd,self.player_id,self.players) = unpack(">3Bx", res) 
 
     def init_countries(self):
         self.country_map = {}
@@ -66,11 +69,6 @@ class Client(Observable):
         res = self.sock.recv(1024)
         (cmd,sub,l,str) = unpack(">2BH%is" % (len(res)-4), res) 
         print "Start: ", cmd, sub, l, str
-        if cmd == 7:
-            self.player_id = sub
-            # XXX This following line can easily be wrong if someone quit
-            self.players = self.player_id + 1
-            return 'Join Game'
         return CMD_MAP[cmd][sub]
 
     def update_players(self):
@@ -142,6 +140,10 @@ class Client(Observable):
                 self.countries[ord(msg[0])].update(msg)
             self.sock.setblocking(0)
             return (True, 'UPDATE')
+        elif (c == PLAYER_STATUS):
+            self.player_id = cmd_from(cmd)
+            self.players = cmd_to(cmd)
+            self.reserve = cmd_armies(cmd)
         elif (c == READY):
             self.status.set_ready(cmd_from(cmd), True)
             return (True, 'READY')

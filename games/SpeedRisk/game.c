@@ -30,6 +30,7 @@ State SR_DONE                = { NULL, handle_done,    NULL,            NULL };
 #define all_cmd_f(g, s, cmd, fro) \
     msg_command.command = cmd; \
     msg_command.from = fro; \
+    msg_command.to = 0; \
     s->tell_all(g,(char*)&msg_command,4);
 
 #define player_cmd(s, p, cmd) \
@@ -173,7 +174,6 @@ void game_init (GameInstance *g, Server *s) {
 bool player_join (GameInstance *g, Server *s, Player *p) {
     int id;
     Player *plr;
-    SR_Player *sr_player;
     SpeedRiskData *board;
     if (g->state != &SR_WAITING_FOR_PLAYERS) return false;
     LIST_FOREACH(plr, &g->players, player) {
@@ -181,7 +181,6 @@ bool player_join (GameInstance *g, Server *s, Player *p) {
     }
     board = (SpeedRiskData*)g->data;
 	if (g->playing < SR_MAX_PLAYERS) {
-		LIST_INSERT_HEAD(&g->players, p, player);
 		for(id=0; id<SR_MAX_PLAYERS; id++) {
 			if (board->players[id].player == NULL) {
 				p->in_game_id = id;
@@ -194,16 +193,7 @@ bool player_join (GameInstance *g, Server *s, Player *p) {
 		g->playing++;
 		
 		all_cmd_f(g, s, SR_CMD_PLAYER_JOIN, p->in_game_id);
-		LIST_FOREACH(plr, &g->players, player) {
-			id = plr->in_game_id;
-			sr_player = &board->players[id];
-			if (sr_player->ready) {
-				player_cmd_f(s, p, SR_CMD_READY, id);
-			}
-			else {
-				player_cmd_f(s, p, SR_CMD_NOTREADY, id);
-			}
-		}
+		LIST_INSERT_HEAD(&g->players, p, player);
 		return true;
 	}
 	player_error(s, p, SR_CMD_ERROR);
@@ -270,6 +260,7 @@ void player_quit (GameInstance *g, Server *s, Player *p) {
 void handle_waiting(GameInstance *g, Server *s, Player *p, const char *req, int len) {
     SpeedRiskData *srd;
 	int all_ready, i;
+	SR_Player *player;
     SR_Command *cmd = (SR_Command*)req;
 	return_if_invalid(cmd);
     srd = (SpeedRiskData*)g->data;
@@ -298,6 +289,19 @@ void handle_waiting(GameInstance *g, Server *s, Player *p, const char *req, int 
 			srd->players[p->in_game_id].ready = false;
 			all_cmd_f(g, s, SR_CMD_NOTREADY, p->in_game_id);
 			break;
+		case SR_CMD_PLAYER_STATUS:
+			msg_command.command = SR_CMD_PLAYER_STATUS;
+			msg_command.from = p->in_game_id;
+			msg_command.to = g->playing;
+			msg_command.armies = 0;
+			s->tell_player(p,(char*)&msg_command,4);
+
+			for (i=0; i<SR_MAX_PLAYERS; i++) {
+				player = &srd->players[i];
+				if (player->player != NULL) {
+					player_cmd_f(s, p, player->ready ? SR_CMD_READY : SR_CMD_NOTREADY, i);
+				}
+			}
 		default:
 			player_error(s, p, SR_ERR_INVALID_CMD);
 			break;
@@ -478,7 +482,11 @@ void handle_playing(GameInstance *g, Server *s, Player *p, const char *req, int 
 			give_game_status(g, s, p);
 			break;
 		case SR_CMD_PLAYER_STATUS:
-			player_cmd_a(s, p, SR_CMD_PLAYER_STATUS, srd->players[p->in_game_id].armies);
+			msg_command.command = SR_CMD_PLAYER_STATUS;
+			msg_command.from = p->in_game_id;
+			msg_command.to = g->playing;
+			msg_command.armies = srd->players[p->in_game_id].armies;
+			s->tell_player(p,(char*)&msg_command,4);
 			break;
 		case SR_CMD_COUNTRY_STATUS:
 			give_country_status(g, s, p, cmd->from);
