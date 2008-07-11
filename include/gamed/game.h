@@ -10,6 +10,8 @@
 __BEGIN_DECLS
 
 typedef struct st_game_instance GameInstance;
+LIST_HEAD(st_game_instance_head, st_game_instance);
+typedef struct st_game_instance_head GameInstanceList;
 
 typedef struct st_server {
     long (*random)(long max);
@@ -46,7 +48,8 @@ typedef struct st_game {
 	bool (*player_join)(GameInstance *g, Server *s, Player *p);
 	void (*player_quit)(GameInstance *g, Server *s, Player *p);
     LIST_ENTRY(st_game) game;
-	/* TODO: Add config member */
+	GameInstanceList instance_list;
+	int instances;
 } Game;
 
 struct st_game_instance {
