@@ -6,34 +6,45 @@
 
 package gamed.client.SpeedRisk;
 
+import java.awt.Font;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
 import java.awt.Image;
+import java.awt.image.ImageObserver;
 /**
  *
  * @author  bruce
  */
 public class Display extends javax.swing.JPanel 
-        implements Runnable, gamed.Game {
+        implements Runnable, gamed.Game, ImageObserver {
     
     private Thread thread;
     private Image bg;
-    private Image eus;
-    public gamed.Server server;
-    public boolean running;
+    private gamed.Server server;
+    private State state;
+    private volatile boolean running;
+    private volatile int lines_seen;
+    private volatile int images_downloaded;
+    private static final int TOTAL_IMAGES = 44;
     
-    /** Creates new form Game */
     public Display(gamed.Server s) {
-        bg = s.getImage("images/world_map_relief.jpg");
-        eus = s.getImage("images/EasternUS.png");
-        initComponents();
         server = s;
+        state = new State(s);
+        initComponents();
     }
     
     public void paintComponent(java.awt.Graphics g) {
-        g.drawImage(bg, 0, 0, null);
-        g.drawImage(eus, 133, 114, null);
+        if (images_downloaded == TOTAL_IMAGES) {
+            g.drawImage(bg, 0, 0, null);
+            for (Country c : state.countries) {
+                c.paint(g);
+            }
+        } else {
+            g.clearRect(0, 0, 650, 375);
+        }
     }
     
-    public synchronized void start() {
+    public void start() {
         if (thread == null) {
             running = true;
             thread = new Thread(this);
@@ -42,23 +53,46 @@ public class Display extends javax.swing.JPanel
     }
     
     public void run() {
-        while(running) {
+        initMediaDownload();
+        while(images_downloaded < TOTAL_IMAGES) {
             try {
-                Thread.sleep(50);
-                int v = jProgressBar1.getValue();
-                if (v < 300) {
-                    jProgressBar1.setValue(v+1);
-                } else {
-                    server.quitGame();
-                }
-            } catch (java.lang.InterruptedException e) {
-                running = false;
+                Thread.sleep(100);
             }
-            repaint();
+            catch (java.lang.InterruptedException e) {
+                return;
+            }
+        }
+        loadingText.setVisible(false);
+        progress.setVisible(false);
+        repaint();
+        while(running) {
+           repaint();
+           state.tick();
         }
     }
+
+    private void initMediaDownload() {
+        images_downloaded = 0;
+        progress.setValue(0);
+        bg = getImage("images/world_map_relief.jpg");
+        for (int i=0; i<42; i++) {
+            state.countries[i].overlay = getImage("images/c"+i+".png");
+        }
+        ((Kamchat)state.countries[36]).overlay2 = getImage("images/c36b.png");
+    }
     
-    public synchronized void stop() {
+    private Image getImage(String image) {
+        Image img = server.getImage(image);
+        int height = img.getHeight(this);
+        if (height != -1) {
+            images_downloaded++;
+            lines_seen += height;
+            progress.setValue(lines_seen);
+        }
+        return img;
+    }
+    
+    public void stop() {
         if ((thread != null) && thread.isAlive()) {
             running = false;
         }
@@ -72,25 +106,59 @@ public class Display extends javax.swing.JPanel
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
-        jProgressBar1 = new javax.swing.JProgressBar();
-        jToggleButton1 = new javax.swing.JToggleButton();
+        progress = new javax.swing.JProgressBar();
+        jButton1 = new javax.swing.JButton();
+        loadingText = new javax.swing.JLabel();
 
+        setPreferredSize(new java.awt.Dimension(650, 375));
         setLayout(null);
 
-        jProgressBar1.setMaximum(300);
-        jProgressBar1.setFocusable(false);
-        add(jProgressBar1);
-        jProgressBar1.setBounds(130, 260, 150, 20);
+        progress.setMaximum(2558);
+        progress.setFocusable(false);
+        progress.setStringPainted(true);
+        add(progress);
+        progress.setBounds(10, 325, 630, 20);
 
-        jToggleButton1.setText("Ready");
-        add(jToggleButton1);
-        jToggleButton1.setBounds(0, 270, 51, 29);
+        jButton1.setText("jButton1");
+        jButton1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButton1ActionPerformed(evt);
+            }
+        });
+        add(jButton1);
+        jButton1.setBounds(290, 260, 66, 29);
+
+        loadingText.setFont(new java.awt.Font("DejaVu Sans", 0, 28));
+        loadingText.setText("Loading Media...");
+        add(loadingText);
+        loadingText.setBounds(200, 150, 250, 70);
     }// </editor-fold>//GEN-END:initComponents
+
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+        server.quitGame();
+    }//GEN-LAST:event_jButton1ActionPerformed
     
+    public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height) {
+        if ((infoflags & ImageObserver.SOMEBITS) > 0) {
+            lines_seen++;
+            progress.setValue(lines_seen);
+        }
+        if ((infoflags & ImageObserver.ERROR) > 0) {
+            images_downloaded++;
+            System.out.println("Error loading image");
+            return false;
+        }
+        if ((infoflags & ImageObserver.ALLBITS) > 0) {
+            images_downloaded++;
+            return false;
+        }
+        return true;
+    }
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JProgressBar jProgressBar1;
-    private javax.swing.JToggleButton jToggleButton1;
+    private javax.swing.JButton jButton1;
+    private javax.swing.JLabel loadingText;
+    private javax.swing.JProgressBar progress;
     // End of variables declaration//GEN-END:variables
     
 }
