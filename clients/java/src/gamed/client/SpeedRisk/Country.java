@@ -2,8 +2,10 @@ package gamed.client.SpeedRisk;
 
 import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.awt.Rectangle;
 /**
  *
  * @author bruce
@@ -33,46 +35,106 @@ public class Country {
     protected int y;
     protected int lx;
     protected int ly;
+    protected boolean isSelected;
+    protected Rectangle bounds;
+    protected Rectangle iconBounds;
     
     protected Country() {}
     
     public Country(int img_x, int img_y, int label_x, int label_y) {
+        isSelected = false;
         x = img_x;
         y = img_y;
         lx = label_x;
         ly = label_y;
     }
     
+    public void init() {
+        img = makeBufferedImage(overlay);
+        bounds = new Rectangle(x, y, img.getWidth(), img.getHeight());
+        iconBounds = new Rectangle(lx, ly, 18, 15);
+    }
+    
     public void setOwner(int o) {
-        if (img == null) {
-            img = makeBufferedImage(overlay);
-        }
         owner = o;
-        int w = img.getWidth();
-        int h = img.getHeight();
-        int v;
-        for (int i=0; i<w; i++) {
-            for (int j=0; j<h; j++) {
-                v = img.getRGB(i, j);
-                img.setRGB(i, j, (v & 0xff000000) | country_colors[o]);
-            }
-        }
+        setSelected(isSelected);
     }
   
     public void set(int owner, int armies) {
-        setOwner(owner);
+        this.owner = owner;
         this.armies = armies;
+        setSelected(isSelected);
+    }
+    
+    public void set(int owner, int armies, boolean selected) {
+        this.owner = owner;
+        this.armies = armies;
+        setSelected(selected);
+    }
+    
+    public void setSelected(boolean selected) {
+        isSelected = selected;
+        if (isSelected) {
+            colorSelectedImage(img);
+        } else {
+            colorImage(img);
+        }
+    }
+
+    public boolean contains(java.awt.Point p) {
+        if (iconBounds.contains(p)) {
+            return true;
+        }
+        if (bounds.contains(p)) {
+            int ix = p.x - x;
+            int iy = p.y - y;
+            int color = img.getRGB(ix, iy);
+            if ((color & 0xff000000) != 0) {
+                return true;
+            }
+        }
+        return false;
     }
     
     public void paint(Graphics g) {
-        if (img == null) {
-//            if (overlay == null) { return; }
-            img = makeBufferedImage(overlay);
-//            if (img == null) { return; }
-        }
         g.drawImage(img, x, y, null);
     }
 
+    public void paintIcon(Graphics g) {
+        g.setColor(new Color((token_colors[owner] | 0xDD000000), true));
+        g.fill3DRect(lx, ly, iconBounds.width, iconBounds.height, true);
+        g.setColor(Color.BLACK);
+        g.drawString(Integer.toString(armies), lx+2, ly+12);
+    }
+
+    protected void colorImage(BufferedImage image) {
+        int w = image.getWidth();
+        int h = image.getHeight();
+        int v;
+        for (int i = 0; i < w; i++) {
+            for (int j = 0; j < h; j++) {
+                v = image.getRGB(i, j);
+                image.setRGB(i, j, (v & 0xff000000) | country_colors[owner]);
+            }
+        }
+    }
+    
+    protected void colorSelectedImage(BufferedImage image) {
+        int w = image.getWidth();
+        int h = image.getHeight();
+        int v;
+        for (int i=0; i<w; i++) {
+            for (int j=0; j<h; j++) {
+                v = image.getRGB(i, j);
+                //c[::] = (0,0,0)
+                //c[ ::2, ::2] = color
+                //c[1::4,1::4] = color
+// TODO Evaluate if stipple is worth doing or not
+                image.setRGB(i, j, v & 0xff000000);
+            }
+        }            
+    }
+    
     protected BufferedImage makeBufferedImage(Image o) {
         int w = o.getWidth(null);
         if (w == -1) {
@@ -80,7 +142,7 @@ public class Country {
         }
         BufferedImage i = new BufferedImage(w, o.getHeight(null), BufferedImage.TYPE_4BYTE_ABGR);
         Graphics2D g = i.createGraphics();
-        g.drawImage(overlay, 0, 0, null);
+        g.drawImage(o, 0, 0, null);
         return i;
     }
 }

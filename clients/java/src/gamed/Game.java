@@ -1,10 +1,11 @@
 package gamed;
 
+import javax.swing.JPanel;
 /**
  *
  * @author bruce
  */
-public interface Game {
-    void start();
-    void stop();
+public abstract class Game extends JPanel {
+    abstract public void start();
+    abstract public void stop();
 }

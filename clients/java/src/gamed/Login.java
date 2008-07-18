@@ -6,16 +6,19 @@ package gamed;
  * Created on July 4, 2008, 1:15 AM
  */
 import javax.swing.JApplet;
-import javax.swing.JPanel;
 import java.awt.CardLayout;
+import java.lang.Thread;
 
 /**
  *
  * @author  bruce
  */
-public class Login extends JApplet implements Server {
+public class Login extends JApplet implements Server, Runnable {
     private Client client;
-    private JPanel currentGame;
+    private Game currentGame;
+    private Thread thread;
+    private volatile boolean running;
+    private boolean eraseStatus;
 
     public void init() {
         try {
@@ -30,6 +33,40 @@ public class Login extends JApplet implements Server {
         client = null;
     }
 
+    public void start() {
+        if (client != null) {
+            if (thread == null) {
+                thread = new Thread(this);
+                thread.start();
+            }
+        }
+    }
+    
+    public void run() {
+        running = true;
+        while(running) {
+            if (eraseStatus) {
+                statusLabel.setText("");
+            }
+            eraseStatus = true;
+            listGames();
+            showGameInstances();
+            try {
+                Thread.sleep(3000);
+            } catch (InterruptedException e) {
+                running = false;
+            }
+        }
+    }
+    
+    public void stop() {
+        if (thread != null && thread.isAlive()) {
+            running = false;
+            thread.interrupt();
+        }
+        thread = null;
+    }
+    
     public java.awt.Image getImage(String name) {
         return super.getImage(getDocumentBase(), name);
     }
@@ -63,28 +100,19 @@ public class Login extends JApplet implements Server {
         catch (java.io.IOException ign) {
             // already aborting, just ignore it
         }
-        if (currentGame instanceof Game) {
-            ((Game)currentGame).stop();
-        }
+        currentGame.stop();
         client = null;
         connectButtonActionPerformed(null);
     }
     
     public void quitGame() {
-        try {
-            if (currentGame instanceof Game) {
-                ((Game)currentGame).stop();
-            }
-            client.quitGame();
-            showGameCard();
-            listGames();
-        } catch (java.io.IOException e) {
-            handleIOException(e);
-        } finally {
-            java.awt.Container c = this.getContentPane();
-            c.remove(currentGame);
-        }
-        System.gc();
+        client.quitGame();
+        currentGame.stop();
+        showGameCard();
+        listGames();
+        java.awt.Container c = this.getContentPane();
+        c.remove(currentGame);
+        start();
     }
     
     /** This method is called from within the init() method to
@@ -115,9 +143,12 @@ public class Login extends JApplet implements Server {
         gameInstanceList = new javax.swing.JList(instanceList);
         jPanel6 = new javax.swing.JPanel();
         jPanel9 = new javax.swing.JPanel();
+        jPanel11 = new javax.swing.JPanel();
         createButton = new javax.swing.JButton();
         userGame = new javax.swing.JTextField();
         joinButton = new javax.swing.JButton();
+        jPanel10 = new javax.swing.JPanel();
+        statusLabel = new javax.swing.JLabel();
 
         getContentPane().setLayout(new java.awt.CardLayout());
 
@@ -186,9 +217,11 @@ public class Login extends JApplet implements Server {
 
         jPanel5.add(jPanel7, java.awt.BorderLayout.CENTER);
 
-        jPanel6.setLayout(new java.awt.GridLayout());
+        jPanel6.setLayout(new java.awt.GridLayout(0, 1));
 
-        jPanel9.setLayout(new java.awt.GridLayout());
+        jPanel9.setLayout(new java.awt.GridLayout(1, 0));
+
+        jPanel11.setLayout(new java.awt.GridLayout(1, 0));
 
         createButton.setText("Create Game");
         createButton.addActionListener(new java.awt.event.ActionListener() {
@@ -196,10 +229,10 @@ public class Login extends JApplet implements Server {
                 createButtonActionPerformed(evt);
             }
         });
-        jPanel9.add(createButton);
-        jPanel9.add(userGame);
+        jPanel11.add(createButton);
+        jPanel11.add(userGame);
 
-        jPanel6.add(jPanel9);
+        jPanel9.add(jPanel11);
 
         joinButton.setText("Join Game");
         joinButton.setEnabled(false);
@@ -208,7 +241,16 @@ public class Login extends JApplet implements Server {
                 joinButtonActionPerformed(evt);
             }
         });
-        jPanel6.add(joinButton);
+        jPanel9.add(joinButton);
+
+        jPanel6.add(jPanel9);
+
+        jPanel10.setLayout(new java.awt.GridLayout(1, 0));
+
+        statusLabel.setForeground(java.awt.Color.red);
+        jPanel10.add(statusLabel);
+
+        jPanel6.add(jPanel10);
 
         jPanel5.add(jPanel6, java.awt.BorderLayout.SOUTH);
 
@@ -217,15 +259,20 @@ public class Login extends JApplet implements Server {
 
     private void joinButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_joinButtonActionPerformed
         String game = ((String)availableGameList.getSelectedValue()).split("\\(")[0];
-        if (client.joinGame(game, gameInstanceList.getSelectedValue().toString())) {
+        String instance = gameInstanceList.getSelectedValue().toString();
+        if (client.joinGame(game, instance)) {
             startGame(game);
+        }
+        else {
+            eraseStatus = false;
+            statusLabel.setText(String.format("Game '%s' is full", instance));
         }
 }//GEN-LAST:event_joinButtonActionPerformed
 
     private void connectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectButtonActionPerformed
         client = new Client(getDocumentBase().getHost(), username.getText());
         showGameCard();
-        listGames();
+        start();
 }//GEN-LAST:event_connectButtonActionPerformed
 
     private void createButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createButtonActionPerformed
@@ -279,6 +326,8 @@ public class Login extends JApplet implements Server {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JPanel jPanel1;
+    private javax.swing.JPanel jPanel10;
+    private javax.swing.JPanel jPanel11;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
@@ -290,6 +339,7 @@ public class Login extends JApplet implements Server {
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JButton joinButton;
+    private javax.swing.JLabel statusLabel;
     private javax.swing.JTextField userGame;
     private javax.swing.JTextField username;
     // End of variables declaration//GEN-END:variables
@@ -299,14 +349,15 @@ public class Login extends JApplet implements Server {
         if (selected == -1) { selected = 0; }
         String[] games = client.list_games();
         String[] toks;
-        gameList.clear();
-        for (String game : games) {
-            if (game.startsWith("SpeedRisk") ||
-                game.startsWith("HiLo")) {
-                // TODO Base this filtering on a config file fetched from somewhere
-                toks = game.split(":");
-                gameList.addElement(String.format("%s(%s)", toks[0],toks[2]));            
-            }
+        if (gameList.size() > games.length) {
+            gameList.removeRange(games.length, gameList.size()-1);
+        }
+        while (gameList.size() < games.length) {
+            gameList.addElement("");
+        }
+        for (int i=0; i<games.length; i++) {
+            toks = games[i].split(":");
+            gameList.set(i, String.format("%s(%s)", toks[0],toks[2]));            
         }
         availableGameList.setSelectedIndex(selected);
     }
@@ -323,9 +374,8 @@ public class Login extends JApplet implements Server {
         } else {
             currentGame = new gamed.client.HiLo.Plugin((Server) this);
         }
-        if (currentGame instanceof Game) {
-            ((Game) currentGame).start();
-        }
+        stop();
+        currentGame.start();
         java.awt.Container c = getContentPane();
         c.add(currentGame, "currentGame");
         CardLayout cl = (CardLayout) c.getLayout();

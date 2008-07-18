@@ -33,6 +33,7 @@ public class Client {
     private java.io.OutputStream output;
         
     public Client(String host, String user) {
+        user = user.replace(":", ";");
         try {
             socket = new Socket(host, 7483);
             input = socket.getInputStream();
@@ -63,7 +64,9 @@ public class Client {
         try {
             output.write(cmd);
             output.flush();
-            input.read(cmd, 0, 4);
+            do {
+                input.read(cmd, 0, 4);
+            } while (cmd[1] != CMD_LIST_GAMES);
             int z = (((cmd[2] & 0xff) << 8) | (cmd[3] & 0xff));
             info = new byte[z];
             input.read(info, 0, z);
@@ -95,6 +98,9 @@ public class Client {
     
     public boolean createGame(String game, String name) {
         byte cmd[] = new byte[4];
+        // TODO revisit serialization
+        game = game.replace(":", ";");
+        name = name.replace(":", ";");
         try {
             sendCommand(CMD_GAME, CMD_CREATE_GAME, game+":"+name);
             input.read(cmd, 0, 4);
@@ -135,13 +141,15 @@ public class Client {
         output.write(cmd);
         output.flush();
     }
-    
-    public void quitGame() throws IOException {
+        
+    public void quitGame() {
         byte cmd[] = { CMD_GAME, CMD_QUIT_GAME, 0, 0 };
-        output.write(cmd);
-        input.read(cmd, 0, 4);
+        try {
+            output.write(cmd);
+        } catch (IOException e) {
+            // TODO Maybe we should be throwing these while not knowing what to do
+        }
     }
-    
     public void quit() {
         try {
             socket.close();

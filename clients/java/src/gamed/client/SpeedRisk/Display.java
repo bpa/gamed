@@ -1,43 +1,78 @@
 /*
- * Game.java
+ * Display.java
  *
  * Created on July 7, 2008, 10:50 PM
  */
 
 package gamed.client.SpeedRisk;
 
-import java.awt.Font;
-import java.awt.FontMetrics;
-import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.Image;
+import java.awt.event.ActionListener;
+import java.awt.event.MouseListener;
 import java.awt.image.ImageObserver;
+import java.awt.Color;
+import javax.swing.JCheckBox;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 /**
  *
  * @author  bruce
  */
-public class Display extends javax.swing.JPanel 
-        implements Runnable, gamed.Game, ImageObserver {
+public class Display extends gamed.Game
+        implements Runnable, ImageObserver {
     
     private Thread thread;
     private Image bg;
     private gamed.Server server;
-    private State state;
     private volatile boolean running;
     private volatile int lines_seen;
     private volatile int images_downloaded;
     private static final int TOTAL_IMAGES = 44;
+    private Borders map;
+    private InputStream input;
+    private OutputStream output;
+    private int selectedCountry = -1;
+    private Country[] countries;
+    private JCheckBox[] playerDisplays;
+    private int playerInd[] = { -1, -1, -1, -1, -1, -1 };
+    private boolean playerReady[];
+    private int reserve;
+    private int player_id;
+    private int playing;
+    private boolean atWar;
     
     public Display(gamed.Server s) {
         server = s;
-        state = new State(s);
+        map = new Borders();
+        playerDisplays = new JCheckBox[6];
+        playerReady = new boolean[6];
         initComponents();
+        atWar = false;
+        try {
+            java.net.Socket socket = s.getSocket();
+            input = socket.getInputStream();
+            output = socket.getOutputStream();
+            byte cmd[] = { PLAYER_STATUS, 0, 0, 0 };
+            output.write(cmd);
+            cmd[0] = CMD_GAME;
+            cmd[1] = CMD_LIST_PLAYERS;
+            output.write(cmd);
+        } catch (IOException e) {
+            s.quitGame();
+        }
     }
     
+    @Override
     public void paintComponent(java.awt.Graphics g) {
         if (images_downloaded == TOTAL_IMAGES) {
             g.drawImage(bg, 0, 0, null);
-            for (Country c : state.countries) {
+            for (Country c : countries) {
                 c.paint(g);
+            }
+            for (Country c : countries) {
+                c.paintIcon(g);
             }
         } else {
             g.clearRect(0, 0, 650, 375);
@@ -53,6 +88,7 @@ public class Display extends javax.swing.JPanel
     }
     
     public void run() {
+        initCountries();
         initMediaDownload();
         while(images_downloaded < TOTAL_IMAGES) {
             try {
@@ -62,12 +98,18 @@ public class Display extends javax.swing.JPanel
                 return;
             }
         }
+        init();
         loadingText.setVisible(false);
         progress.setVisible(false);
+        reserveLabel.setText("0 armies in reserve");
+        phaseLabel.setText("Waiting for players");
+        statusPanel.setVisible(true);
+        readyRadio.setVisible(true);
+        notReadyRadio.setVisible(true);
+        jButton1.setVisible(true);
         repaint();
-        while(running) {
+        while(tick()) {
            repaint();
-           state.tick();
         }
     }
 
@@ -76,9 +118,9 @@ public class Display extends javax.swing.JPanel
         progress.setValue(0);
         bg = getImage("images/world_map_relief.jpg");
         for (int i=0; i<42; i++) {
-            state.countries[i].overlay = getImage("images/c"+i+".png");
+            countries[i].overlay = getImage("images/c"+i+".png");
         }
-        ((Kamchat)state.countries[36]).overlay2 = getImage("images/c36b.png");
+        ((Kamchat)countries[36]).overlay2 = getImage("images/c36b.png");
     }
     
     private Image getImage(String image) {
@@ -106,11 +148,30 @@ public class Display extends javax.swing.JPanel
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
+        buttonGroup1 = new javax.swing.ButtonGroup();
         progress = new javax.swing.JProgressBar();
-        jButton1 = new javax.swing.JButton();
         loadingText = new javax.swing.JLabel();
+        statusPanel = new javax.swing.JPanel();
+        jCheckBox1 = new javax.swing.JCheckBox();
+        jCheckBox2 = new javax.swing.JCheckBox();
+        jCheckBox3 = new javax.swing.JCheckBox();
+        jCheckBox4 = new javax.swing.JCheckBox();
+        jCheckBox5 = new javax.swing.JCheckBox();
+        jCheckBox6 = new javax.swing.JCheckBox();
+        phaseBG = new javax.swing.JPanel();
+        phaseLabel = new javax.swing.JLabel();
+        reserveBG = new javax.swing.JPanel();
+        reserveLabel = new javax.swing.JLabel();
+        jButton1 = new javax.swing.JButton();
+        readyRadio = new javax.swing.JRadioButton();
+        notReadyRadio = new javax.swing.JRadioButton();
 
         setPreferredSize(new java.awt.Dimension(650, 375));
+        addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                formMouseClicked(evt);
+            }
+        });
         setLayout(null);
 
         progress.setMaximum(2558);
@@ -119,25 +180,177 @@ public class Display extends javax.swing.JPanel
         add(progress);
         progress.setBounds(10, 325, 630, 20);
 
-        jButton1.setText("jButton1");
+        loadingText.setFont(new java.awt.Font("DejaVu Sans", 0, 28));
+        loadingText.setText("Loading Media...");
+        add(loadingText);
+        loadingText.setBounds(200, 150, 250, 70);
+
+        statusPanel.setLayout(new java.awt.GridLayout(0, 1, 1, 0));
+
+        jCheckBox1.setVisible(false);
+        playerDisplays[5] = jCheckBox1;
+        jCheckBox1.setFocusable(false);
+        jCheckBox1.setRequestFocusEnabled(false);
+        jCheckBox1.setRolloverEnabled(false);
+        jCheckBox1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                playerDisplayActionPerformed(evt);
+            }
+        });
+        statusPanel.add(jCheckBox1);
+
+        jCheckBox2.setVisible(false);
+        playerDisplays[4] = jCheckBox2;
+        jCheckBox2.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                playerDisplayActionPerformed(evt);
+            }
+        });
+        statusPanel.add(jCheckBox2);
+
+        jCheckBox3.setVisible(false);
+        playerDisplays[3] = jCheckBox3;
+        jCheckBox3.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                playerDisplayActionPerformed(evt);
+            }
+        });
+        statusPanel.add(jCheckBox3);
+
+        jCheckBox4.setVisible(false);
+        playerDisplays[2] = jCheckBox4;
+        jCheckBox4.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                playerDisplayActionPerformed(evt);
+            }
+        });
+        statusPanel.add(jCheckBox4);
+
+        jCheckBox5.setVisible(false);
+        playerDisplays[1] = jCheckBox5;
+        jCheckBox5.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                playerDisplayActionPerformed(evt);
+            }
+        });
+        statusPanel.add(jCheckBox5);
+
+        jCheckBox6.setVisible(false);
+        playerDisplays[0] = jCheckBox6;
+        jCheckBox6.setFocusable(false);
+        jCheckBox6.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                playerDisplayActionPerformed(evt);
+            }
+        });
+        statusPanel.add(jCheckBox6);
+
+        phaseBG.setLayout(new java.awt.GridLayout(1, 0));
+
+        phaseLabel.setText("Waiting for players");
+        phaseLabel.setFocusable(false);
+        phaseLabel.setRequestFocusEnabled(false);
+        phaseBG.add(phaseLabel);
+
+        statusPanel.add(phaseBG);
+
+        reserveBG.setLayout(new java.awt.GridLayout(1, 0));
+
+        reserveLabel.setText("jLabel2");
+        reserveLabel.setFocusable(false);
+        reserveLabel.setRequestFocusEnabled(false);
+        reserveBG.add(reserveLabel);
+
+        statusPanel.add(reserveBG);
+
+        statusPanel.setVisible(false);
+
+        add(statusPanel);
+        statusPanel.setBounds(20, 210, 150, 150);
+        statusPanel.setBackground(new java.awt.Color(0,true));
+
+        jButton1.setVisible(false);
+        jButton1.setText("Quit Game");
+        jButton1.setDefaultCapable(false);
+        jButton1.setFocusable(false);
+        jButton1.setRequestFocusEnabled(false);
         jButton1.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButton1ActionPerformed(evt);
             }
         });
         add(jButton1);
-        jButton1.setBounds(290, 260, 66, 29);
+        jButton1.setBounds(546, 340, 100, 29);
 
-        loadingText.setFont(new java.awt.Font("DejaVu Sans", 0, 28));
-        loadingText.setText("Loading Media...");
-        add(loadingText);
-        loadingText.setBounds(200, 150, 250, 70);
+        readyRadio.setBackground(new Color(0,true));
+        buttonGroup1.add(readyRadio);
+        readyRadio.setText("Ready");
+        readyRadio.setVisible(false);
+        readyRadio.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                readyRadioActionPerformed(evt);
+            }
+        });
+        add(readyRadio);
+        readyRadio.setBounds(250, 280, 63, 22);
+
+        notReadyRadio.setBackground(new Color(0, true));
+        buttonGroup1.add(notReadyRadio);
+        notReadyRadio.setSelected(true);
+        notReadyRadio.setText("Not Ready");
+        notReadyRadio.setVisible(false);
+        notReadyRadio.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                readyRadioActionPerformed(evt);
+            }
+        });
+        add(notReadyRadio);
+        notReadyRadio.setBounds(250, 300, 90, 22);
     }// </editor-fold>//GEN-END:initComponents
+
+    private void formMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMouseClicked
+        byte c = (byte)getCountryAt(evt.getPoint());
+        if (c == -1 || selectedCountry == -1) {
+            if (selectedCountry != c) {
+                if (c == -1 || countries[c].owner == player_id) {
+                    setSelectedCountry(c);
+                    repaint();
+                }
+            }
+        }
+        else if (selectedCountry == c) {
+            if (evt.getClickCount() > 1) {
+                placeArmiesAt(c);
+            }
+        }
+        else {
+            if (countries[c].owner == player_id) {
+                if (map.borders(selectedCountry, c)) {
+                    moveArmiesTo(c);
+                }
+                setSelectedCountry(c);
+                repaint();
+            }
+            else if (map.borders(selectedCountry, c)) {
+                attack(c);
+            }
+        }
+    }//GEN-LAST:event_formMouseClicked
+
+    private void playerDisplayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_playerDisplayActionPerformed
+        javax.swing.ButtonModel model = ((JCheckBox)evt.getSource()).getModel();
+        model.setSelected(!model.isSelected());
+}//GEN-LAST:event_playerDisplayActionPerformed
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         server.quitGame();
     }//GEN-LAST:event_jButton1ActionPerformed
+
+    private void readyRadioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_readyRadioActionPerformed
+        sendReady(readyRadio.getModel().isSelected());
+    }//GEN-LAST:event_readyRadioActionPerformed
     
+    @Override
     public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height) {
         if ((infoflags & ImageObserver.SOMEBITS) > 0) {
             lines_seen++;
@@ -154,11 +367,320 @@ public class Display extends javax.swing.JPanel
         }
         return true;
     }
+        
+    public void init() {
+        for (Country c : countries) {
+            c.init();
+        }
+    }
     
+    private boolean tick() {
+        byte cmd[] = new byte[4];
+        try {
+            input.read(cmd, 0, 4);
+            switch(cmd[0]) {
+                case CMD_GAME:
+                    // TODO if its a CMD_LIST_PLAYERS, update players
+                    if (cmd[1] == CMD_QUIT_GAME) {
+                        return false;
+                    }
+                    else if (cmd[1] == CMD_LIST_PLAYERS) {
+                        int len = ((cmd[2] << 8) | cmd[3]);
+                        byte z[] = new byte[len];
+                        input.read(z, 0, len);
+                        updatePlayers(new String(z));
+                    }
+                    break;
+                case PLAYER_JOIN:
+                    playerReady[cmd[1]] = false;
+                    cmd[0] = CMD_GAME;
+                    cmd[1] = CMD_LIST_PLAYERS;
+                    output.write(cmd);
+                    break;
+                case SR_ERROR:
+                    System.out.println("Error: "+cmd[1]);
+                    break;
+                case READY:
+                    playerReady[cmd[1]] = true;
+                    if (playerInd[cmd[1]] != -1) {
+                        playerDisplays[playerInd[cmd[1]]].getModel().setSelected(true);
+                    }
+                    break;
+                case NOTREADY:
+                    playerReady[cmd[1]] = false;
+                    if (playerInd[cmd[1]] != -1) {
+                        playerDisplays[playerInd[cmd[1]]].getModel().setSelected(false);
+                    }
+                    break;
+                case START_PLACING:
+                    phaseLabel.setText("Placing Armies");
+                    notReadyRadio.getModel().setSelected(true);
+                    setSelectedCountry(-1);
+                    for (int i=0; i<6; i++) {
+                        playerDisplays[i].getModel().setSelected(false);
+                        playerReady[i] = false;
+                    }
+                    break;
+                case BEGIN:
+                    phaseLabel.setText("At War");
+                    readyRadio.setVisible(false);
+                    notReadyRadio.setVisible(false);
+                    break;
+                case GET_ARMIES:
+                    reserve = cmd[3];
+                    reserveLabel.setText(cmd[3] + " armies in reserve");
+                    break;
+                case ATTACK_RESULT:
+                case MOVE_RESULT:
+                    input.read(cmd, 0, 4);
+                    countries[cmd[0]].set(cmd[1], cmd[2]);
+                    input.read(cmd, 0, 4);
+                    int old_owner = countries[cmd[0]].owner;
+                    countries[cmd[0]].set(cmd[1], cmd[2]);                    
+                    if (old_owner != cmd[1]) {
+                        if (cmd[1] == player_id) {
+                            setSelectedCountry(cmd[0]);
+                        }
+                        else if (selectedCountry == cmd[0]) {
+                            setSelectedCountry(-1);
+                        }
+                    }
+                    break;
+                case GAME_STATUS:
+                    for (int i=0; i<42; i++) {
+                        input.read(cmd, 0, 4);
+                        countries[cmd[0]].set(cmd[1], cmd[2]);
+                    }
+                    break;
+                case PLAYER_STATUS:
+                    player_id = cmd[1];
+                    reserve = cmd[3];
+                    Color myColor = new Color(Country.token_colors[player_id]);
+                    phaseBG.setBackground(myColor);
+                    reserveBG.setBackground(myColor);
+                    break;
+                case COUNTRY_STATUS:
+                    input.read(cmd, 0, 4);
+                    countries[cmd[0]].set(cmd[1], cmd[2]);
+                    break;
+                case DEFEAT:
+                    if (playerInd[cmd[1]] != -1) {
+                        playerDisplays[playerInd[cmd[1]]].getModel().setSelected(false);
+                        playerReady[cmd[1]] = false;
+                    }
+                    break;
+                case VICTORY:
+                    phaseLabel.setText("Game Over");
+                    break;
+                case PLAYER_QUIT:
+                    cmd[0] = CMD_GAME;
+                    cmd[1] = CMD_LIST_PLAYERS;
+                    output.write(cmd);
+                    break;
+            }
+        } catch (IOException e) {
+            server.quitGame();
+            return false;
+        }
+        return true;
+    }
+    
+    private void updatePlayers(String players) {
+        String toks[] = players.split(":");
+        String names[] = new String[6];
+        for (int i=1; i<toks.length; i+=2) {
+            try {
+                int id = Integer.parseInt(toks[i]);
+                names[id] = toks[i+1];
+            } catch (java.lang.NumberFormatException e) {}
+        }
+        int ind = 0;
+        for (int i=0; i<6; i++) {
+            if (names[i] != null) {
+                playerInd[i] = ind;
+                playerDisplays[ind].setText(names[i]);
+                playerDisplays[ind].setBackground(new Color(Country.token_colors[i]));
+                playerDisplays[ind].getModel().setSelected(playerReady[i]);
+                playerDisplays[ind].setVisible(true);
+                ind++;
+            }
+        }
+        for (;ind<6;ind++) {
+            playerDisplays[ind].setVisible(false);
+        }
+    }
+    
+    private void sendReady(boolean ready) {
+        byte cmd[] = { ready ? READY : NOTREADY, 0, 0, 0 };
+        try {
+            output.write(cmd);
+        } catch (IOException e) {
+            server.quitGame();
+        }
+    }
+    
+    private int getCountryAt(Point p) {
+        for (int i=0; i<42; i++) {
+            if (countries[i].contains(p)) {
+                return i;
+            }
+        }
+        return -1;
+    }
+    
+    private void setSelectedCountry(int c) {
+        if (selectedCountry != c) {
+            if (selectedCountry != -1) {
+                countries[selectedCountry].setSelected(false);
+            }
+            if (c != -1) {
+                countries[c].setSelected(true);
+            }
+        }
+        selectedCountry = c;
+    }
+    
+    private void attack(byte to) {
+        if (countries[selectedCountry].armies > 1) {
+            byte cmd[] = {
+                ATTACK, 
+                (byte)selectedCountry,
+                to,
+                (byte)(countries[selectedCountry].armies - 1) 
+            };
+            try {
+                output.write(cmd);
+            } catch (IOException e) {
+                server.quitGame();
+            }
+        }
+    }
+    
+    private void moveArmiesTo(byte to) {
+        if (countries[selectedCountry].armies > 1) {
+            byte cmd[] = {
+                MOVE, 
+                (byte)selectedCountry,
+                to,
+                (byte)(countries[selectedCountry].armies - 1) 
+            };
+            try {
+                output.write(cmd);
+            } catch (IOException e) {
+                server.quitGame();
+            }
+        }
+    }
+    
+    private void placeArmiesAt(byte to) {
+        if (reserve > 0) {
+            byte cmd[] = {
+                PLACE, 
+                0,
+                to,
+                (byte)reserve 
+            };
+            try {
+                output.write(cmd);
+            } catch (IOException e) {
+                server.quitGame();
+            }
+        }
+    }
+    
+    private void initCountries() {
+        countries = new Country[42];
+        countries[ 0] = new Country(133, 114, 157, 131); // EasternUS
+        countries[ 1] = new Country( 79,  52, 103,  65); // NorthwestTerritory
+        countries[ 2] = new Country(100, 112, 117, 123); // WesternUS
+        countries[ 3] = new Country(150,  84, 154,  97); // Ontario
+        countries[ 4] = new Country(114, 148, 140, 168); // CentralAmerica
+        countries[ 5] = new Country( 87,  84, 109,  92); // Alberta
+        countries[ 6] = new Country( 99,   1, 187,  38); // Greenland
+        countries[ 7] = new Country( 12,  49,  44,  62); // Alaska
+        countries[ 8] = new Country(180,  76, 191,  92); // Quebec
+        countries[ 9] = new Country(196, 198, 227, 219); // Brazil
+        countries[10] = new Country(180, 184, 194, 191); // Venezuela
+        countries[11] = new Country(189, 240, 197, 267); // Argentina
+        countries[12] = new Country(177, 199, 197, 228); // Peru
+        countries[13] = new Country(282,  65, 282,  62); // Iceland
+        countries[14] = new Country(332, 113, 348, 118); // SouthernEurope
+        countries[15] = new Country(362,  29, 388,  84); // Ukraine
+        countries[16] = new Country(333,  50, 348,  66); // Scandinavia
+        countries[17] = new Country(306,  88, 306,  92); // GreatBritan
+        countries[18] = new Country(304, 108, 310, 119); // WesternEurope
+        countries[19] = new Country(325,  90, 339,  99); // NorthernEurope
+        countries[20] = new Country(340, 143, 358, 151); // Egypt
+        countries[21] = new Country(341, 189, 353, 213); // Congo
+        countries[22] = new Country(403, 231, 400, 236); // Madagascar
+        countries[23] = new Country(349, 242, 359, 251); // SouthAfrica
+        countries[24] = new Country(362, 166, 379, 190); // EastAfrica
+        countries[25] = new Country(293, 136, 317, 167); // NorthAfrica
+        countries[26] = new Country(409,  75, 428, 109); // Afghanistan
+        countries[27] = new Country(484,  98, 517, 109); // Mongolia
+        countries[28] = new Country(432,  43, 443,  78); // Ural
+        countries[29] = new Country(560, 120, 569, 131); // Japan
+        countries[30] = new Country(482,  81, 523,  85); // Irkutsk
+        countries[31] = new Country(433, 142, 456, 156); // India
+        countries[32] = new Country(489, 157, 495, 167); // Siam
+        countries[33] = new Country(519,  42, 546,  62); // Yakutsk
+        countries[34] = new Country(455,   8, 483,  58); // Siberia
+        countries[35] = new Country(451, 124, 491, 133); // China
+        countries[36] = new Kamchat(560,  32, 601,  60); // Kamchatka
+        countries[37] = new Country(372, 127, 398, 147); // MiddleEast
+        countries[38] = new Country(562, 208, 573, 211); // NewGuinea
+        countries[39] = new Country(498, 174, 520, 199); // Indonesia
+        countries[40] = new Country(529, 228, 542, 247); // WesternAustralia
+        countries[41] = new Country(569, 227, 572, 248); // EasternAustralia
+    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JButton jButton1;
+    private javax.swing.JCheckBox jCheckBox1;
+    private javax.swing.JCheckBox jCheckBox2;
+    private javax.swing.JCheckBox jCheckBox3;
+    private javax.swing.JCheckBox jCheckBox4;
+    private javax.swing.JCheckBox jCheckBox5;
+    private javax.swing.JCheckBox jCheckBox6;
     private javax.swing.JLabel loadingText;
+    private javax.swing.JRadioButton notReadyRadio;
+    private javax.swing.JPanel phaseBG;
+    private javax.swing.JLabel phaseLabel;
     private javax.swing.JProgressBar progress;
+    private javax.swing.JRadioButton readyRadio;
+    private javax.swing.JPanel reserveBG;
+    private javax.swing.JLabel reserveLabel;
+    private javax.swing.JPanel statusPanel;
     // End of variables declaration//GEN-END:variables
     
+    public static final byte CMD_NOP = 0;
+    public static final byte CMD_INVALID = 1;
+    public static final byte CMD_ERROR = 2;
+    public static final byte CMD_CHAT = 3;
+    public static final byte CMD_PLAYER = 4;
+    public static final byte CMD_GAME = 5;
+    public static final byte CMD_ADMIN = 6;
+    public static final byte PLAYER_JOIN = 7;
+    public static final byte MESSAGE = 8;
+    public static final byte SR_ERROR = 9;
+    public static final byte READY = 10;
+    public static final byte NOTREADY = 11;
+    public static final byte START_PLACING = 12;
+    public static final byte BEGIN = 13;
+    public static final byte MOVE = 14;
+    public static final byte ATTACK = 15;
+    public static final byte PLACE = 16;
+    public static final byte GET_ARMIES = 17;
+    public static final byte ATTACK_RESULT = 18;
+    public static final byte MOVE_RESULT = 19;
+    public static final byte GAME_STATUS = 20;
+    public static final byte PLAYER_STATUS = 21;
+    public static final byte COUNTRY_STATUS = 22;
+    public static final byte DEFEAT = 23;
+    public static final byte VICTORY = 24;
+    public static final byte PLAYER_QUIT = 25;
+
+    public static final byte CMD_LIST_PLAYERS = 4;
+    public static final byte CMD_QUIT_GAME = 5;
 }

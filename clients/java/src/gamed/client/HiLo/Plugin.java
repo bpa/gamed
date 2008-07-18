@@ -11,7 +11,7 @@ import gamed.Server;
  *
  * @author  bruce
  */
-public class Plugin extends javax.swing.JPanel {
+public class Plugin extends gamed.Game {
     
     private Server server;
     private Client client;
@@ -22,6 +22,9 @@ public class Plugin extends javax.swing.JPanel {
         client = new Client(s);
         initComponents();
     }
+    
+    public void start() {}
+    public void stop() {}
     
     /** This method is called from within the constructor to
      * initialize the form.
