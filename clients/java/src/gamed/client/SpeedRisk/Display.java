@@ -6,13 +6,16 @@
 
 package gamed.client.SpeedRisk;
 
+import java.lang.Math;
 import java.awt.Point;
 import java.awt.Image;
-import java.awt.event.ActionListener;
-import java.awt.event.MouseListener;
 import java.awt.image.ImageObserver;
 import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import javax.swing.JCheckBox;
+import javax.swing.JPopupMenu;
+import javax.swing.JMenuItem;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -21,7 +24,7 @@ import java.io.OutputStream;
  * @author  bruce
  */
 public class Display extends gamed.Game
-        implements Runnable, ImageObserver {
+        implements Runnable, ImageObserver, ActionListener {
     
     private Thread thread;
     private Image bg;
@@ -168,8 +171,11 @@ public class Display extends gamed.Game
 
         setPreferredSize(new java.awt.Dimension(650, 375));
         addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseClicked(java.awt.event.MouseEvent evt) {
-                formMouseClicked(evt);
+            public void mousePressed(java.awt.event.MouseEvent evt) {
+                formMousePressed(evt);
+            }
+            public void mouseReleased(java.awt.event.MouseEvent evt) {
+                formMouseReleased(evt);
             }
         });
         setLayout(null);
@@ -308,35 +314,6 @@ public class Display extends gamed.Game
         notReadyRadio.setBounds(250, 300, 90, 22);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void formMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMouseClicked
-        byte c = (byte)getCountryAt(evt.getPoint());
-        if (c == -1 || selectedCountry == -1) {
-            if (selectedCountry != c) {
-                if (c == -1 || countries[c].owner == player_id) {
-                    setSelectedCountry(c);
-                    repaint();
-                }
-            }
-        }
-        else if (selectedCountry == c) {
-            if (evt.getClickCount() > 1) {
-                placeArmiesAt(c);
-            }
-        }
-        else {
-            if (countries[c].owner == player_id) {
-                if (map.borders(selectedCountry, c)) {
-                    moveArmiesTo(c);
-                }
-                setSelectedCountry(c);
-                repaint();
-            }
-            else if (map.borders(selectedCountry, c)) {
-                attack(c);
-            }
-        }
-    }//GEN-LAST:event_formMouseClicked
-
     private void playerDisplayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_playerDisplayActionPerformed
         javax.swing.ButtonModel model = ((JCheckBox)evt.getSource()).getModel();
         model.setSelected(!model.isSelected());
@@ -349,6 +326,111 @@ public class Display extends gamed.Game
     private void readyRadioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_readyRadioActionPerformed
         sendReady(readyRadio.getModel().isSelected());
     }//GEN-LAST:event_readyRadioActionPerformed
+
+    private void formMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMousePressed
+        byte c = (byte)getCountryAt(evt.getPoint());
+        if (c == -1 || selectedCountry == -1) {
+            if (selectedCountry != c) {
+                if (c != -1 && reserve > 0 && evt.isPopupTrigger()) {
+                    showPlacementPopup(evt, c);
+                }
+                if (c == -1 || countries[c].owner == player_id) {
+                    setSelectedCountry(c);
+                    repaint();
+                }
+            }
+        }
+        else if (selectedCountry == c) {
+            if (reserve > 0 && evt.isPopupTrigger()) {
+                showPlacementPopup(evt, c);
+            }
+            else if (evt.getClickCount() > 1) {
+                placeAllArmiesAt(c);
+            }
+        }
+        else {
+            if (countries[c].owner == player_id) {
+                if (countries[selectedCountry].armies > 1 &&
+                        map.borders(selectedCountry, c)) {
+                    if (evt.isPopupTrigger()) {
+                        showMovePopup(evt, selectedCountry, c);
+                        setSelectedCountry(c);
+                        repaint();
+                        return;
+                    }
+                    else {
+                        moveArmies((byte)selectedCountry, c, (byte)(countries[selectedCountry].armies - 1));
+                    }
+                }
+                else if (reserve > 0 && evt.isPopupTrigger()) {
+                    showPlacementPopup(evt, c);
+                }
+                setSelectedCountry(c);
+                repaint();
+            }
+            else if (map.borders(selectedCountry, c)) {
+                attack(c);
+            }
+        }
+    }//GEN-LAST:event_formMousePressed
+
+    private void formMouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMouseReleased
+        if (evt.isPopupTrigger()) {
+            byte c = (byte)getCountryAt(evt.getPoint());
+            if (selectedCountry == c && reserve > 0) {
+                showPlacementPopup(evt, c);
+            }
+            else if (countries[selectedCountry].armies > 1 &&
+                    map.borders(selectedCountry, c)) {
+                showMovePopup(evt, selectedCountry, c);
+                setSelectedCountry(c);
+            }
+        }
+    }//GEN-LAST:event_formMouseReleased
+
+    private void showPlacementPopup(java.awt.event.MouseEvent evt, int country) {
+        showPopup(evt, -1, country, reserve);
+    }
+    
+    private void showMovePopup(java.awt.event.MouseEvent evt, int from, int to) {
+        if (atWar) {
+            showPopup(evt, from, to, countries[from].armies - 1);
+        }
+    }
+    
+    private void showPopup(java.awt.event.MouseEvent evt, int from, int to, int armies) {
+        JPopupMenu popup = new JPopupMenu("Move");
+        float step = (float)armies / 5;
+        float value = armies;
+        int last = 0;
+        int v = armies;
+        do {
+            if (last != v) {
+                JMenuItem i = new JMenuItem(Integer.toString(v));
+                i.setActionCommand(String.format("%d:%d:%d", from, to, v));
+                i.addActionListener(this);
+                popup.add(i);
+                last = v;
+            }
+            value -= step;
+            v = (int)Math.ceil(value);
+        } while (value > 0);
+        popup.show(evt.getComponent(), evt.getX(), evt.getY());
+    }
+    
+    public void actionPerformed(ActionEvent evt) {
+        System.out.println(evt.getActionCommand());
+        String args[] = evt.getActionCommand().split(":");
+        byte from   = Byte.parseByte(args[0]);
+        byte to     = Byte.parseByte(args[1]);
+        byte armies = Byte.parseByte(args[2]);
+        if (from == -1) {
+            placeArmiesAt(to, armies);
+        }
+        else {
+            moveArmies(from, to, armies);
+        }
+    }
     
     @Override
     public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height) {
@@ -422,6 +504,7 @@ public class Display extends gamed.Game
                     }
                     break;
                 case BEGIN:
+                    atWar = true;
                     phaseLabel.setText("At War");
                     readyRadio.setVisible(false);
                     notReadyRadio.setVisible(false);
@@ -556,13 +639,13 @@ public class Display extends gamed.Game
         }
     }
     
-    private void moveArmiesTo(byte to) {
-        if (countries[selectedCountry].armies > 1) {
+    private void moveArmies(byte from, byte to, byte armies) {
+        if (countries[from].armies > 1) {
             byte cmd[] = {
                 MOVE, 
-                (byte)selectedCountry,
+                from,
                 to,
-                (byte)(countries[selectedCountry].armies - 1) 
+                armies 
             };
             try {
                 output.write(cmd);
@@ -572,13 +655,13 @@ public class Display extends gamed.Game
         }
     }
     
-    private void placeArmiesAt(byte to) {
+    private void placeArmiesAt(byte to, byte armies) {
         if (reserve > 0) {
             byte cmd[] = {
                 PLACE, 
                 0,
                 to,
-                (byte)reserve 
+                armies
             };
             try {
                 output.write(cmd);
@@ -586,6 +669,10 @@ public class Display extends gamed.Game
                 server.quitGame();
             }
         }
+    }
+    
+    private void placeAllArmiesAt(byte to) {
+        placeArmiesAt(to, (byte)reserve);
     }
     
     private void initCountries() {
