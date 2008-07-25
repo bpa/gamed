@@ -328,62 +328,51 @@ public class Display extends gamed.Game
     }//GEN-LAST:event_readyRadioActionPerformed
 
     private void formMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMousePressed
-        byte c = (byte)getCountryAt(evt.getPoint());
-        if (c == -1 || selectedCountry == -1) {
-            if (selectedCountry != c) {
-                if (c != -1 && reserve > 0 && evt.isPopupTrigger()) {
-                    showPlacementPopup(evt, c);
-                }
-                if (c == -1 || countries[c].owner == player_id) {
-                    setSelectedCountry(c);
-                    repaint();
-                }
-            }
-        }
-        else if (selectedCountry == c) {
-            if (reserve > 0 && evt.isPopupTrigger()) {
-                showPlacementPopup(evt, c);
-            }
-            else if (evt.getClickCount() > 1) {
-                placeAllArmiesAt(c);
-            }
-        }
-        else {
-            if (countries[c].owner == player_id) {
-                if (countries[selectedCountry].armies > 1 &&
+        if (evt.isPopupTrigger()) {
+            byte c = (byte)getCountryAt(evt.getPoint());
+            if (c != -1 && countries[c].owner == player_id) {
+                if (selectedCountry != -1 &&
+                        countries[selectedCountry].armies > 1 &&
                         map.borders(selectedCountry, c)) {
-                    if (evt.isPopupTrigger()) {
-                        showMovePopup(evt, selectedCountry, c);
-                        setSelectedCountry(c);
-                        repaint();
-                        return;
-                    }
-                    else {
-                        moveArmies((byte)selectedCountry, c, (byte)(countries[selectedCountry].armies - 1));
-                    }
+                    showMovePopup(evt, selectedCountry, c);
+                    setSelectedCountry(-1);
                 }
-                else if (reserve > 0 && evt.isPopupTrigger()) {
-                    showPlacementPopup(evt, c);
+                else if (reserve > 0) {
+                        showPlacementPopup(evt, c);
                 }
-                setSelectedCountry(c);
-                repaint();
-            }
-            else if (map.borders(selectedCountry, c)) {
-                attack(c);
             }
         }
     }//GEN-LAST:event_formMousePressed
 
     private void formMouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMouseReleased
-        if (evt.isPopupTrigger()) {
-            byte c = (byte)getCountryAt(evt.getPoint());
-            if (selectedCountry == c && reserve > 0) {
-                showPlacementPopup(evt, c);
-            }
-            else if (countries[selectedCountry].armies > 1 &&
-                    map.borders(selectedCountry, c)) {
-                showMovePopup(evt, selectedCountry, c);
+        byte c = (byte)getCountryAt(evt.getPoint());
+        if (c != -1) {
+            if (countries[c].owner == player_id) {
+                if (selectedCountry != -1 &&
+                        countries[selectedCountry].armies > 1 &&
+                        map.borders(selectedCountry, c)) {
+                    if (evt.isPopupTrigger()) {
+                        showMovePopup(evt, selectedCountry, c);
+                    }
+                    else {
+                        moveArmies((byte)selectedCountry, c, (byte)(countries[selectedCountry].armies - 1));
+                        
+                    } 
+                }
+                else if (reserve > 0) {
+                    if (evt.isPopupTrigger()) {
+                        showPlacementPopup(evt, c);
+                    }
+                    else if (evt.getClickCount() > 1) {
+                        placeAllArmiesAt(c);
+                    }
+                }
                 setSelectedCountry(c);
+                repaint();
+            }
+            else if (selectedCountry != -1 &&
+                    map.borders(selectedCountry, c)) {
+                attack(c);                
             }
         }
     }//GEN-LAST:event_formMouseReleased
