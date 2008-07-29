@@ -6,15 +6,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include "server.h"
 #include "command.h"
 
 extern Server server_funcs;
-extern GameList game_list;
-extern ChatInstanceList chat_list;
+extern GameModuleList game_module_list;
 
-static void cmd_rename_player  (Client *, int);
+static void cmd_rename_player (Client *, int);
 
 command_func player_commands[] = {
 	cmd_rename_player,
@@ -52,15 +50,16 @@ void cmd_rename_player (Client *client, int len) {
 
 /******************************************************************************/
 void cmd_list_games (Client *client, int len) {
-	Game *game;
+	GameModule *module;
 	int buff_len = 4;
 	GamedCommand *cmd = (GamedCommand *)&buff[0];
-	LIST_FOREACH(game, &game_list, game) {
-		buff_len += sprintf(&buff[buff_len], "%s:%s:%i\n", game->name, game->version, game->instances);
+	LIST_FOREACH(module, &game_module_list, game_entry) {
+		buff_len += sprintf(&buff[buff_len], "%s:%s:%i\n",
+			module->game.name, module->game.version, module->instances);
 	}
 	buff_len--;
 	buff[buff_len] = '\0';
-	cmd->length = htons(buff_len);
+	cmd->length = htons(buff_len-4);
 	server_funcs.tell_player(&client->player, &buff[0], buff_len);
 }
 
@@ -69,19 +68,19 @@ void cmd_list_instances (Client *client, int len) {
 	/* TODO: Figuire out how to deal with it when there are more games than will fit in a K */
 	/* XXX: if there are too many games, this will cause a core dump */
 	int buff_len = 4;
-	Game *game = NULL;
-	GameInstance *instance;
+	GameModule *module = NULL;
+	GameModuleInstance *instance;
 	GamedCommand *cmd = (GamedCommand*)&buff[0];
-	LIST_FOREACH(game, &game_list, game) {
-		if (strncmp(game->name, &buff[4], 32) == 0) break;
+	LIST_FOREACH(module, &game_module_list, game_entry) {
+		if (strncmp(module->game.name, &buff[4], 32) == 0) break;
 	}
-	if (game == NULL) {
+	if (module == NULL) {
 		CMD_PLAYER(CMD_INVALID, 0);
 		return;
 	}
-	buff_len += sprintf(&buff[buff_len], "%i", game->instances);
-	LIST_FOREACH(instance, &game->instance_list, game_instance) {
-		buff_len += sprintf(&buff[buff_len], ":%s", instance->name);
+	buff_len += sprintf(&buff[buff_len], "%i", module->instances);
+	LIST_FOREACH(instance, &module->instance_list, game_instance_entry) {
+		buff_len += sprintf(&buff[buff_len], ":%s", instance->instance.name);
 	}
 	cmd->length = htons(buff_len-4);
 	server_funcs.tell_player(&client->player, &buff[0], buff_len);
@@ -90,8 +89,8 @@ void cmd_list_instances (Client *client, int len) {
 /******************************************************************************/
 void cmd_create_game (Client *client, int len) {
 	char *game_name, *instance_name;
-	Game *game = NULL;
-	GameInstance *instance;
+	GameModule *module = NULL;
+	GameModuleInstance *instance;
 	GamedCommand *cmd = (GamedCommand*)&buff[0];
 	if (client->game != NULL) {
 		PLAYER_ERROR(GAMED_ERR_IN_GAME);
@@ -104,50 +103,51 @@ void cmd_create_game (Client *client, int len) {
 		CMD_PLAYER(CMD_INVALID, 0);
 		return;
 	}
-	LIST_FOREACH(game, &game_list, game) {
-		if (strncmp(game->name, &buff[4], 32) == 0) break;
+	LIST_FOREACH(module, &game_module_list, game_entry) {
+		if (strncmp(module->game.name, &buff[4], 32) == 0) break;
 	}
-	if (game == NULL) {
+	if (module == NULL) {
 		PLAYER_ERROR(GAMED_ERR_NO_GAME);
 		return;
 	}
-	instance = LIST_FIRST(&game->instance_list);
+	instance = LIST_FIRST(&module->instance_list);
 	while (instance != NULL) {
-		if (strncmp(instance->name, instance_name, 32) == 0) {
+		if (strncmp(instance->instance.name, instance_name, 32) == 0) {
 			break;
 		}
-		instance = LIST_NEXT(instance, game_instance);
+		instance = LIST_NEXT(instance, game_instance_entry);
 	}
 	if (instance != NULL) {
 		PLAYER_ERROR(GAMED_ERR_GAME_EXISTS);
         return;
 	}
-	game->instances++;
-	instance = (void*)malloc(sizeof(GameInstance));
-	memset(instance, 0, sizeof(GameInstance));
-	strncpy(instance->name, instance_name, 32);
+	module->instances++;
+	instance = (void*)malloc(sizeof(GameModuleInstance));
+	memset(instance, 0, sizeof(GameModuleInstance));
+	strncpy(instance->instance.name, instance_name, 32);
 	/* TODO: clean up names passed in */
-	instance->name[31] = '\0';
-	instance->game = game;
-	LIST_INSERT_HEAD(&game->instance_list, instance, game_instance);
+	instance->instance.name[31] = '\0';
+	instance->instance.accepting_players = true;
+	instance->module = module;
+	LIST_INSERT_HEAD(&module->instance_list, instance, game_instance_entry);
 	LIST_INIT(&instance->players);
-	game->create(instance, &server_funcs);
-	if (game->player_join(instance, &server_funcs, &client->player)) {
-		syslog(LOG_INFO, "%s joined", client->player.name);
-		client->game = instance;
-		cmd->length = 0;
-		server_funcs.tell_player(&client->player, &buff[0], 4);
-	}
-	else {
-		/* I really don't expect this to ever happen, its here for completeness */
-		PLAYER_ERROR(GAMED_ERR_GAME_FULL);
-	}
+	LIST_INSERT_HEAD(&instance->players, client, player_entry);
+	module->game.create((GameInstance*)instance, &server_funcs);
+	client->game = instance;
+	instance->instance.playing = 1;
+	cmd->command = CMD_GAME;
+	cmd->subcmd = CMD_CREATE_GAME;
+	cmd->length = 0;
+	buff[4] = '\0';
+	server_funcs.tell_player((Player*)client, &buff[0], 4);
+	server_funcs.log((GameInstance*)instance, "%s joined", &client->player.name[0]);
+	module->game.player_join((GameInstance*)instance, &server_funcs, &client->player);
 }
 
 /******************************************************************************/
 void cmd_join_game (Client *client, int len) {
-	Game *game;
-	GameInstance *instance;
+	GameModule *module;
+	GameModuleInstance *instance;
 	char *game_name, *instance_name;
 	GamedCommand *cmd = (GamedCommand*)&buff[0];
 	game_name = strtok(&buff[4], ":");
@@ -157,27 +157,30 @@ void cmd_join_game (Client *client, int len) {
 		CMD_PLAYER(CMD_INVALID, 0);
 		return;
 	}
-	LIST_FOREACH(game, &game_list, game) {
-		if (strncmp(game->name, &buff[4], 32) == 0) break;
+	LIST_FOREACH(module, &game_module_list, game_entry) {
+		if (strncmp(module->game.name, &buff[4], 32) == 0) break;
 	}
-	if (game == NULL) {
+	if (module == NULL) {
 		PLAYER_ERROR(GAMED_ERR_NO_GAME);
 		return;
 	}
-	instance = LIST_FIRST(&game->instance_list);
+	instance = LIST_FIRST(&module->instance_list);
 	while (instance != NULL) {
-		if (strncmp(instance->name, instance_name, 32) == 0) {
+		if (strncmp(instance->instance.name, instance_name, 32) == 0) {
 			break;
 		}
-		instance = LIST_NEXT(instance, game_instance);
+		instance = LIST_NEXT(instance, game_instance_entry);
 	}
 
 	if (instance != NULL) {
-		if (instance->game->player_join(instance, &server_funcs, &client->player)) {
-			syslog(LOG_INFO, "%s joined", client->player.name);
+		if (instance->instance.accepting_players) {
 			client->game = instance;
+			instance->instance.playing++;
+			LIST_INSERT_HEAD(&instance->players, client, player_entry);
 			cmd->length = 0;
 			server_funcs.tell_player(&client->player, &buff[0], 4);
+			server_funcs.log((GameInstance*)instance, "%s joined", client->player.name);
+			instance->module->game.player_join((GameInstance*)instance, &server_funcs, (Player*)client);
 		}
 		else {
 			PLAYER_ERROR(GAMED_ERR_GAME_FULL);
@@ -190,17 +193,17 @@ void cmd_join_game (Client *client, int len) {
 
 /******************************************************************************/
 void cmd_list_players (Client *client, int len) {
-	Player *plr;
+	Client *plr;
 	int buff_len = 4;
 	GamedCommand *cmd = (GamedCommand *)&buff[0];
 	if (client->game != NULL) {
-		buff_len += sprintf(&buff[buff_len], "%i", client->game->playing);
-	    LIST_FOREACH(plr, &client->game->players, player) {
+		buff_len += sprintf(&buff[buff_len], "%i", client->game->instance.playing);
+	    LIST_FOREACH(plr, &client->game->players, player_entry) {
 	        buff_len += sprintf(&buff[buff_len], ":%i:%s",
-	             plr->in_game_id, &plr->name[0]);
+	             plr->player.in_game_id, &plr->player.name[0]);
 	    }
 		buff[buff_len] = '\0';
-	    cmd->length = htons(buff_len);
+	    cmd->length = htons(buff_len-4);
 	    server_funcs.tell_player(&client->player, &buff[0], buff_len);
 	}
 	else {
@@ -215,10 +218,12 @@ void cmd_quit_game (Client *client, int len) {
 		PLAYER_ERROR(GAMED_ERR_NO_GAME);
 	}
 	else {
-		client->game->game->player_quit(client->game, &server_funcs, &client->player);
-		LIST_REMOVE(&client->player, player);
-		client->game = NULL;
+		client->game->instance.playing--;
+		LIST_REMOVE(client, player_entry);
+		client->game->module->game.player_quit(
+			(GameInstance*)client->game, &server_funcs, (Player*)client);
 		cmd->length = 0;
 		server_funcs.tell_player(&client->player, &buff[0], 4);
+		client->game = NULL;
 	}
 }

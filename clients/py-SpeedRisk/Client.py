@@ -26,6 +26,7 @@ class Client(Observable):
         self.rename(name)
         self.start_game()
         self.sock.setblocking(0)
+        self.ready = False
 
     def start_game(self):
         num = 0
@@ -40,6 +41,7 @@ class Client(Observable):
                     exit
             print res
             num = num + 1
+        print "Send: PLAYER_STATUS"
         self.sock.send(pack(">2BH", PLAYER_STATUS, 0, 0))
         res = self.sock.recv(4)
         (cmd,self.player_id,self.players) = unpack(">3Bx", res) 
@@ -59,19 +61,26 @@ class Client(Observable):
 
     def rename(self, name):        
         l = len(name)
+        print "Send: RENAME", name
         self.sock.send(pack(">2BH%is" % l, CMD_PLAYER, CMD_RENAME, l, name))
     
     def start(self, command, instance):
         game = 'SpeedRisk:'
         g = len(game)
         l = len(instance)
+        print "Send: CMD_GAME", command, game, instance
         self.sock.send(pack(">2BH%is%is" % (g,l), CMD_GAME, command, g+l+1, game, instance))
         res = self.sock.recv(1024)
         (cmd,sub,l,str) = unpack(">2BH%is" % (len(res)-4), res) 
-        print "Start: ", cmd, sub, l, str
-        return CMD_MAP[cmd][sub]
+        try:
+            print "Start: ", cmd, sub, l, str, CMD_MAP[cmd][sub]
+            return CMD_MAP[cmd][sub]
+        except:
+            print res
+            exit(0);
 
     def update_players(self):
+        print "Send: LIST_PLAYERS"
         self.sock.send(pack(">2BH", CMD_GAME, CMD_LIST_PLAYERS, 0))
 
     def set_status(self, status): self.status = status
@@ -81,6 +90,7 @@ class Client(Observable):
             cmd = self.command_map[command]
         else:
             raise RuntimeError("Unrecognized command: %s" % command)
+        print "Send:", cmd, f, t, armies
         packet = pack(">4b", cmd, f, t, armies)
         self.sock.send(packet)
 
@@ -90,19 +100,22 @@ class Client(Observable):
         except:
             return (False,None)
         c = cmd_cmd(cmd)
-        print "read command: %s" % COMMANDS[c]
+        print "Recv:", ord(cmd[0]), ord(cmd[1]), ord(cmd[2]), ord(cmd[3])
         if (c == CMD_GAME):
             (s, msg_len) = unpack(">xBH", cmd)
+            print "Reading an additional %i bytes" % msg_len
+            self.sock.setblocking(1)
+            msg = self.sock.recv(msg_len)
+            self.sock.setblocking(0)
             if s == CMD_LIST_PLAYERS:
-                self.sock.setblocking(1)
-                msg = self.sock.recv(msg_len)
                 print "Players => %s" % msg
                 names = msg.split(':')
                 names.pop(0)
                 self.players = len(names) / 2
                 self.status.add_player(names)
-                self.sock.setblocking(0)
                 return (True, None)
+            print "???", s
+            return (True, None)
         elif (c == CMD_ERROR):
             print CMD_MAP[c][ord(cmd[1])]
             return (True, None)
@@ -147,6 +160,9 @@ class Client(Observable):
         elif (c == READY):
             self.status.set_ready(cmd_from(cmd), True)
             return (True, 'READY')
+        elif (c == NOTREADY):
+            self.status.set_ready(cmd_from(cmd), False)
+            return (True, 'NOTREADY')
         elif (c == PLAYER_JOIN):
             self.players = self.players + 1
             return (True, 'PLAYER_JOIN')
@@ -168,7 +184,11 @@ class Client(Observable):
         elif (c == VICTORY):
             self.status.players[cmd_from(cmd)].set_result(True)
             self.state = "Game Over"
-        return (True, COMMANDS[c])
+        try:
+            return (True, COMMANDS[c])
+        except:
+            print cmd
+            return (True, None)
 
 class Country(Observable):
     def __init__(self, cmd):

@@ -7,6 +7,7 @@
 #include <cxxtest/TestSuite.h>
 #include <gamed/game.h>
 #include <SpeedRisk/board.h>
+#include <SpeedRisk/borders.h>
 #include <SpeedRisk/protocol.h>
 #include <test/server.h>
 
@@ -15,29 +16,30 @@
 class SpeedRiskPlayingTest: public CxxTest::TestSuite {
 public:
 
-    SpeedRiskPlayingTest() {
-		game.game = &SpeedRisk;
-		init_server(&s);
-    }
-
 	void setUp()    {
-        SpeedRisk.create(&game, &s);
-        srd = (SpeedRiskData*)game.data;
+        game = create_instance(&SpeedRisk);
+        srd = (SpeedRiskData*)game->data;
         plr_res = (SR_Command*)&mock_plr_buff[0];
         all_res = (SR_Command*)&mock_all_buff[0];
         err = (SR_Error*)&mock_plr_buff[0];
 
-        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p1));
-        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p2));
-        TS_ASSERT(SpeedRisk.player_join(&game, &s, &p3));
+        player_join(game, &p1);
+        TS_ASSERT_EQUALS(&p1, srd->players[0].player);
+        player_join(game, &p2);
+        TS_ASSERT_EQUALS(&p2, srd->players[1].player);
+        player_join(game, &p3);
+        TS_ASSERT_EQUALS(&p3, srd->players[2].player);
+        TS_ASSERT_EQUALS((Player*)NULL, srd->players[3].player);
+        TS_ASSERT_EQUALS((Player*)NULL, srd->players[4].player);
+        TS_ASSERT_EQUALS((Player*)NULL, srd->players[5].player);
         simple_command_all_test(&p1, SR_CMD_READY, SR_CMD_READY);
         simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
         simple_command_all_test(&p3, SR_CMD_READY, SR_CMD_READY);
-        TS_ASSERT_EQUALS(&SR_PLACING, game.state);
+        TS_ASSERT_EQUALS(&SR_PLACING, game->state);
         simple_command_all_test(&p1, SR_CMD_READY, SR_CMD_READY);
         simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
         simple_command_all_test(&p3, SR_CMD_READY, SR_CMD_READY);
-        TS_ASSERT_EQUALS(&SR_RUNNING, game.state);
+        TS_ASSERT_EQUALS(&SR_RUNNING, game->state);
 
         for (int i=0; i<3; i++) {
             srd->status.countries[i].owner = i;
@@ -47,30 +49,27 @@ public:
     }
 
 	void tearDown() {
-        game.data = NULL;
+        destroy_instance(game);
     }
 
     void simple_command_all_test(Player *player, int command, int exp) {
-        reset_mocks();
         cmd.command = command;
-        game.state->player_event(&game, &s, player, (char*)&cmd, 4);
+        player_event(game, player, (char*)&cmd, 4);
         TS_ASSERT_EQUALS(exp, all_res->command);
     }
 
     void simple_command_plr_test(Player *player, int command, int exp) {
-        reset_mocks();
         cmd.command = command;
-        game.state->player_event(&game, &s, player, (char*)&cmd, 4);
+        player_event(game, player, (char*)&cmd, 4);
         TS_ASSERT_EQUALS(exp, plr_res->command);
     }
 
     void send_cmd(Player *player, int command, int from, int to, int armies) {
-        reset_mocks();
         cmd.command = command;
         cmd.from = from;
         cmd.to = to;
         cmd.armies = armies;
-        game.state->player_event(&game, &s, player, (char*)&cmd, 4);
+        player_event(game, player, (char*)&cmd, 4);
     }
 
     void setup_country(int c, int owner, int armies) {
@@ -148,21 +147,6 @@ public:
         TS_ASSERT_EQUALS(SR_CMD_ERROR, err->command);
         TS_ASSERT_EQUALS(SR_ERR_NOT_OWNER, err->error);
     }
-
-	void test_fake_random() {
-		set_random(1,2,3,4,5);
-		TS_ASSERT_EQUALS(1, s.random(6));
-		TS_ASSERT_EQUALS(2, s.random(6));
-		TS_ASSERT_EQUALS(3, s.random(6));
-		TS_ASSERT_EQUALS(4, s.random(6));
-		TS_ASSERT_EQUALS(5, s.random(6));
-		set_random(0,0,0,0,0);
-		TS_ASSERT_EQUALS(0, s.random(6));
-		TS_ASSERT_EQUALS(0, s.random(6));
-		TS_ASSERT_EQUALS(0, s.random(6));
-		TS_ASSERT_EQUALS(0, s.random(6));
-		TS_ASSERT_EQUALS(0, s.random(6));
-	}
 
 	void test_single_valid_attacks() {
         SR_Move_Result *mv = (SR_Move_Result*)all_res;
@@ -364,7 +348,7 @@ public:
 
         srd->players[1].countries_held = 11;
         srd->players[2].countries_held = 12;
-        produce_armies(&game, &s);
+        produce_armies(game, get_server());
 
         TS_ASSERT_EQUALS((unsigned int)3, cmd_res(0)->armies);
         TS_ASSERT_EQUALS((unsigned int)3, cmd_res(1)->armies);
@@ -375,7 +359,7 @@ public:
             srd->players[i].armies = 0;
         }
         reset_mocks();
-        produce_armies(&game, &s);
+        produce_armies(game, get_server());
 
         TS_ASSERT_EQUALS((unsigned int)10, cmd_res(0)->armies);
         TS_ASSERT_EQUALS((unsigned int)10, cmd_res(1)->armies);
@@ -388,7 +372,7 @@ public:
         srd->players[2].armies = 0;
         srd->players[0].countries_held = 40;
         srd->players[2].countries_held = 0;
-        produce_armies(&game, &s);
+        produce_armies(game, get_server());
         TS_ASSERT_EQUALS((unsigned int)255, srd->players[0].armies);
         TS_ASSERT_EQUALS((unsigned int)255, cmd_res(0)->armies);
         TS_ASSERT_EQUALS((unsigned int)0,   srd->players[2].armies);
@@ -417,7 +401,7 @@ public:
         st->countries[SR_EAST_AFRICA].owner = 2;
         st->countries[SR_NORTH_AFRICA].owner = 2;
 
-        produce_armies(&game, &s);
+        produce_armies(game, get_server());
         TS_ASSERT_EQUALS((unsigned int)10, cmd_res(0)->armies); //3 + Asia (7) = 10
         TS_ASSERT_EQUALS((unsigned int) 8, cmd_res(1)->armies); //3 + Europe(5) = 8
         TS_ASSERT_EQUALS((unsigned int) 6, cmd_res(2)->armies); //3 + Africa(3) = 6
@@ -437,7 +421,7 @@ public:
         st->countries[SR_WESTERN_AUSTRALIA].owner = 2;
         st->countries[SR_EASTERN_AUSTRALIA].owner = 2;
 
-        produce_armies(&game, &s);
+        produce_armies(game, get_server());
         TS_ASSERT_EQUALS((unsigned int)8, cmd_res(0)->armies); //3 + N. Am(5) = 8
         TS_ASSERT_EQUALS((unsigned int)5, cmd_res(1)->armies); //3 + S. Am(2) = 5
         TS_ASSERT_EQUALS((unsigned int)5, cmd_res(2)->armies); //3 + Austr(2) = 5
@@ -508,24 +492,22 @@ public:
         TS_ASSERT_EQUALS((unsigned int)0, all_res->from);
         TS_ASSERT_EQUALS((unsigned int)42, srd->players[0].countries_held);
 
-        TS_ASSERT_EQUALS(&SR_DONE, game.state);
+        TS_ASSERT_EQUALS(&SR_DONE, game->state);
     }
 
     void test_last_player_wins_by_default() {
-		reset_mocks();
-        SpeedRisk.player_quit(&game, &s, &p1);
+        player_quit(game, &p1);
         TS_ASSERT_EQUALS(SR_CMD_PLAYER_QUIT, all_res->command);
-		reset_mocks();
-        SpeedRisk.player_quit(&game, &s, &p2);
+        player_quit(game, &p2);
         TS_ASSERT_EQUALS(SR_CMD_PLAYER_QUIT, all_res->command);
 
         all_res = (SR_Command*)&mock_all_buff[1];
         TS_ASSERT_EQUALS(SR_CMD_VICTORY, all_res->command);
-        TS_ASSERT_EQUALS(&SR_DONE, game.state);
+        TS_ASSERT_EQUALS((unsigned int)p3.in_game_id, all_res->from);
+        TS_ASSERT_EQUALS(&SR_DONE, game->state);
     }
 
-    GameInstance game;
-	Server s;
+    GameInstance *game;
     Player p1;
     Player p2;
     Player p3;

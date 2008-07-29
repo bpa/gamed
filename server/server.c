@@ -15,7 +15,6 @@
 static void listen_on_port(int port);
 static void handle_sig_hup(int sock, short event, void *args);
 static void handle_connect(int sock, short event, void *args);
-static void drop_client   (Client *, int);
 static void handle_network_event(int sock, short event, void *args);
 static struct event ev_connection;
 static struct event ev_sig_hup;
@@ -26,15 +25,13 @@ extern command_func game_commands[];
 
 /******************************************************************************/
 
-GameList game_list;
-ChatInstanceList chat_list;
+GameModuleList game_module_list;
 
 /******************************************************************************/
 
 void init_server(int port) {
   openlog("gamed", LOG_CONS, LOG_USER);
-  LIST_INIT(&game_list);
-  LIST_INIT(&chat_list);
+  LIST_INIT(&game_module_list);
   event_init();
   initstate(time(NULL), &rand_state[0],8);
   listen_on_port(port);
@@ -75,7 +72,7 @@ void listen_on_port(int port) {
         exit(1);
     }
     sa_len = sizeof(sa);
-    memset(&sa,0,sa_len);
+    bzero(&sa, sa_len);
     sa.sin_family = AF_INET;
     sa.sin_port = htons(port);
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -108,7 +105,7 @@ void handle_connect(int listener, short event, void *args) {
     inet_ntop(AF_INET,&sa.sin_addr, ip_str, 15);
     client = (Client*)malloc(sizeof(Client));
     bzero(client,sizeof(Client));
-    client->player.sock = sock;
+    client->sock = sock;
     event_set((struct event*)&client->ev, sock, EV_READ | EV_PERSIST,
         &handle_network_event, client);
     event_add((struct event*)&client->ev,NULL);
@@ -136,7 +133,7 @@ void handle_network_event(int sock, short event, void *args) {
     r = recv(sock, buff, 1023,0);
     buff[r] = '\0';
     if (r > 0) {
-		/* printf("Received 0x%2X%2X%2X%2X[%s]\n", buff[0], buff[1], buff[2], buff[3], (char *)&buff[4]); */
+		printf("Received 0x%2X%2X%2X%2X[%s]\n", buff[0], buff[1], buff[2], buff[3], (char *)&buff[4]);
 		cmd = (GamedCommand *)&buff[0];
         switch (cmd->command) {
             case CMD_NOP:
@@ -156,7 +153,9 @@ void handle_network_event(int sock, short event, void *args) {
 				break;
             default:
                 if (client->game != NULL) {
-                    client->game->state->player_event(client->game, &server_funcs, &client->player, &buff[0], r);
+                    client->game->instance.state->player_event(
+						(GameInstance*)client->game, &server_funcs, (Player*)client, &buff[0], r);
+					printf("[%s] %s\n", client->game->instance.name, client->game->instance.status);
                 }
 				break;
         }
@@ -168,11 +167,16 @@ void handle_network_event(int sock, short event, void *args) {
 
 /******************************************************************************/
 void drop_client(Client *client, int r) {
-	int sock = client->player.sock;
+	int sock = client->sock;
 	shutdown(sock, SHUT_RDWR);
-	event_del(&client->ev);
+	if (event_initialized(&client->ev)) {
+		event_del(&client->ev);
+	}
 	if (client->game != NULL) {
-		client->game->game->player_quit(client->game, &server_funcs, &client->player);
+		client->game->instance.playing--;
+		LIST_REMOVE(client, player_entry);
+		client->game->module->game.player_quit(
+			(GameInstance*)client->game, &server_funcs, (Player*)client);
 	}
 	/*****************************
 	 * Add this when chat is ready
@@ -192,15 +196,17 @@ void drop_client(Client *client, int r) {
 /******************************************************************************/
 
 void handle_timer (int sock, short event, void *args) {
-	GameInstance *g = (GameInstance *)args;
-	if (g->state->timer_event != NULL) {
-		g->state->timer_event(g, &server_funcs);
+	GameModuleInstance *g = (GameModuleInstance *)args;
+	if (g->instance.state->timer_event != NULL) {
+		g->instance.state->timer_event((GameInstance*)g, &server_funcs);
 		if (g->timer_is_persistent) {
     		event_add(&g->timer, &g->period);
 		}
 	}
 	else {
-		event_del(&g->timer);
+		if (event_initialized(&g->timer)) {
+			event_del(&g->timer);
+		}
 	}
 }
 

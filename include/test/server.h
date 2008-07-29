@@ -5,7 +5,9 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/queue.h>
 #include <gamed/game.h>
+#include <../../server/server.h>
 
 long next_rand[5];
 char rand_state[8];
@@ -20,13 +22,40 @@ int  mock_all_pos;
 bool init_utils_run = false;
 bool game_quit = false;
 char buff[1024];
-static Server *server;
 
-void init_utils() {
-    if (!init_utils_run) {
-        initstate(time(NULL), &rand_state[0], 8);
-        init_utils_run = true;
-    }
+void reset_mocks();
+long get_random(long max);
+void change_state(GameInstance *g, State *s);
+void game_over (GameInstance *g);
+void tellf_player(Player *p, const char *fmt, ...);
+void tell_player (Player *p, const char *msg, size_t len);
+void tellf_all(GameInstance *g, const char *fmt, ...);
+void tell_all(GameInstance *g, const char *msg, size_t len);
+void add_timer (GameInstance *g, int milliseconds, bool persistent) { }
+void log       (GameInstance *g, const char *fmt, ...) { }
+
+static Server server = {
+    &get_random,
+    &change_state,
+    &game_over,
+    &tellf_player,
+    &tell_player,
+    &tellf_all,
+    &tell_all,
+    &add_timer,
+	&log
+};
+
+void player_join(GameInstance *g, Player *p) {
+	reset_mocks();
+	g->playing++;
+	((GameModuleInstance*)g)->module->game.player_join(g, &server, p);
+}
+
+void player_quit(GameInstance *g, Player *p) {
+	reset_mocks();
+	g->playing--;
+	((GameModuleInstance*)g)->module->game.player_quit(g, &server, p);
 }
 
 void set_random(long a, long b=-1, long c=-1, long d=-1, long e=-1) {
@@ -50,6 +79,16 @@ long get_random(long max) {
     return random() % max;
 }
 
+void change_state(GameInstance *g, State *s) {
+    if (g->state != NULL && g->state->leave_state != NULL) {
+		g->state->leave_state(g, &server);
+	}
+    g->state = s;
+    if (s->enter_state != NULL) {
+		s->enter_state(g, &server);
+	}
+}
+
 void reset_mocks() {
     int i;
     mock_plr_pos = 0;
@@ -59,20 +98,17 @@ void reset_mocks() {
         memset(&mock_all_buff[i][0], 0x00, 1024);
     }
 	game_quit = false;
+    if (!init_utils_run) {
+        initstate(time(NULL), &rand_state[0], 8);
+        init_utils_run = true;
+    }
 }
 
 void game_over (GameInstance *g) {
-	Player *first, *next;
-	first = LIST_FIRST(&g->players);
-	while (first != NULL) {
-		next = LIST_NEXT(first, player);
-		LIST_REMOVE(first, player);
-		first = next;
-	}
 	g->playing = 0;
 	game_quit = true;
-	if (g->game->destroy != NULL) {
-		g->game->destroy(g, server);
+	if (((GameModuleInstance*)g)->module->game.destroy != NULL) {
+		((GameModuleInstance*)g)->module->game.destroy(g, &server);
 	}
 	else {
 		if (g->data != NULL) free(g->data);
@@ -151,25 +187,40 @@ void tellf_all(GameInstance *g, const char *fmt, ...) {
     int len;
 
     va_start(ap, fmt);
-    len = write_buff(fmt, ap);
+    len = vsprintf(&buff[0], fmt, ap);
     va_end(ap);
 
     tell_all(g, &buff[0], len);
 }
 
+GameInstance *create_instance(Game *g) {
+    reset_mocks();
+	GameModule *module = (GameModule *)malloc(sizeof(GameModule));
+	bzero(module, sizeof(GameModule));
+	memcpy(&module->game, g, sizeof(Game));
+	GameModuleInstance *game = (GameModuleInstance *)malloc(sizeof(GameModuleInstance));
+	bzero(game, sizeof(GameModuleInstance));
+	game->module = module;
+	module->game.create((GameInstance*)game, &server);
+	game->instance.accepting_players = true;
+	return (GameInstance*)game;
+}
 
-void add_timer (GameInstance *g, struct timeval *tv, bool persistent) { }
+void destroy_instance(GameInstance *g) {
+	reset_mocks();
+	GameModule *module = ((GameModuleInstance *)g)->module;
+	game_over(g);
+	free(module);
+	free(g);
+}
 
-void init_server(Server *s) {
-	server = s;
-    s->random       = &get_random;
-    s->game_over    = &game_over;
-    s->tellf_player = &tellf_player;
-    s->tell_player  = &tell_player;
-    s->tellf_all    = &tellf_all;
-    s->tell_all     = &tell_all;
-    s->add_timer    = &add_timer;
-    init_utils();
+void player_event(GameInstance *g, Player *p, const char *msg, int len) {
+	reset_mocks();
+	g->state->player_event(g, &server, p, msg, len);
+}
+
+Server *get_server() {
+	return &server;
 }
 
 #endif

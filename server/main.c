@@ -1,4 +1,6 @@
 #define _GNU_SOURCE
+#include <sys/time.h>
+#include <sys/resource.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +12,7 @@ int main(int argc, char *argv[]) {
     int port = GAMED_PORT;
 	int c, fork = 1;
     long requested_port = 0;
+	struct rlimit limit;
 
 	while ((c = getopt (argc, argv, "Xp:")) != -1) {
 		switch(c) {
@@ -39,6 +42,11 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
+	getrlimit(RLIMIT_CORE, &limit);
+	fprintf(stderr, "RLIMIT_CORE: (%i/%i) => unlimited\n", limit.rlim_cur, limit.rlim_max);
+	limit.rlim_cur = RLIM_INFINITY;
+	limit.rlim_max = RLIM_INFINITY;
+	setrlimit(RLIMIT_CORE, &limit);
     if (fork) {
         if (daemon(1, 0) == -1) {
             perror("daemonize");

@@ -1,11 +1,9 @@
 #include <stdlib.h>
-#include <syslog.h>
 #include <string.h>
 #include <stdio.h>
 #include <gamed/game.h>
-#include <gamed/queue.h>
-#include <SpeedRisk/board.h>
-#include <SpeedRisk/SpeedRisk.h>
+#include "board.h"
+#include "borders.h"
 
 static SR_Command msg_command;
 /* static SR_Country msg_country; */
@@ -13,19 +11,24 @@ static SR_Error   msg_error;
 static SR_Move_Result msg_move;
 static int STARTING_ARMIES[] = { 0, 0, 26, 21, 19, 16, 13 };
 
-void game_init     (GameInstance *g, Server *s);
-bool player_join   (GameInstance *g, Server *s, Player *p);
-void player_quit   (GameInstance *g, Server *s, Player *p);
-void handle_waiting(GameInstance *g, Server *s, Player *p, const char *, int len);
-void handle_placing(GameInstance *g, Server *s, Player *p, const char *, int len);
-void handle_playing(GameInstance *g, Server *s, Player *p, const char *, int len);
-void handle_done   (GameInstance *g, Server *s, Player *p, const char *, int len);
+void game_init     (GameInstance *g, const Server *s);
+void player_join   (GameInstance *g, const Server *s, Player *p);
+void player_quit   (GameInstance *g, const Server *s, Player *p);
+void start_placing (GameInstance *g, const Server *s);
+void start_playing (GameInstance *g, const Server *s);
+void start_ending  (GameInstance *g, const Server *s);
+void produce_armies(GameInstance *g, const Server *s);
+void quit_game     (GameInstance *g, const Server *s);
+void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *, int len);
+void handle_placing(GameInstance *g, const Server *s, Player *p, const char *, int len);
+void handle_playing(GameInstance *g, const Server *s, Player *p, const char *, int len);
+void handle_done   (GameInstance *g, const Server *s, Player *p, const char *, int len);
 
-Game SpeedRisk = { STANDARD_GAMED_GAME, "SpeedRisk", "0.2", game_init, NULL, player_join, player_quit };
-State SR_WAITING_FOR_PLAYERS = { NULL, handle_waiting, NULL,            NULL };
-State SR_PLACING             = { NULL, handle_placing, NULL,            NULL };
-State SR_RUNNING             = { NULL, handle_playing, produce_armies, NULL };
-State SR_DONE                = { NULL, handle_done,    NULL,            NULL };
+Game SpeedRisk = { GAMED_GAME, "SpeedRisk", "0.2", game_init, NULL, player_join, player_quit };
+State SR_WAITING_FOR_PLAYERS = { NULL,          handle_waiting, NULL,            NULL };
+State SR_PLACING             = { start_placing, handle_placing, NULL,            NULL };
+State SR_RUNNING             = { start_playing, handle_playing, produce_armies,  NULL };
+State SR_DONE                = { start_ending,  handle_done,    quit_game,       NULL };
 
 #define all_cmd_f(g, s, cmd, fro) \
     msg_command.command = cmd; \
@@ -73,7 +76,7 @@ State SR_DONE                = { NULL, handle_done,    NULL,            NULL };
     } \
     if (holds_continent) { armies += value; }
 
-void produce_armies (GameInstance *g, Server *s) {
+void produce_armies (GameInstance *g, const Server *s) {
     bool holds_continent;
     int i, c, armies, held;
     SR_Player *p;
@@ -97,7 +100,7 @@ void produce_armies (GameInstance *g, Server *s) {
     }
 }
 
-void init_board(GameInstance *game, Server *s) {
+void init_board(GameInstance *game, const Server *s) {
     int c, i, armies, player, pass;
     SpeedRiskData *board = (SpeedRiskData*)game->data;
     SR_Game_Status *status = &board->status;
@@ -133,7 +136,7 @@ void init_board(GameInstance *game, Server *s) {
     }
 }
 
-void give_game_status(GameInstance *g, Server *s, Player *p) {
+void give_game_status(GameInstance *g, const Server *s, Player *p) {
     SpeedRiskData *board = (SpeedRiskData*)g->data;
     if (p == NULL) {
         s->tell_all(g, (char*)&board->status,sizeof(SR_Game_Status));
@@ -143,7 +146,7 @@ void give_game_status(GameInstance *g, Server *s, Player *p) {
     }
 }
 
-void give_country_status(GameInstance *g, Server *s, Player *p, int country) {
+void give_country_status(GameInstance *g, const Server *s, Player *p, int country) {
     SpeedRiskData *board = (SpeedRiskData*)g->data;
     SR_Country_Status status;
     status.command.command = SR_CMD_COUNTRY_STATUS;
@@ -158,69 +161,51 @@ void give_country_status(GameInstance *g, Server *s, Player *p, int country) {
     }
 }
 
-void game_init (GameInstance *g, Server *s) {
+void game_init (GameInstance *g, const Server *s) {
     SpeedRiskData *data = (SpeedRiskData*)malloc(sizeof(SpeedRiskData));
-    LIST_INIT(&(g->players));
-    g->data = (char*)data;
-    bzero(g->data, sizeof(SpeedRiskData));
+    bzero(data, sizeof(SpeedRiskData));
+    g->data = data;
     data->status.command.command = SR_CMD_GAME_STATUS;
-    g->playing = 0;
     msg_error.command = SR_CMD_ERROR;
     msg_move.command.command = SR_CMD_MOVE_RESULT;
     build_border_table();
 	g->state = &SR_WAITING_FOR_PLAYERS;
+	s->log(g, "Initializing");
 }
 
-bool player_join (GameInstance *g, Server *s, Player *p) {
+void player_join (GameInstance *g, const Server *s, Player *p) {
     int id;
-    Player *plr;
     SpeedRiskData *board;
-    if (g->state != &SR_WAITING_FOR_PLAYERS) return false;
-    LIST_FOREACH(plr, &g->players, player) {
-        if (plr == p) return false;
-    }
     board = (SpeedRiskData*)g->data;
-	if (g->playing < SR_MAX_PLAYERS) {
-		for(id=0; id<SR_MAX_PLAYERS; id++) {
-			if (board->players[id].player == NULL) {
-				p->in_game_id = id;
-				break;
-			}
+	for(id=0; id<SR_MAX_PLAYERS; id++) {
+		if (board->players[id].player == NULL) {
+			p->in_game_id = id;
+			break;
 		}
-		board->players[p->in_game_id].player = p;
-		board->players[p->in_game_id].ready = false;
-		board->players[p->in_game_id].armies = 0;
-		g->playing++;
-		
-		all_cmd_f(g, s, SR_CMD_PLAYER_JOIN, p->in_game_id);
-		LIST_INSERT_HEAD(&g->players, p, player);
-		return true;
 	}
-	player_error(s, p, SR_CMD_ERROR);
-	return false;
+	board->players[p->in_game_id].player = p;
+	board->players[p->in_game_id].ready = false;
+	board->players[p->in_game_id].armies = 0;
+	
+	all_cmd_f(g, s, SR_CMD_PLAYER_JOIN, p->in_game_id);
+	s->log(g, "Welcoming %s as player %i", p->name, p->in_game_id);
+	if (g->playing == SR_MAX_PLAYERS) {
+		s->change_state(g, &SR_PLACING);
+	}
 }
 
-void player_quit (GameInstance *g, Server *s, Player *p) {
+void player_quit (GameInstance *g, const Server *s, Player *p) {
 	int all_ready, i;
-    struct timeval period;
     SpeedRiskData *srd = (SpeedRiskData*)g->data;
-    LIST_REMOVE(p, player);
-    g->playing--;
 	if (g->playing == 0) {
 		s->game_over(g);
 		return;
 	}
     all_cmd_f(g, s, SR_CMD_PLAYER_QUIT, p->in_game_id);
     srd->players[p->in_game_id].player = NULL;
-    if (g->state == &SR_RUNNING) {
-        syslog(LOG_INFO, "%s dropped", p->name);
-    }
 	if (g->playing == 1) {
 		if (g->state == &SR_PLACING || g->state == &SR_RUNNING) {
-			all_cmd_f(g, s, SR_CMD_VICTORY, p->in_game_id);
-			g->state = &SR_DONE;
-			syslog(LOG_INFO, "%s victorious", p->name);
-			closelog();
+			s->change_state(g, &SR_DONE);
 		}
 		return;
 	}
@@ -230,24 +215,63 @@ void player_quit (GameInstance *g, Server *s, Player *p) {
 		all_ready &= (srd->players[i].player == NULL || srd->players[i].ready);
 	}
 	if (all_ready) {
-		/* Yes, this smells of duplicate code */
 		if (g->state == &SR_WAITING_FOR_PLAYERS) {
-			g->state = &SR_PLACING;
-			msg_command.command = SR_CMD_START_PLACING;
-			s->tell_all(g, (char*)&msg_command, 4);
-			init_board(g, s);
-			give_game_status(g, s, NULL);
+			s->change_state(g, &SR_PLACING);
 		}
 		else {
-			g->state = &SR_RUNNING;
-			msg_command.command = SR_CMD_BEGIN;
-			s->tell_all(g,(char*)&msg_command,4);
-			period.tv_sec = SR_GENERATION_PERIOD;
-			period.tv_usec = 0;
-			s->add_timer(g, &period, true);
-			syslog(LOG_INFO, "Starting SpeedRisk");
+			s->change_state(g, &SR_RUNNING);
 		}
 	}
+}
+
+void start_placing(GameInstance *g, const Server *s) {
+	g->accepting_players = false;
+	msg_command.command = SR_CMD_START_PLACING;
+	s->tell_all(g, (char*)&msg_command, 4);
+	init_board(g, s);
+	give_game_status(g, s, NULL);
+	strcpy(g->status, "Placing armies");
+}
+
+void start_playing(GameInstance *g, const Server *s) {
+	msg_command.command = SR_CMD_BEGIN;
+	s->tell_all(g,(char*)&msg_command,4);
+	s->add_timer(g, SR_GENERATION_PERIOD, true);
+	s->log(g, "Starting SpeedRisk");
+	strcpy(g->status, "At war");
+}
+
+void start_ending(GameInstance *g, const Server *s) {
+	SpeedRiskData *srd = (SpeedRiskData*)g->data;
+	char *name;
+	int p;
+	int victor = 0;
+	bool won = false;
+	for (p=0; p<SR_MAX_PLAYERS; p++) {
+		if (srd->players[p].player != NULL) {
+			victor = p;
+			if (srd->players[p].countries_held == 42) {
+				won = true;
+				break;
+			}
+		}
+	}
+	name = srd->players[victor].player->name;
+	all_cmd_f(g, s, SR_CMD_VICTORY, victor);
+	if (won) {
+		s->log(g, "%s victorious", name);
+		snprintf(g->status, STATUS_LENGTH, "Game over: %s rules the world", name);
+	}
+	else {
+		s->log(g, "%s stands alone", name);
+		snprintf(g->status, STATUS_LENGTH, "Game over: %s has no opposition", name);
+	}
+	/* After 60 seconds, we'll want to boot everyone and exit the game */
+	s->add_timer(g, 60000, false);
+}
+
+void quit_game (GameInstance *g, const Server *s) {
+	s->game_over(g);
 }
 
 #define return_if_invalid(cmd) \
@@ -257,13 +281,14 @@ void player_quit (GameInstance *g, Server *s, Player *p) {
         return; \
     }
 
-void handle_waiting(GameInstance *g, Server *s, Player *p, const char *req, int len) {
+void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *req, int len) {
     SpeedRiskData *srd;
 	int all_ready, i;
 	SR_Player *player;
     SR_Command *cmd = (SR_Command*)req;
 	return_if_invalid(cmd);
     srd = (SpeedRiskData*)g->data;
+	printf("Command: %i %i %i %i\n", req[0], req[1], req[2], req[3]);
 	switch (cmd->command) {
 		case SR_CMD_READY:
 			if (g->playing > 1) {
@@ -274,11 +299,7 @@ void handle_waiting(GameInstance *g, Server *s, Player *p, const char *req, int 
 					all_ready &= (srd->players[i].player == NULL || srd->players[i].ready);
 				}
 				if (all_ready) {
-					g->state = &SR_PLACING;
-					msg_command.command = SR_CMD_START_PLACING;
-					s->tell_all(g, (char*)&msg_command, 4);
-					init_board(g, s);
-					give_game_status(g, s, NULL);
+					s->change_state(g, &SR_PLACING);
 				}
 			}
 			else {
@@ -302,15 +323,15 @@ void handle_waiting(GameInstance *g, Server *s, Player *p, const char *req, int 
 					player_cmd_f(s, p, player->ready ? SR_CMD_READY : SR_CMD_NOTREADY, i);
 				}
 			}
+			break;
 		default:
 			player_error(s, p, SR_ERR_INVALID_CMD);
 			break;
 	}
 }
 
-void handle_placing(GameInstance *g, Server *s, Player *p, const char *req, int len) {
+void handle_placing(GameInstance *g, const Server *s, Player *p, const char *req, int len) {
     SpeedRiskData *srd;
-    struct timeval period;
 	int all_ready, i;
     SR_Command *cmd = (SR_Command*)req;
 	return_if_invalid(cmd);
@@ -324,13 +345,7 @@ void handle_placing(GameInstance *g, Server *s, Player *p, const char *req, int 
 				all_ready &= (srd->players[i].player == NULL || srd->players[i].ready);
 			}
 			if (all_ready) {
-				g->state = &SR_RUNNING;
-				msg_command.command = SR_CMD_BEGIN;
-				s->tell_all(g,(char*)&msg_command,4);
-				period.tv_sec = SR_GENERATION_PERIOD;
-				period.tv_usec = 0;
-				s->add_timer(g, &period, true);
-				syslog(LOG_INFO, "Starting SpeedRisk");
+				s->change_state(g, &SR_RUNNING);
 			}
 			break;
 		case SR_CMD_NOTREADY:
@@ -358,7 +373,7 @@ void handle_placing(GameInstance *g, Server *s, Player *p, const char *req, int 
 	}
 }
 
-void do_move(GameInstance *g, Server *s, Player *p, SR_Command *cmd) {
+void do_move(GameInstance *g, const Server *s, Player *p, SR_Command *cmd) {
 	SpeedRiskData *srd = (SpeedRiskData *)g->data;
 	SR_Game_Status *status = &srd->status;
 	if (!(holds(status, p, cmd->from) && holds(status, p, cmd->to))) {
@@ -403,7 +418,7 @@ void roll_for_attack (int attacking, int defending, long (*rand_func)(long max),
 	}
 }
 
-void do_attack(GameInstance *g, Server *s, Player *p, SR_Command *cmd) {
+void do_attack(GameInstance *g, const Server *s, Player *p, SR_Command *cmd) {
 	SpeedRiskData *srd = (SpeedRiskData *)g->data;
     SR_Game_Status *status = &srd->status;
 	int attacking, defending, attack_loss, defend_loss, defender;
@@ -439,19 +454,16 @@ void do_attack(GameInstance *g, Server *s, Player *p, SR_Command *cmd) {
 		if (srd->players[defender].countries_held == 0) {
 			all_cmd_f(g, s, SR_CMD_DEFEAT, defender);
 			if (srd->players[defender].player != NULL) {
-				syslog(LOG_INFO, "%s defeated", srd->players[defender].player->name);
+				s->log(g, "%s defeated", srd->players[defender].player->name);
 			}
 		}
 		if (srd->players[p->in_game_id].countries_held == 42) {
-			all_cmd_f(g, s, SR_CMD_VICTORY, p->in_game_id);
-			g->state = &SR_DONE;
-			syslog(LOG_INFO, "%s victorious", p->name);
-			closelog();
+			s->change_state(g, &SR_DONE);
 		}
 	}
 }
 
-void handle_playing(GameInstance *g, Server *s, Player *p, const char *req, int len) {
+void handle_playing(GameInstance *g, const Server *s, Player *p, const char *req, int len) {
     SpeedRiskData *srd;
     SR_Command *cmd = (SR_Command*)req;
 	return_if_invalid(cmd);
@@ -497,7 +509,7 @@ void handle_playing(GameInstance *g, Server *s, Player *p, const char *req, int 
 	}
 }
 
-void handle_done (GameInstance *g, Server *s, Player *p, const char *req, int len) {
+void handle_done (GameInstance *g, const Server *s, Player *p, const char *req, int len) {
     SR_Command *cmd = (SR_Command*)req;
 	return_if_invalid(cmd);
 	switch (cmd->command) {

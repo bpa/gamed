@@ -7,7 +7,7 @@
 #include "server.h"
 #include <gamed/game.h>
 
-extern GameList game_list;
+extern GameModuleList game_module_list;
 void load_game(char *path);
 
 void read_config (const char *config) {
@@ -30,6 +30,7 @@ void load_game(char *path) {
 	char *name, *lib, *error;
 	void *handle;
 	Game *game;
+	GameModule *module;
 	lib = strtok(path, " \n");
 	handle = dlopen(lib, RTLD_NOW);
 	error = dlerror();
@@ -39,10 +40,13 @@ void load_game(char *path) {
 			name = strtok(NULL, " \n");
 			if (name != NULL) {
 				game = (Game *)dlsym(handle, name);
+				module = (GameModule*)malloc(sizeof(GameModule));
 				error = dlerror();
 				if (error != NULL) fprintf(stderr, "%s\n", error);
 				if (game != NULL) {
-					LIST_INSERT_HEAD(&game_list, game, game);
+					bzero(module, sizeof(GameModule));
+					memcpy(module, game, sizeof(Game));
+					LIST_INSERT_HEAD(&game_module_list, module, game_entry);
 				}
 			}
 		} while (name != NULL);

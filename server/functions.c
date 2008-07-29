@@ -3,31 +3,36 @@
 #include <sys/socket.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <syslog.h>
 #include <gamed/game.h>
+#include "queue.h"
 #include "server.h"
 
 char rand_state[8];
 char buff[1024];
 
 long get_random(long max);
+void change_state(GameInstance *g, State *s);
 void game_over(GameInstance *g);
 void tellf_player(Player *p, const char *fmt, ...);
 void tell_player(Player *p, const char *fmt, size_t);
 void tellf_all(GameInstance *g, const char *fmt, ...);
 void tell_all(GameInstance *g, const char *fmt, size_t);
-void add_timer(GameInstance *g, struct timeval *period, bool persistent);
+void add_timer(GameInstance *g, int milliseconds, bool persistent);
+void log_message(GameInstance *g, const char *fmt, ...);
 extern void handle_timer(int sock, short event, void *args);
-
-int write_buff(const char *fmt, va_list ap);
 
 Server server_funcs = {
 	&get_random,
+	&change_state,
 	&game_over,
 	&tellf_player,
 	&tell_player,
 	&tellf_all,
 	&tell_all,
-	&add_timer
+	&add_timer,
+	&log_message
 	};
 
 /******************************************************************************/
@@ -37,24 +42,47 @@ long get_random(long max) {
 }
 /******************************************************************************/
 
+/* The question here is if its reasonable to call back to the module
+ * The other option is to set a timer for state change
+ * For now, I'll call back, but if we start seeing too much recursion,
+ * it will be time to add events
+ */
+void change_state(GameInstance *g, State *s) {
+    if (g->state != NULL && g->state->leave_state != NULL) {
+		g->state->leave_state(g, &server_funcs);
+	}
+	if (event_pending(&((GameModuleInstance *)g)->timer, EV_TIMEOUT, NULL)) {
+		event_del(&((GameModuleInstance *)g)->timer);
+	}
+    g->state = s;
+    if (s->enter_state != NULL) {
+		s->enter_state(g, &server_funcs);
+	}
+}
+    
+/******************************************************************************/
 void game_over(GameInstance *g) {
-	Player *first, *next;
-	first = LIST_FIRST(&g->players);
+	Client *first, *next;
+	first = LIST_FIRST(&((GameModuleInstance *)g)->players);
 	while (first != NULL) {
-		next = LIST_NEXT(first, player);
-		LIST_REMOVE(first, player);
-		((Client *)first)->game = NULL;
+		next = LIST_NEXT(first, player_entry);
+		LIST_REMOVE(first, player_entry);
+		first->game = NULL;
+		if (first->player.data != NULL) free(first->player.data);
 		first = next;
 	}
 	g->playing = 0;
-	if (g->game->destroy != NULL) {
-		g->game->destroy(g, &server_funcs);
+	if (((GameModuleInstance*)g)->module->game.destroy != NULL) {
+		((GameModuleInstance*)g)->module->game.destroy(g, &server_funcs);
 	}
 	else {
 		if (g->data != NULL) free(g->data);
 	}
-	g->game->instances--;
-    LIST_REMOVE(g, game_instance);
+	((GameModuleInstance*)g)->module->instances--;
+	if (event_initialized(&((GameModuleInstance*)g)->timer)) {
+		event_del(&((GameModuleInstance*)g)->timer);
+	}
+    LIST_REMOVE(((GameModuleInstance*)g), game_instance_entry);
 	free(g);
 }
 /******************************************************************************/
@@ -64,7 +92,7 @@ void tellf_player(Player *p, const char *fmt, ...) {
     int len;
 
     va_start(ap, fmt);
-    len = write_buff(fmt, ap);
+    len = vsprintf(&buff[0], fmt, ap);
     va_end(ap);
 
     tell_player(p, &buff[0], len);
@@ -72,13 +100,12 @@ void tellf_player(Player *p, const char *fmt, ...) {
 /******************************************************************************/
 
 void tell_player (Player *p, const char *msg, size_t len) {
+	printf("Tell %s 0x%2i%2i%2i%2i[%s]\n", p->name, msg[0], msg[1], msg[2], msg[3], (char *)&msg[4]);
     if (len == 0) {
         len = strlen(msg);
     }
-    if (send(p->sock, msg, len, MSG_NOSIGNAL) == -1) {
-        /* No current recourse */
-        /* TODO: add a pointer to game to player, or find
-                 some other way to join player to game */
+    if (send(((Client*)p)->sock, msg, len, MSG_NOSIGNAL) == -1) {
+		drop_client((Client*)p, -1);
     }
 }
 /******************************************************************************/
@@ -88,7 +115,7 @@ void tellf_all(GameInstance *g, const char *fmt, ...) {
     int len;
 
     va_start(ap, fmt);
-    len = write_buff(fmt, ap);
+    len = vsprintf(&buff[0], fmt, ap);
     va_end(ap);
 
     tell_all(g, &buff[0], len);
@@ -96,60 +123,34 @@ void tellf_all(GameInstance *g, const char *fmt, ...) {
 /******************************************************************************/
 
 void tell_all (GameInstance *g, const char *msg, size_t len) {
-    Player *p, *tmp;
+    Client *p, *tmp;
     if (len == 0) {
         len = strlen(msg);
     }
-    LIST_FOREACH_SAFE(p, &g->players, player, tmp) {
+    LIST_FOREACH_SAFE(p, &((GameModuleInstance*)g)->players, player_entry, tmp) {
         if (send(p->sock, msg, len, MSG_NOSIGNAL) == -1) {
-            g->game->player_quit(g, &server_funcs, p);
+            ((GameModuleInstance*)g)->module->game.player_quit(g, &server_funcs, (Player*)p);
         }
     }
 }
 /******************************************************************************/
 
-void add_timer (GameInstance *g, struct timeval *period, bool persistent) {
-	g->period.tv_sec = period->tv_sec;
-	g->period.tv_usec = period->tv_usec;
+void add_timer (GameInstance *game, int milliseconds, bool persistent) {
+	GameModuleInstance *g = (GameModuleInstance *)game;
+	g->period.tv_sec = milliseconds / 1000;
+	g->period.tv_usec = (milliseconds % 1000) * 1000;
 	g->timer_is_persistent = persistent;
     event_set(&g->timer, 0, EV_TIMEOUT, &handle_timer, g);
-    event_add(&g->timer, period);
+    event_add(&g->timer, &g->period);
 }
 /******************************************************************************/
 
-int write_buff(const char *fmt, va_list ap) {
-    int wrote, intval, len = 0;
-    char *p, *argptr;
-    char *ptr = &buff[0];
-
-    for (p = (char *)fmt; *p; p++) {
-        if (*p != '%') {
-            *ptr = *p;
-            ptr++;
-            len++;
-        }
-        else {
-            switch(*++p) {
-                case 'i':
-                case 'd':
-                    intval = va_arg(ap, int);
-                    wrote = sprintf(ptr, "%i", intval);
-                    ptr += wrote;
-                    len += wrote;
-                    break;
-                case 's':
-                    for (argptr = va_arg(ap, char *); *argptr; argptr++) {
-                        *ptr++ = *argptr;
-                        len++;
-                    }
-                    break;
-                default:
-                    *ptr++ = *p;
-                    len++;
-            }
-        }
-    }
-    *ptr = '\0';
-    return len;
+void log_message (GameInstance *g, const char *fmt, ...) {
+    va_list ap;
+	snprintf(&buff[0], 1024, "[%s] %s\n", g->name, fmt);
+    va_start(ap, fmt);
+    /* vsyslog(LOG_INFO, &buff[0], ap); */
+    vprintf(&buff[0], ap);
+    va_end(ap);
 }
 /******************************************************************************/

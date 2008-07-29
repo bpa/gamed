@@ -9,24 +9,19 @@
 using namespace std;
 class HiLoTest: public CxxTest::TestSuite {
 public:
-	HiLoTest() {
-        init_server(&s);
-		game.game = &HiLo;
-	}
-
 	void setUp()    {
-		HiLo.create(&game, &s);
-        data = (HiLoData*)game.data;
+		game = create_instance(&HiLo);
+        data = (HiLoData*)game->data;
     };
 
 	void tearDown() {
-        free(game.data);
+		destroy_instance(game);
     };
 
 	#define guess(before, after, num, expected) { \
 		cmd.subcmd = num; \
         TS_ASSERT_EQUALS(before,data->guesses); \
-		game.state->player_event(&game, &s, &p, (char *)&cmd, 4); \
+		player_event(game, &p, (char *)&cmd, 4); \
         TS_ASSERT_EQUALS((unsigned int)expected,res->command); \
         TS_ASSERT_EQUALS((unsigned int)before+1,res->subcmd); \
         TS_ASSERT_EQUALS(after,data->guesses); \
@@ -48,36 +43,32 @@ public:
     }
 
     void test_game_init() {
-        free(game.data);
+		destroy_instance(game);
         set_random(100);
-        HiLo.create(&game, &s);
-        data = (HiLoData*)game.data;
+        game = create_instance(&HiLo);
+        data = (HiLoData*)game->data;
         TS_ASSERT_EQUALS(1,data->number);
         TS_ASSERT_EQUALS(0,data->guesses);
-        TS_ASSERT_EQUALS(0,game.playing);
-        free(game.data);
+        TS_ASSERT_EQUALS(0,game->playing);
+        destroy_instance(game);
         set_random(99);
-        HiLo.create(&game, &s);
-        data = (HiLoData*)game.data;
+        game = create_instance(&HiLo);
+        data = (HiLoData*)game->data;
         TS_ASSERT_EQUALS(100,data->number);
         TS_ASSERT_EQUALS(0,data->guesses);
-        TS_ASSERT_EQUALS(0,game.playing);
+        TS_ASSERT_EQUALS(0,game->playing);
     }
 
     void test_join_quit() {
-        bool joined = HiLo.player_join(&game, &s, &p);
-        TS_ASSERT(joined);
-        TS_ASSERT_EQUALS(1,game.playing);
-        joined = HiLo.player_join (&game, &s, &p2);
-        TS_ASSERT_EQUALS(0, joined);
-        TS_ASSERT_EQUALS(1,game.playing);
-        HiLo.player_quit (&game, &s, &p);
+		game->accepting_players = 1;
+		player_join(game, &p);
+		TS_ASSERT_EQUALS(0, game->accepting_players);
+        player_quit(game, &p);
         TS_ASSERT_EQUALS(true,game_quit);
-        HiLo.create(&game, &s);
+        create_instance(&HiLo);
     }
 
-    Server s;
-    GameInstance game;
+	GameInstance *game;
     Player p, p2;
     HiLoData *data;
 };

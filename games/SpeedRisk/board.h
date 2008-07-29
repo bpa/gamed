@@ -4,8 +4,8 @@
 #include <gamed/game.h>
 #include <SpeedRisk/protocol.h>
 
-#define SR_GENERATION_PERIOD 30
-#define SR_MAX_PLAYERS        6
+#define SR_GENERATION_PERIOD 30000 /* milliseconds */
+#define SR_MAX_PLAYERS           6
 
 typedef struct {
     Player *player;

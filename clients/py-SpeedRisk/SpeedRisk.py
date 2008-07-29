@@ -249,7 +249,7 @@ class Status:
             dirty = True
 
     def update_players(self):
-		self.client.update_players()
+        self.client.update_players()
 
     def add_player(self, names):
         while len(names) > 0:
@@ -398,7 +398,12 @@ class SpeedRiskUI:
                    event.key == ord('q'):
                     self.running = False
                 elif event.key == ord('r'):
-                    self.client.send_command('READY')
+                    if self.client.ready:
+                        self.client.ready = False
+                        self.client.send_command('NOTREADY')
+                    else:
+                        self.client.ready = True
+                        self.client.send_command('READY')
             elif event.type == MOUSEBUTTONDOWN:
                 if event.button == 1:
                     self.last_click_pos = event.pos

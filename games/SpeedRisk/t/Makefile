@@ -4,7 +4,7 @@ CFLAGS = -Wall -g
 CC = g++
 
 runtests: runtests.cpp ../*.c ../*.h
-	$(CC) $(CFLAGS) $(INC) -o runtests runtests.cpp $(OBJS)
+	$(CC) $(CFLAGS) $(INC) -o runtests runtests.cpp ../*.c
 
 runtests.cpp: *.h
 	../../../include/cxxtest/cxxtestgen.pl --error-printer -o runtests.cpp *.h
