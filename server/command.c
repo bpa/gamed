@@ -1,13 +1,11 @@
 #define _GNU_SOURCE
 #include <arpa/inet.h>
 #include <sys/types.h>
-#include <gamed/command.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "server.h"
-#include "command.h"
 
 extern Server server_funcs;
 extern GameModuleList game_module_list;
@@ -44,7 +42,7 @@ void cmd_rename_player (Client *client, int len) {
 	if (len < 20) client->player.name[len-4] = '\0';
 	if (client->game != NULL) {
 		buff_len += sprintf(data, "%i:%s", client->player.in_game_id, &client->player.name[0]);
-		CMD_ALL_LEN(CMD_RENAME, 0);
+		CMD_ALL_LEN(CMD_RENAME, 0, buff_len);
 	}
 }
 
@@ -60,7 +58,7 @@ void cmd_list_games (Client *client, int len) {
 	buff_len--;
 	buff[buff_len] = '\0';
 	cmd->length = htons(buff_len-4);
-	server_funcs.tell_player(&client->player, &buff[0], buff_len);
+    SEND_BUFF_TO_CLIENT(buff_len);
 }
 
 /******************************************************************************/
@@ -83,7 +81,7 @@ void cmd_list_instances (Client *client, int len) {
 		buff_len += sprintf(&buff[buff_len], ":%s", instance->instance.name);
 	}
 	cmd->length = htons(buff_len-4);
-	server_funcs.tell_player(&client->player, &buff[0], buff_len);
+    SEND_BUFF_TO_CLIENT(buff_len);
 }
 
 /******************************************************************************/
@@ -138,8 +136,7 @@ void cmd_create_game (Client *client, int len) {
 	cmd->command = CMD_GAME;
 	cmd->subcmd = CMD_CREATE_GAME;
 	cmd->length = 0;
-	buff[4] = '\0';
-	server_funcs.tell_player((Player*)client, &buff[0], 4);
+    SEND_BUFF_TO_CLIENT(4);
 	server_funcs.log((GameInstance*)instance, "%s joined", &client->player.name[0]);
 	module->game.player_join((GameInstance*)instance, &server_funcs, &client->player);
 }
@@ -171,14 +168,13 @@ void cmd_join_game (Client *client, int len) {
 		}
 		instance = LIST_NEXT(instance, game_instance_entry);
 	}
-
 	if (instance != NULL) {
 		if (instance->instance.accepting_players) {
 			client->game = instance;
 			instance->instance.playing++;
 			LIST_INSERT_HEAD(&instance->players, client, player_entry);
 			cmd->length = 0;
-			server_funcs.tell_player(&client->player, &buff[0], 4);
+            SEND_BUFF_TO_CLIENT(4);
 			server_funcs.log((GameInstance*)instance, "%s joined", client->player.name);
 			instance->module->game.player_join((GameInstance*)instance, &server_funcs, (Player*)client);
 		}
@@ -204,7 +200,7 @@ void cmd_list_players (Client *client, int len) {
 	    }
 		buff[buff_len] = '\0';
 	    cmd->length = htons(buff_len-4);
-	    server_funcs.tell_player(&client->player, &buff[0], buff_len);
+        SEND_BUFF_TO_CLIENT(buff_len);
 	}
 	else {
 		PLAYER_ERROR(GAMED_ERR_NO_GAME);
@@ -223,7 +219,7 @@ void cmd_quit_game (Client *client, int len) {
 		client->game->module->game.player_quit(
 			(GameInstance*)client->game, &server_funcs, (Player*)client);
 		cmd->length = 0;
-		server_funcs.tell_player(&client->player, &buff[0], 4);
+        SEND_BUFF_TO_CLIENT(4);
 		client->game = NULL;
 	}
 }

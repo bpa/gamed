@@ -2,7 +2,6 @@
 #define GAME_HILO_H
 
 #include <gamed/game.h>
-#include <gamed/command.h>
 
 __BEGIN_DECLS
 
@@ -14,7 +13,7 @@ typedef struct {
 } HiLoData;
 
 enum HILO_COMMANDS {
-	HILO_GUESS = CMD_USER_GAME_START,
+	HILO_GUESS = 0,
 	HILO_GIVEUP,
 	HILO_TOO_LOW,
 	HILO_TOO_HIGH,

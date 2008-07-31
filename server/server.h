@@ -3,6 +3,7 @@
 
 #include <sys/queue.h>
 #include <gamed/game.h>
+#include "command.h"
 #include "event.h"
 
 #define GAMED_PORT 7483

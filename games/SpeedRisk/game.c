@@ -171,6 +171,7 @@ void game_init (GameInstance *g, const Server *s) {
     build_border_table();
 	g->state = &SR_WAITING_FOR_PLAYERS;
 	s->log(g, "Initializing");
+	sprintf(g->status, "Waiting for players");
 }
 
 void player_join (GameInstance *g, const Server *s, Player *p) {
@@ -288,7 +289,6 @@ void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *req
     SR_Command *cmd = (SR_Command*)req;
 	return_if_invalid(cmd);
     srd = (SpeedRiskData*)g->data;
-	printf("Command: %i %i %i %i\n", req[0], req[1], req[2], req[3]);
 	switch (cmd->command) {
 		case SR_CMD_READY:
 			if (g->playing > 1) {
@@ -367,6 +367,7 @@ void handle_placing(GameInstance *g, const Server *s, Player *p, const char *req
 				player_cmd_a(s, p, SR_CMD_GET_ARMIES,
 					srd->players[p->in_game_id].armies);
 			}
+            break;
 		default:
 			player_error(s, p, SR_ERR_INVALID_CMD);
 			break;

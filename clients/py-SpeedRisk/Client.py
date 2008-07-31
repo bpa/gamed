@@ -4,6 +4,7 @@ from exceptions import RuntimeError
 from observing import Observable
 from ConfigParser import RawConfigParser
 from Constants import *
+import types
 
 def cmd_cmd(cmd):    return ord(cmd[0])
 def cmd_from(cmd):   return ord(cmd[1])
@@ -30,7 +31,7 @@ class Client(Observable):
 
     def start_game(self):
         num = 0
-        while 1:
+        while num < 3:
             res = self.start(CMD_JOIN_GAME, "risk%i"%num)
             if res == 'Join Game': break
             if res == 'No Game':
@@ -42,7 +43,8 @@ class Client(Observable):
             print res
             num = num + 1
         print "Send: PLAYER_STATUS"
-        self.sock.send(pack(">2BH", PLAYER_STATUS, 0, 0))
+        self.send_command(PLAYER_STATUS)
+        res = self.sock.recv(4)
         res = self.sock.recv(4)
         (cmd,self.player_id,self.players) = unpack(">3Bx", res) 
 
@@ -84,14 +86,18 @@ class Client(Observable):
         self.sock.send(pack(">2BH", CMD_GAME, CMD_LIST_PLAYERS, 0))
 
     def set_status(self, status): self.status = status
+
     def send_command(self, command, f=0, t=0, armies=0):
-        command = command.replace(' ', '_').upper()
-        if (self.command_map.has_key(command)):
-            cmd = self.command_map[command]
+        if type(command) == types.IntType:
+            cmd = command
         else:
-            raise RuntimeError("Unrecognized command: %s" % command)
+            command = command.replace(' ', '_').upper()
+            if (self.command_map.has_key(command)):
+                cmd = self.command_map[command]
+            else:
+                raise RuntimeError("Unrecognized command: %s" % command)
         print "Send:", cmd, f, t, armies
-        packet = pack(">4b", cmd, f, t, armies)
+        packet = pack(">2bH4b", 10, 0, 4, cmd, f, t, armies)
         self.sock.send(packet)
 
     def recv_command(self):
@@ -101,12 +107,13 @@ class Client(Observable):
             return (False,None)
         c = cmd_cmd(cmd)
         print "Recv:", ord(cmd[0]), ord(cmd[1]), ord(cmd[2]), ord(cmd[3])
-        if (c == CMD_GAME):
-            (s, msg_len) = unpack(">xBH", cmd)
+        (s, msg_len) = unpack(">xBH", cmd)
+        if msg_len > 0:
             print "Reading an additional %i bytes" % msg_len
             self.sock.setblocking(1)
             msg = self.sock.recv(msg_len)
             self.sock.setblocking(0)
+        if c == CMD_GAME:
             if s == CMD_LIST_PLAYERS:
                 print "Players => %s" % msg
                 names = msg.split(':')
@@ -114,44 +121,42 @@ class Client(Observable):
                 self.players = len(names) / 2
                 self.status.add_player(names)
                 return (True, None)
-            print "???", s
+            elif s == CMD_COMMAND:
+                cmd = msg
+                msg = msg[4:]
+                c = cmd_cmd(cmd)
+                print "Recv:", ord(cmd[0]), ord(cmd[1]), ord(cmd[2]), ord(cmd[3])
+            else:
+                print "???", s
+                return (True, None)
+        else:
             return (True, None)
-        elif (c == CMD_ERROR):
+        if (c == CMD_ERROR):
             print CMD_MAP[c][ord(cmd[1])]
             return (True, None)
         elif (c == ERROR):
             print ERRORS[ord(cmd[1])]
             return (True, None)
         elif (c == ATTACK_RESULT or c == MOVE_RESULT):
-            self.sock.setblocking(1)
-            msg = self.sock.recv(4)
-            self.countries[ord(msg[0])].update(msg)
-            msg = self.sock.recv(4)
-            cid = int(ord(msg[0]))
-            new_owner = ord(msg[1])
+            self.countries[ord(msg[0])].update(msg[0:4])
+            cid = int(ord(msg[4]))
+            new_owner = ord(msg[5])
             old_owner = self.countries[cid].owner
-            self.countries[cid].update(msg)
+            self.countries[cid].update(msg[4:8])
             if new_owner != old_owner:
                 if new_owner == self.player_id:
                     self.ui.finish_attack(cid)
-            self.sock.setblocking(0)
             return (True, 'UPDATE')
         elif (c == GET_ARMIES):
             self.reserve = cmd_armies(cmd)
             return (True, 'GET_ARMIES')
         elif (c == COUNTRY_STATUS):
-            self.sock.setblocking(1)
-            msg = self.sock.recv(4)
             self.countries[ord(msg[0])].update(msg)
-            self.sock.setblocking(0)
             return (True, 'UPDATE')
         elif (c == GAME_STATUS):
             lands = self.countries
-            self.sock.setblocking(1)
             for i in range(42):
-                msg = self.sock.recv(4)
-                self.countries[ord(msg[0])].update(msg)
-            self.sock.setblocking(0)
+                self.countries[ord(msg[i*4])].update(msg[i*4:(i+1)*4])
             return (True, 'UPDATE')
         elif (c == PLAYER_STATUS):
             self.player_id = cmd_from(cmd)
@@ -173,6 +178,7 @@ class Client(Observable):
         elif (c == START_PLACING):
             for p in range(self.players):
                 self.status.set_ready(p, False)
+            self.ready = False
             self.state = "Placing Armies"
         elif (c == BEGIN):
             for p in range(self.players):

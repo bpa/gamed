@@ -6,25 +6,26 @@ CMD_CHAT       =  3
 CMD_PLAYER     =  4
 CMD_GAME       =  5
 CMD_ADMIN      =  6
-PLAYER_JOIN    =  7
-MESSAGE        =  8
-ERROR          =  9
-READY          = 10
-NOTREADY       = 11
-START_PLACING  = 12
-BEGIN          = 13
-MOVE           = 14
-ATTACK         = 15
-PLACE          = 16
-GET_ARMIES     = 17
-ATTACK_RESULT  = 18
-MOVE_RESULT    = 19
-GAME_STATUS    = 20
-PLAYER_STATUS  = 21
-COUNTRY_STATUS = 22
-DEFEAT         = 23
-VICTORY        = 24
-PLAYER_QUIT    = 25
+
+PLAYER_JOIN    =  0
+MESSAGE        =  1
+ERROR          =  2
+READY          =  3
+NOTREADY       =  4
+START_PLACING  =  5
+BEGIN          =  6
+MOVE           =  7
+ATTACK         =  8
+PLACE          =  9
+GET_ARMIES     = 10
+ATTACK_RESULT  = 11
+MOVE_RESULT    = 12
+GAME_STATUS    = 13
+PLAYER_STATUS  = 14
+COUNTRY_STATUS = 15
+DEFEAT         = 16
+VICTORY        = 17
+PLAYER_QUIT    = 18
 
 GAMED_ERR_GAME_FULL = 0
 GAMED_ERR_NO_GAME   = 1
@@ -38,7 +39,7 @@ CMD_FRIEND_STATUS = 4
 CMD_REMOVE_FRIEND = 5
 
 CMD_RENAME = 0
-CMD_STATS  = 1
+CMD_COMMAND  = 1
 
 CMD_LIST_GAMES          = 0
 CMD_LIST_GAME_INSTANCES = 1
@@ -70,7 +71,7 @@ COUNTRIES = [ 'EASTERN US', 'NORTHWEST TERRITORY', 'WESTERN US', 'ONTARIO',
 ERRORS = ['Invalid command','Not enough players', 'Not enough armies',
   'Do not own country', 'Invalid destination']
 
-COMMANDS = [ 'CMD_NOP', 'CMD_INVALID', 'CMD_ERROR', 'CMD_CHAT', 'CMD_PLAYER', 'CMD_GAME', 'CMD_ADMIN',
+COMMANDS = [
   'PLAYER_JOIN', 'MESSAGE', 'ERROR', 'READY', 'NOTREADY',
   'START_PLACING', 'BEGIN', 'MOVE', 'ATTACK', 'PLACE', 'GET_ARMIES',
   'ATTACK_RESULT', 'MOVE_RESULT', 'GAME_STATUS', 'PLAYER_STATUS',

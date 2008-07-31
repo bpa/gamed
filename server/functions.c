@@ -92,33 +92,43 @@ void tellf_player(Player *p, const char *fmt, ...) {
     int len;
 
     va_start(ap, fmt);
-    len = vsprintf(&buff[0], fmt, ap);
+    len = vsnprintf(&buff[4], 1020, fmt, ap);
     va_end(ap);
+    SET_CMD(CMD_GAME, CMD_MESSAGE, len, buff);
 
-    tell_player(p, &buff[0], len);
+    if (send(((Client*)p)->sock, &buff[0], len, MSG_NOSIGNAL) == -1) {
+		drop_client((Client*)p, -1);
+    }
 }
 /******************************************************************************/
 
 void tell_player (Player *p, const char *msg, size_t len) {
-	printf("Tell %s 0x%2i%2i%2i%2i[%s]\n", p->name, msg[0], msg[1], msg[2], msg[3], (char *)&msg[4]);
     if (len == 0) {
         len = strlen(msg);
     }
-    if (send(((Client*)p)->sock, msg, len, MSG_NOSIGNAL) == -1) {
+    SET_CMD(CMD_GAME, CMD_MESSAGE, len, buff);
+    if (send(((Client*)p)->sock, &buff[0], 4, MSG_NOSIGNAL) == -1 ||
+        send(((Client*)p)->sock, msg, len, MSG_NOSIGNAL) == -1) {
 		drop_client((Client*)p, -1);
     }
 }
 /******************************************************************************/
 
 void tellf_all(GameInstance *g, const char *fmt, ...) {
+    Client *p, *tmp;
     va_list ap;
     int len;
 
     va_start(ap, fmt);
-    len = vsprintf(&buff[0], fmt, ap);
+    len = vsnprintf(&buff[4], 1020, fmt, ap);
     va_end(ap);
+    SET_CMD(CMD_GAME, CMD_MESSAGE, len, buff);
 
-    tell_all(g, &buff[0], len);
+    LIST_FOREACH_SAFE(p, &((GameModuleInstance*)g)->players, player_entry, tmp) {
+        if (send(p->sock, &buff[0], len, MSG_NOSIGNAL) == -1) {
+		    drop_client(p, -1);
+        }
+    }
 }
 /******************************************************************************/
 
@@ -127,9 +137,11 @@ void tell_all (GameInstance *g, const char *msg, size_t len) {
     if (len == 0) {
         len = strlen(msg);
     }
+    SET_CMD(CMD_GAME, CMD_MESSAGE, len, buff);
     LIST_FOREACH_SAFE(p, &((GameModuleInstance*)g)->players, player_entry, tmp) {
-        if (send(p->sock, msg, len, MSG_NOSIGNAL) == -1) {
-            ((GameModuleInstance*)g)->module->game.player_quit(g, &server_funcs, (Player*)p);
+        if (send(p->sock, &buff[0], 4, MSG_NOSIGNAL) == -1 ||
+            send(p->sock, msg, len, MSG_NOSIGNAL) == -1) {
+		    drop_client(p, -1);
         }
     }
 }
@@ -149,8 +161,8 @@ void log_message (GameInstance *g, const char *fmt, ...) {
     va_list ap;
 	snprintf(&buff[0], 1024, "[%s] %s\n", g->name, fmt);
     va_start(ap, fmt);
-    /* vsyslog(LOG_INFO, &buff[0], ap); */
-    vprintf(&buff[0], ap);
+    vsyslog(LOG_INFO, &buff[0], ap);
+    /* vprintf(&buff[0], ap); */
     va_end(ap);
 }
 /******************************************************************************/

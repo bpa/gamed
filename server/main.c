@@ -42,8 +42,6 @@ int main(int argc, char *argv[]) {
 		}
 	}
 
-	getrlimit(RLIMIT_CORE, &limit);
-	fprintf(stderr, "RLIMIT_CORE: (%i/%i) => unlimited\n", limit.rlim_cur, limit.rlim_max);
 	limit.rlim_cur = RLIM_INFINITY;
 	limit.rlim_max = RLIM_INFINITY;
 	setrlimit(RLIMIT_CORE, &limit);

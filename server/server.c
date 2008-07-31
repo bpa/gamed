@@ -9,7 +9,6 @@
 #include <strings.h>
 #include <syslog.h>
 #include <unistd.h>
-#include <gamed/command.h>
 #include "server.h"
 
 static void listen_on_port(int port);
@@ -109,105 +108,120 @@ void handle_connect(int listener, short event, void *args) {
     event_set((struct event*)&client->ev, sock, EV_READ | EV_PERSIST,
         &handle_network_event, client);
     event_add((struct event*)&client->ev,NULL);
-	/* TODO add to authenticating list */
-	/* printf("Received connection\n"); */
+    /* TODO add to authenticating list */
+    /* printf("Received connection\n"); */
 }
 
 /******************************************************************************/
 
 #define FUNC_RESPONSE(sentinel, funcs) \
-	if (cmd->subcmd < sentinel) { \
-		funcs[cmd->subcmd](client, r); \
-	} \
-	else { \
-		if (send(sock, &invalid, 4, MSG_DONTWAIT) == -1) { \
-			drop_client(client, -1); \
-		} \
-	}
+    if (cmd->subcmd < sentinel) { \
+        funcs[cmd->subcmd](client, r); \
+    } \
+    else { \
+        if (send(sock, &invalid, 4, MSG_DONTWAIT) == -1) { \
+            drop_client(client, -1); \
+        } \
+    }
 
 void handle_network_event(int sock, short event, void *args) {
     int r;
-	GamedCommand *cmd;
+    GamedCommand *cmd;
     Client *client = (Client*)args;
 
-    r = recv(sock, buff, 1023,0);
-    buff[r] = '\0';
+    /* TODO
+     * This really needs to handle evil messages (the client lying about length)
+     * The problems that needs to be solved properly are:
+     *   1. Messages stacking up due to a busy server
+     *   2. Messages broken up into pieces (reading a large block won't get the full message)
+     *   3. Messages with invalid length (length > 0 but no following content)
+     */
+    r = recv(sock, buff, 4, 0);
     if (r > 0) {
-		printf("Received 0x%2X%2X%2X%2X[%s]\n", buff[0], buff[1], buff[2], buff[3], (char *)&buff[4]);
-		cmd = (GamedCommand *)&buff[0];
+        cmd = (GamedCommand *)&buff[0];
+        if (cmd->length) {
+            r = recv(sock, &buff[4], ntohs(cmd->length), 0);
+            if (r > 0) {
+            /* XXX this could actually be an invalid assumption */
+                r = r + 4;
+            }
+            else {
+                drop_client(client, r);
+            }
+        }
+        buff[r] = '\0';
         switch (cmd->command) {
             case CMD_NOP:
-				if (send(sock, 0x0000, 4, MSG_DONTWAIT) == -1) {
-					drop_client(client, -1);
-				}
-				break;
-			case CMD_CHAT:
-				break;
-			case CMD_PLAYER:
-				FUNC_RESPONSE(CMD_PLAYER_SENTINEL, player_commands);
-				break;
-			case CMD_GAME:
-				FUNC_RESPONSE(CMD_GAME_SENTINEL, game_commands);
-				break;
-			case CMD_ADMIN:
-				break;
+                if (send(sock, 0x0000, 4, MSG_DONTWAIT) == -1) {
+                    drop_client(client, -1);
+                }
+                break;
+            case CMD_CHAT:
+                break;
+            case CMD_PLAYER:
+                FUNC_RESPONSE(CMD_PLAYER_SENTINEL, player_commands);
+                break;
+            case CMD_GAME:
+                FUNC_RESPONSE(CMD_GAME_SENTINEL, game_commands);
+                break;
+            case CMD_ADMIN:
+                break;
             default:
                 if (client->game != NULL) {
                     client->game->instance.state->player_event(
-						(GameInstance*)client->game, &server_funcs, (Player*)client, &buff[0], r);
-					printf("[%s] %s\n", client->game->instance.name, client->game->instance.status);
+                        (GameInstance*)client->game, &server_funcs, (Player*)client, &buff[4], r);
                 }
-				break;
+                break;
         }
     }
     else {
-		drop_client(client, r);
-	}
+        drop_client(client, r);
+    }
 }
 
 /******************************************************************************/
 void drop_client(Client *client, int r) {
-	int sock = client->sock;
-	shutdown(sock, SHUT_RDWR);
-	if (event_initialized(&client->ev)) {
-		event_del(&client->ev);
-	}
-	if (client->game != NULL) {
-		client->game->instance.playing--;
-		LIST_REMOVE(client, player_entry);
-		client->game->module->game.player_quit(
-			(GameInstance*)client->game, &server_funcs, (Player*)client);
-	}
-	/*****************************
-	 * Add this when chat is ready
-	LIST_REMOVE(client, chat_player);
-	 *****************************/
-	free(client);
-	/*
-	if (r == 0) {
-		fprintf(stderr,"Socket closed\n");
-	}
-	else { */ /* r == -1 */ /*
-		perror("Closed socket - recv");
-	}
-	*/
+    int sock = client->sock;
+    shutdown(sock, SHUT_RDWR);
+    if (event_initialized(&client->ev)) {
+        event_del(&client->ev);
+    }
+    if (client->game != NULL) {
+        client->game->instance.playing--;
+        LIST_REMOVE(client, player_entry);
+        client->game->module->game.player_quit(
+            (GameInstance*)client->game, &server_funcs, (Player*)client);
+    }
+    /*****************************
+     * Add this when chat is ready
+    LIST_REMOVE(client, chat_player);
+     *****************************/
+    free(client);
+    /*
+    if (r == 0) {
+        fprintf(stderr,"Socket closed\n");
+    }
+    else { */ /* r == -1 */ /*
+        perror("Closed socket - recv");
+    }
+    */
 }
 
 /******************************************************************************/
 
 void handle_timer (int sock, short event, void *args) {
-	GameModuleInstance *g = (GameModuleInstance *)args;
-	if (g->instance.state->timer_event != NULL) {
-		g->instance.state->timer_event((GameInstance*)g, &server_funcs);
-		if (g->timer_is_persistent) {
-    		event_add(&g->timer, &g->period);
-		}
-	}
-	else {
-		if (event_initialized(&g->timer)) {
-			event_del(&g->timer);
-		}
-	}
+    GameModuleInstance *g = (GameModuleInstance *)args;
+    if (g->instance.state->timer_event != NULL) {
+        g->instance.state->timer_event((GameInstance*)g, &server_funcs);
+        if (g->timer_is_persistent) {
+            event_add(&g->timer, &g->period);
+        }
+    }
+    else {
+        if (event_initialized(&g->timer)) {
+            event_del(&g->timer);
+        }
+    }
 }
 
 /******************************************************************************/
