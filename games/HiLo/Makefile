@@ -8,7 +8,6 @@ all: HiLo.o tests HiLo.so
 
 HiLo.so: HiLo.o
 	ld -fPIC -shared -s -o HiLo.so HiLo.o
-	cp HiLo.so ../../server/
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $<

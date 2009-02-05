@@ -28,7 +28,7 @@ GameModuleList game_module_list;
 
 /******************************************************************************/
 
-void init_server(int port) {
+void init_server(int port, const char *config_file) {
   openlog("gamed", LOG_CONS, LOG_USER);
   LIST_INIT(&game_module_list);
   event_init();
@@ -39,7 +39,7 @@ void init_server(int port) {
   event_add(&ev_sig_hup,NULL);
   bzero(&invalid, sizeof(GamedCommand));
   invalid.command = CMD_INVALID;
-  read_config("gamed.conf");
+  read_config(config_file);
 }
 
 /******************************************************************************/
@@ -165,12 +165,6 @@ void handle_network_event(int sock, short event, void *args) {
                 FUNC_RESPONSE(CMD_GAME_SENTINEL, game_commands);
                 break;
             case CMD_ADMIN:
-                break;
-            default:
-                if (client->game != NULL) {
-                    client->game->instance.state->player_event(
-                        (GameInstance*)client->game, &server_funcs, (Player*)client, &buff[4], r);
-                }
                 break;
         }
     }

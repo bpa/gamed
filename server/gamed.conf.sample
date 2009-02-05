@@ -1,0 +1,3 @@
+ServerRoot /usr/local/gamed
+LoadGame games/HiLo.so HiLo
+LoadGame games/SpeedRisk.so SpeedRisk

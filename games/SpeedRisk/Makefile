@@ -12,7 +12,6 @@ tests: $(OBJS)
 
 SpeedRisk.so: *.c
 	ld -fPIC -shared -s -o SpeedRisk.so $(OBJS)
-	cp SpeedRisk.so ../../server/
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) $< -c -o $@

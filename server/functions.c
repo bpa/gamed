@@ -95,14 +95,14 @@ void tellf_player(Player *p, const char *fmt, ...) {
     len = vsnprintf(&buff[4], 1020, fmt, ap);
     va_end(ap);
     SET_CMD(CMD_GAME, CMD_MESSAGE, len, buff);
-
-    if (send(((Client*)p)->sock, &buff[0], len, MSG_NOSIGNAL) == -1) {
+    if (send(((Client*)p)->sock, &buff[0], len+4, MSG_NOSIGNAL) == -1) {
 		drop_client((Client*)p, -1);
     }
 }
 /******************************************************************************/
 
 void tell_player (Player *p, const char *msg, size_t len) {
+    if (p == NULL) return;
     if (len == 0) {
         len = strlen(msg);
     }
@@ -123,9 +123,8 @@ void tellf_all(GameInstance *g, const char *fmt, ...) {
     len = vsnprintf(&buff[4], 1020, fmt, ap);
     va_end(ap);
     SET_CMD(CMD_GAME, CMD_MESSAGE, len, buff);
-
     LIST_FOREACH_SAFE(p, &((GameModuleInstance*)g)->players, player_entry, tmp) {
-        if (send(p->sock, &buff[0], len, MSG_NOSIGNAL) == -1) {
+        if (send(((Client*)p)->sock, &buff[0], len+4, MSG_NOSIGNAL) == -1) {
 		    drop_client(p, -1);
         }
     }

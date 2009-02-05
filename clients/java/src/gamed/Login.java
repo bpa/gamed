@@ -13,13 +13,16 @@ import java.lang.Thread;
  *
  * @author  bruce
  */
-public class Login extends JApplet implements Server, Runnable {
+public class Login extends JApplet implements GameListing, Server, Runnable {
     private Client client;
-    private Game currentGame;
+    private volatile Game currentGame;
     private Thread thread;
     private volatile boolean running;
     private boolean eraseStatus;
+    private PollGames pollThread;
+    private volatile String game;
 
+    @Override
     public void init() {
         try {
             java.awt.EventQueue.invokeAndWait(new Runnable() {
@@ -42,23 +45,29 @@ public class Login extends JApplet implements Server, Runnable {
         }
     }
     
+    /**
+     * I'm just going to disconnect the socket and send you to the connect
+     * screen if the poll fails (IOException of some kind)<br/>
+     * Options:
+     * <ul>
+     * <li>Reconnect and put you on game selection screen (current behaviour)</li>
+     * <li>Disconnect entirely and return you to the connect screen</li>
+     * <li>Attempt to reconnect to previous game</li>
+     * <li>Check the game author's preference (what I'll move to)</li>
+     * </ul>
+     */
     public void run() {
         running = true;
         while(running) {
-            if (eraseStatus) {
-                statusLabel.setText("");
-            }
-            eraseStatus = true;
-            listGames();
-            showGameInstances();
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
+            if (!client.poll(currentGame)) {                
+                showLoginCard();
+                thread = null;
                 running = false;
             }
         }
     }
     
+    @Override
     public void stop() {
         if (thread != null && thread.isAlive()) {
             running = false;
@@ -71,48 +80,20 @@ public class Login extends JApplet implements Server, Runnable {
         return super.getImage(getDocumentBase(), name);
     }
     
-    public java.net.Socket getSocket() {
-        if (client == null) {
-            return null;
-        }
-        return client.socket;
-    }
-    
-    /**
-     * Handles IOExceptions... ok, so its really socket errors
-     * I'm not sure what the best thing to do with this is, so for now,
-     * I'm just going to disconnect the socket and send you to the connect
-     * screen.<br/>
-     * Options:
-     * <ul>
-     * <li>Reconnect and put you on game selection screen (current behaviour)</li>
-     * <li>Disconnect entirely and return you to the connect screen</li>
-     * <li>Attempt to reconnect to previous game</li>
-     * <li>Check the game author's preference (what I'll move to)</li>
-     * </ul>
-     * 
-     * @param e The IOException raised by a socket call
-     */
-    public void handleIOException(java.io.IOException e) {
-        try {
-            client.socket.close();
-        }
-        catch (java.io.IOException ign) {
-            // already aborting, just ignore it
-        }
-        currentGame.stop();
-        client = null;
-        connectButtonActionPerformed(null);
+    public void sendGameData(byte[] data) {
+        client.sendGameData(data);
     }
     
     public void quitGame() {
-        client.quitGame();
-        currentGame.stop();
+        client.quit();
         showGameCard();
-        listGames();
         java.awt.Container c = this.getContentPane();
         c.remove(currentGame);
-        start();
+    }
+    
+    public void handleGameOver() {
+        //Now that I've gotten around to implementing this, I can't see what it is I'm supposed to do
+        //Perhaps call something on the game (that's probably already been scrapped)
     }
     
     /** This method is called from within the init() method to
@@ -258,34 +239,29 @@ public class Login extends JApplet implements Server, Runnable {
     }// </editor-fold>//GEN-END:initComponents
 
     private void joinButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_joinButtonActionPerformed
-        String game = ((String)availableGameList.getSelectedValue()).split("\\(")[0];
+        String gameName = ((String)availableGameList.getSelectedValue()).split("\\(")[0];
         String instance = gameInstanceList.getSelectedValue().toString();
-        if (client.joinGame(game, instance)) {
-            startGame(game);
-        }
-        else {
-            eraseStatus = false;
-            statusLabel.setText(String.format("Game '%s' is full", instance));
-        }
-}//GEN-LAST:event_joinButtonActionPerformed
+        game = gameName;
+        client.joinGame(gameName, instance);//GEN-LAST:event_joinButtonActionPerformed
+}                                          
 
     private void connectButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_connectButtonActionPerformed
-        client = new Client(getDocumentBase().getHost(), username.getText());
+        client = new Client(getDocumentBase().getHost(), username.getText(), (GameListing)this);
         showGameCard();
         start();
 }//GEN-LAST:event_connectButtonActionPerformed
 
     private void createButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createButtonActionPerformed
-        String game = ((String)availableGameList.getSelectedValue()).split("\\(")[0];
+        String gameName = ((String)availableGameList.getSelectedValue()).split("\\(")[0];
         String name = userGame.getText();
-        if (client.createGame(game,name)) {
-            startGame(game);
-        }
+        game = gameName;
+        client.createGame(gameName,name);
     }//GEN-LAST:event_createButtonActionPerformed
 
     private void availableGameListValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_availableGameListValueChanged
         if (evt.getValueIsAdjusting() == false) {
-            showGameInstances();
+            String game = availableGameList.getSelectedValue().toString().split("\\(", 2)[0];
+            client.askForGameInstances(game);
         }
     }//GEN-LAST:event_availableGameListValueChanged
 
@@ -299,18 +275,13 @@ public class Login extends JApplet implements Server, Runnable {
         }
     }//GEN-LAST:event_gameInstanceListValueChanged
     
-    private void showGameInstances() {
-        if (availableGameList.getSelectedIndex() != -1) {
-            String game = availableGameList.getSelectedValue().toString().split("\\(", 2)[0];
-            String instances[] = client.list_instances(game);
-            gameList.set(availableGameList.getSelectedIndex(), String.format("%s(%s)", game, instances[0]));
-            instanceList.clear();
-            for (int i=1; i<instances.length; i++) {
-                instanceList.addElement(String.format("%s", instances[i]));
-            }
-            if (instances.length > 1) {
-                gameInstanceList.setSelectedIndex(0);
-            }
+    public void updateGameInstances(String[] instances) {
+        instanceList.clear();
+        for (int i = 1; i < instances.length; i++) {
+            instanceList.addElement(instances[i]);
+        }
+        if (instances.length > 1) {
+            gameInstanceList.setSelectedIndex(0);
         }
     }
     
@@ -344,11 +315,10 @@ public class Login extends JApplet implements Server, Runnable {
     private javax.swing.JTextField username;
     // End of variables declaration//GEN-END:variables
 
-    private void listGames() {
+
+    public void updateAvailableGames(GameInstance[] games) {
         int selected = availableGameList.getSelectedIndex();
         if (selected == -1) { selected = 0; }
-        String[] games = client.list_games();
-        String[] toks;
         if (gameList.size() > games.length) {
             gameList.removeRange(games.length, gameList.size()-1);
         }
@@ -356,29 +326,63 @@ public class Login extends JApplet implements Server, Runnable {
             gameList.addElement("");
         }
         for (int i=0; i<games.length; i++) {
-            toks = games[i].split(":");
-            gameList.set(i, String.format("%s(%s)", toks[0],toks[2]));            
+            gameList.set(i, games[i].toString());            
         }
         availableGameList.setSelectedIndex(selected);
+        client.askForGameInstances(games[selected].name);
     }
 
     private void showGameCard() {
         java.awt.Container c = getContentPane();
         CardLayout cl = (CardLayout) c.getLayout();
         cl.show(c, "games");
+        if (pollThread != null ) {
+            pollThread.halt();
+        }
+        pollThread = new PollGames(client);
+        pollThread.start();
     }
 
-    private void startGame(String game) {
+    private void showLoginCard() {
+        java.awt.Container c = getContentPane();
+        CardLayout cl = (CardLayout) c.getLayout();
+        cl.show(c, "login");
+        if (pollThread != null ) {
+            pollThread.halt();
+            pollThread = null;
+        }
+    }
+
+    /**
+     * @todo There is a race condition here.  If you try and join 2 game types
+     * at once, you will be added to the first and get an error for the second
+     * you would then be in the "wrong" game.
+     * @todo Refactor this to use real plugins of some type
+     * @param game
+     */
+    public void handleStartGame() {
         if (game.equals("SpeedRisk")) {
             currentGame = new gamed.client.SpeedRisk.Display((Server) this);
         } else {
             currentGame = new gamed.client.HiLo.Plugin((Server) this);
         }
-        stop();
-        currentGame.start();
+        currentGame.joinedGame();
         java.awt.Container c = getContentPane();
         c.add(currentGame, "currentGame");
         CardLayout cl = (CardLayout) c.getLayout();
         cl.show(c, "currentGame");
+        if (pollThread != null ) {
+            pollThread.halt();
+            pollThread = null;
+        }
+    }
+    
+    public void askForPlayerList() {
+        client.askForPlayerList();
+    }
+    
+    public void handleErrorMessage(String error) {
+        statusLabel.setText(error);
+        eraseStatus = false;
     }
 }

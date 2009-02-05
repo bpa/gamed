@@ -17,8 +17,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
+
 /**
  *
  * @author  bruce
@@ -34,8 +33,6 @@ public class Display extends gamed.Game
     private volatile int images_downloaded;
     private static final int TOTAL_IMAGES = 44;
     private Borders map;
-    private InputStream input;
-    private OutputStream output;
     private int selectedCountry = -1;
     private Country[] countries;
     private JCheckBox[] playerDisplays;
@@ -43,7 +40,6 @@ public class Display extends gamed.Game
     private boolean playerReady[];
     private int reserve;
     private int player_id;
-    private int playing;
     private boolean atWar;
     
     public Display(gamed.Server s) {
@@ -53,18 +49,8 @@ public class Display extends gamed.Game
         playerReady = new boolean[6];
         initComponents();
         atWar = false;
-        try {
-            java.net.Socket socket = s.getSocket();
-            input = socket.getInputStream();
-            output = socket.getOutputStream();
-            byte cmd[] = { PLAYER_STATUS, 0, 0, 0 };
-            output.write(cmd);
-            cmd[0] = CMD_GAME;
-            cmd[1] = CMD_LIST_PLAYERS;
-            output.write(cmd);
-        } catch (IOException e) {
-            s.quitGame();
-        }
+        byte cmd[] = {PLAYER_STATUS, 0, 0, 0};
+        s.sendGameData(cmd);
     }
     
     @Override
@@ -82,7 +68,7 @@ public class Display extends gamed.Game
         }
     }
     
-    public void start() {
+    public void joinedGame() {
         if (thread == null) {
             running = true;
             thread = new Thread(this);
@@ -111,11 +97,8 @@ public class Display extends gamed.Game
         notReadyRadio.setVisible(true);
         jButton1.setVisible(true);
         repaint();
-        while(tick()) {
-           repaint();
-        }
     }
-
+    
     private void initMediaDownload() {
         images_downloaded = 0;
         progress.setValue(0);
@@ -445,150 +428,127 @@ public class Display extends gamed.Game
         }
     }
     
-    private boolean tick() {
-        byte cmd[] = new byte[4];
-        try {
-            input.read(cmd, 0, 4);
-            switch(cmd[0]) {
-                case CMD_GAME:
-                    // TODO if its a CMD_LIST_PLAYERS, update players
-                    if (cmd[1] == CMD_QUIT_GAME) {
-                        return false;
+    public void handleGameData(byte[] data) {
+        System.err.format("Got %d bytes: %d %d %d %d\n", data.length, data[0], data[1], data[2], data[3]);
+        switch (data[0]) {
+            case PLAYER_JOIN:
+            case PLAYER_QUIT:
+                server.askForPlayerList();
+                break;
+            case SR_ERROR:
+                System.err.println("Error: " + data[1]);
+                System.err.flush();
+                break;
+            case READY:
+                System.err.format("Player %d is ready\n", data[1]);
+                System.err.flush();
+                playerReady[data[1]] = true;
+                if (playerInd[data[1]] != -1) {
+                    playerDisplays[playerInd[data[1]]].getModel().setSelected(true);
+                }
+                break;
+            case NOTREADY:
+                System.err.format("Player %d is not ready\n", data[1]);
+                System.err.flush();
+                playerReady[data[1]] = false;
+                if (playerInd[data[1]] != -1) {
+                    playerDisplays[playerInd[data[1]]].getModel().setSelected(false);
+                }
+                break;
+            case START_PLACING:
+                phaseLabel.setText("Placing Armies");
+                notReadyRadio.getModel().setSelected(true);
+                setSelectedCountry(-1);
+                for (int i = 0; i < 6; i++) {
+                    playerDisplays[i].getModel().setSelected(false);
+                    playerReady[i] = false;
+                }
+                break;
+            case BEGIN:
+                atWar = true;
+                phaseLabel.setText("At War");
+                readyRadio.setVisible(false);
+                notReadyRadio.setVisible(false);
+                break;
+            case GET_ARMIES:
+                reserve = data[3];
+                reserveLabel.setText(data[3] + " armies in reserve");
+                break;
+            case ATTACK_RESULT:
+            case MOVE_RESULT:
+                System.err.println("Attack or move result");
+                System.err.flush();
+                countries[data[4]].set(data[5], data[6]);
+                int old_owner = countries[data[8]].owner;
+                countries[data[8]].set(data[9], data[10]);
+                if (old_owner != data[9]) {
+                    if (data[9] == player_id) {
+                        setSelectedCountry(data[8]);
+                    } else if (selectedCountry == data[8]) {
+                        setSelectedCountry(-1);
                     }
-                    else if (cmd[1] == CMD_LIST_PLAYERS) {
-                        int len = ((cmd[2] << 8) | cmd[3]);
-                        byte z[] = new byte[len];
-                        input.read(z, 0, len);
-                        updatePlayers(new String(z));
-                    }
-                    break;
-                case PLAYER_JOIN:
-                    playerReady[cmd[1]] = false;
-                    cmd[0] = CMD_GAME;
-                    cmd[1] = CMD_LIST_PLAYERS;
-                    output.write(cmd);
-                    break;
-                case SR_ERROR:
-                    System.out.println("Error: "+cmd[1]);
-                    break;
-                case READY:
-                    playerReady[cmd[1]] = true;
-                    if (playerInd[cmd[1]] != -1) {
-                        playerDisplays[playerInd[cmd[1]]].getModel().setSelected(true);
-                    }
-                    break;
-                case NOTREADY:
-                    playerReady[cmd[1]] = false;
-                    if (playerInd[cmd[1]] != -1) {
-                        playerDisplays[playerInd[cmd[1]]].getModel().setSelected(false);
-                    }
-                    break;
-                case START_PLACING:
-                    phaseLabel.setText("Placing Armies");
-                    notReadyRadio.getModel().setSelected(true);
-                    setSelectedCountry(-1);
-                    for (int i=0; i<6; i++) {
-                        playerDisplays[i].getModel().setSelected(false);
-                        playerReady[i] = false;
-                    }
-                    break;
-                case BEGIN:
-                    atWar = true;
-                    phaseLabel.setText("At War");
-                    readyRadio.setVisible(false);
-                    notReadyRadio.setVisible(false);
-                    break;
-                case GET_ARMIES:
-                    reserve = cmd[3];
-                    reserveLabel.setText(cmd[3] + " armies in reserve");
-                    break;
-                case ATTACK_RESULT:
-                case MOVE_RESULT:
-                    input.read(cmd, 0, 4);
-                    countries[cmd[0]].set(cmd[1], cmd[2]);
-                    input.read(cmd, 0, 4);
-                    int old_owner = countries[cmd[0]].owner;
-                    countries[cmd[0]].set(cmd[1], cmd[2]);                    
-                    if (old_owner != cmd[1]) {
-                        if (cmd[1] == player_id) {
-                            setSelectedCountry(cmd[0]);
-                        }
-                        else if (selectedCountry == cmd[0]) {
-                            setSelectedCountry(-1);
-                        }
-                    }
-                    break;
-                case GAME_STATUS:
-                    for (int i=0; i<42; i++) {
-                        input.read(cmd, 0, 4);
-                        countries[cmd[0]].set(cmd[1], cmd[2]);
-                    }
-                    break;
-                case PLAYER_STATUS:
-                    player_id = cmd[1];
-                    reserve = cmd[3];
-                    Color myColor = new Color(Country.token_colors[player_id]);
-                    phaseBG.setBackground(myColor);
-                    reserveBG.setBackground(myColor);
-                    break;
-                case COUNTRY_STATUS:
-                    input.read(cmd, 0, 4);
-                    countries[cmd[0]].set(cmd[1], cmd[2]);
-                    break;
-                case DEFEAT:
-                    if (playerInd[cmd[1]] != -1) {
-                        playerDisplays[playerInd[cmd[1]]].getModel().setSelected(false);
-                        playerReady[cmd[1]] = false;
-                    }
-                    break;
-                case VICTORY:
-                    phaseLabel.setText("Game Over");
-                    break;
-                case PLAYER_QUIT:
-                    cmd[0] = CMD_GAME;
-                    cmd[1] = CMD_LIST_PLAYERS;
-                    output.write(cmd);
-                    break;
-            }
-        } catch (IOException e) {
-            server.quitGame();
-            return false;
+                }
+                break;
+            case GAME_STATUS:
+                System.err.println("Game status");
+                System.err.flush();
+                for (int i = 1; i <= 42; i++) {
+                    countries[data[i*4]].set(data[i*4+1], data[i*4+2]);
+                }
+                break;
+            case PLAYER_STATUS:
+                System.err.format("Player %d has %d armies\n", data[1], data[3]);
+                System.err.flush();
+                player_id = data[1];
+                reserve = data[3];
+                Color myColor = new Color(Country.token_colors[player_id]);
+                phaseBG.setBackground(myColor);
+                reserveBG.setBackground(myColor);
+                break;
+            case COUNTRY_STATUS:
+                System.err.format("Player %d now owns %d\n", data[0], data[2]);
+                System.err.flush();
+                countries[data[4]].set(data[5], data[6]);
+                break;
+            case DEFEAT:
+                System.err.format("Player %d has been defeated\n", data[1]);
+                System.err.flush();
+                if (playerInd[data[1]] != -1) {
+                    playerDisplays[playerInd[data[1]]].getModel().setSelected(false);
+                    playerReady[data[1]] = false;
+                }
+                break;
+            case VICTORY:
+                phaseLabel.setText("Game Over");
+                break;
         }
-        return true;
+        repaint();
     }
     
-    private void updatePlayers(String players) {
-        String toks[] = players.split(":");
-        String names[] = new String[6];
-        for (int i=1; i<toks.length; i+=2) {
-            try {
-                int id = Integer.parseInt(toks[i]);
-                names[id] = toks[i+1];
-            } catch (java.lang.NumberFormatException e) {}
+    public void updatePlayers(gamed.Player[] players) {
+        System.err.println("updatePlayers called "+players.length);
+        int i=0;
+        for (; i < players.length; i++) {
+            playerInd[players[i].id] = i;
+            playerDisplays[i].setText(players[i].name);
+            playerDisplays[i].setBackground(new Color(Country.token_colors[players[i].id]));
+            playerDisplays[i].getModel().setSelected(playerReady[players[i].id]);
+            playerDisplays[i].setVisible(true);
+
         }
-        int ind = 0;
-        for (int i=0; i<6; i++) {
-            if (names[i] != null) {
-                playerInd[i] = ind;
-                playerDisplays[ind].setText(names[i]);
-                playerDisplays[ind].setBackground(new Color(Country.token_colors[i]));
-                playerDisplays[ind].getModel().setSelected(playerReady[i]);
-                playerDisplays[ind].setVisible(true);
-                ind++;
-            }
-        }
-        for (;ind<6;ind++) {
-            playerDisplays[ind].setVisible(false);
+        for (; i<6; i++) {
+            playerInd[i] = -1;
+            playerDisplays[i].setVisible(false);
         }
     }
     
+    public void renamePlayer(gamed.Player player) {
+        playerDisplays[playerInd[player.id]].setText(player.name);
+    }
+
     private void sendReady(boolean ready) {
         byte cmd[] = { ready ? READY : NOTREADY, 0, 0, 0 };
-        try {
-            output.write(cmd);
-        } catch (IOException e) {
-            server.quitGame();
-        }
+        server.sendGameData(cmd);
     }
     
     private int getCountryAt(Point p) {
@@ -620,11 +580,7 @@ public class Display extends gamed.Game
                 to,
                 (byte)(countries[selectedCountry].armies - 1) 
             };
-            try {
-                output.write(cmd);
-            } catch (IOException e) {
-                server.quitGame();
-            }
+            server.sendGameData(cmd);
         }
     }
     
@@ -636,11 +592,7 @@ public class Display extends gamed.Game
                 to,
                 armies 
             };
-            try {
-                output.write(cmd);
-            } catch (IOException e) {
-                server.quitGame();
-            }
+            server.sendGameData(cmd);
         }
     }
     
@@ -652,11 +604,7 @@ public class Display extends gamed.Game
                 to,
                 armies
             };
-            try {
-                output.write(cmd);
-            } catch (IOException e) {
-                server.quitGame();
-            }
+            server.sendGameData(cmd);
         }
     }
     
@@ -730,33 +678,23 @@ public class Display extends gamed.Game
     private javax.swing.JPanel statusPanel;
     // End of variables declaration//GEN-END:variables
     
-    public static final byte CMD_NOP = 0;
-    public static final byte CMD_INVALID = 1;
-    public static final byte CMD_ERROR = 2;
-    public static final byte CMD_CHAT = 3;
-    public static final byte CMD_PLAYER = 4;
-    public static final byte CMD_GAME = 5;
-    public static final byte CMD_ADMIN = 6;
-    public static final byte PLAYER_JOIN = 7;
-    public static final byte MESSAGE = 8;
-    public static final byte SR_ERROR = 9;
-    public static final byte READY = 10;
-    public static final byte NOTREADY = 11;
-    public static final byte START_PLACING = 12;
-    public static final byte BEGIN = 13;
-    public static final byte MOVE = 14;
-    public static final byte ATTACK = 15;
-    public static final byte PLACE = 16;
-    public static final byte GET_ARMIES = 17;
-    public static final byte ATTACK_RESULT = 18;
-    public static final byte MOVE_RESULT = 19;
-    public static final byte GAME_STATUS = 20;
-    public static final byte PLAYER_STATUS = 21;
-    public static final byte COUNTRY_STATUS = 22;
-    public static final byte DEFEAT = 23;
-    public static final byte VICTORY = 24;
-    public static final byte PLAYER_QUIT = 25;
-
-    public static final byte CMD_LIST_PLAYERS = 4;
-    public static final byte CMD_QUIT_GAME = 5;
+    public static final byte PLAYER_JOIN = 0;
+    public static final byte MESSAGE = 1;
+    public static final byte SR_ERROR = 2;
+    public static final byte READY = 3;
+    public static final byte NOTREADY = 4;
+    public static final byte START_PLACING = 5;
+    public static final byte BEGIN = 6;
+    public static final byte MOVE = 7;
+    public static final byte ATTACK = 8;
+    public static final byte PLACE = 9;
+    public static final byte GET_ARMIES = 10;
+    public static final byte ATTACK_RESULT = 11;
+    public static final byte MOVE_RESULT = 12;
+    public static final byte GAME_STATUS = 13;
+    public static final byte PLAYER_STATUS = 14;
+    public static final byte COUNTRY_STATUS = 15;
+    public static final byte DEFEAT = 16;
+    public static final byte VICTORY = 17;
+    public static final byte PLAYER_QUIT = 18;
 }

@@ -11,9 +11,12 @@ extern Server server_funcs;
 extern GameModuleList game_module_list;
 
 static void cmd_rename_player (Client *, int);
+static void cmd_invalid       (Client *, int);
 
 command_func player_commands[] = {
 	cmd_rename_player,
+    cmd_invalid,
+    cmd_invalid
 };
 
 static void cmd_list_games     (Client *, int);
@@ -22,6 +25,7 @@ static void cmd_create_game    (Client *, int);
 static void cmd_join_game      (Client *, int);
 static void cmd_list_players   (Client *, int);
 static void cmd_quit_game      (Client *, int);
+static void cmd_game_message   (Client *, int);
 
 command_func game_commands[] = {
 	cmd_list_games,
@@ -30,7 +34,14 @@ command_func game_commands[] = {
 	cmd_join_game,
 	cmd_list_players,
 	cmd_quit_game,
+    cmd_game_message
 };
+
+/******************************************************************************/
+void cmd_invalid (Client *client, int len) {
+	GamedCommand *cmd = (GamedCommand *)&buff[0];
+    CMD_PLAYER(CMD_INVALID, 0);
+}
 
 /******************************************************************************/
 void cmd_rename_player (Client *client, int len) {
@@ -200,6 +211,7 @@ void cmd_list_players (Client *client, int len) {
 	    }
 		buff[buff_len] = '\0';
 	    cmd->length = htons(buff_len-4);
+        fprintf(stderr,"list_players: %s\n",&buff[4]);
         SEND_BUFF_TO_CLIENT(buff_len);
 	}
 	else {
@@ -223,3 +235,22 @@ void cmd_quit_game (Client *client, int len) {
 		client->game = NULL;
 	}
 }
+
+/******************************************************************************/
+void cmd_game_message (Client *client, int len) {
+    int i;
+	GamedCommand *cmd = (GamedCommand *)&buff[0];
+	if (client->game == NULL) {
+		PLAYER_ERROR(GAMED_ERR_NO_GAME);
+	}
+    else {
+        fprintf(stderr,"Game message:");
+        for(i=0;i<len;i++) {
+            fprintf(stderr," %i", buff[i]);
+        }
+        fprintf(stderr,"\n");
+        client->game->instance.state->player_event(
+            (GameInstance*)client->game, &server_funcs, (Player*)client, &buff[4], len-4);
+    }
+}
+

@@ -7,14 +7,19 @@
 #include <unistd.h>
 #include "server.h"
 
+#ifndef DEFAULT_CONFIG
+  #define DEFAULT_CONFIG "gamed.conf"
+#endif
+
 int main(int argc, char *argv[]) {
     char **p_ptr = NULL;
+    char *config_file;
     int port = GAMED_PORT;
 	int c, fork = 1;
     long requested_port = 0;
 	struct rlimit limit;
 
-	while ((c = getopt (argc, argv, "Xp:")) != -1) {
+	while ((c = getopt (argc, argv, "Xp:f:")) != -1) {
 		switch(c) {
 			case 'X':
 				fork = 0;
@@ -27,6 +32,7 @@ int main(int argc, char *argv[]) {
 				}
 				port = requested_port;
 				break;
+            case 'f':
 			case '?':
 				if (optopt == 'p') {
 					/* getopt is printing errors for me, so this isn't needed
@@ -34,7 +40,7 @@ int main(int argc, char *argv[]) {
 					*/
 				}
 				else {
-					fprintf(stderr, "Usage: [-X] [-p port]\n");
+					fprintf(stderr, "Usage: [-X] [-p port] [-f /path/to/config]\n");
 				}
 				return 1;
 			default:
@@ -51,7 +57,13 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     }
-	init_server(port);
+    if (config_file == NULL) {
+	    init_server(port, DEFAULT_CONFIG);
+    }
+    else {
+	    init_server(port, config_file);
+    }
+    free(config_file);
 	run_server();
 	return 0;
 }

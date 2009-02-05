@@ -12,20 +12,47 @@ import gamed.Server;
  * @author  bruce
  */
 public class Plugin extends gamed.Game {
+    public static final int GUESS = 0;
+    public static final int GIVEUP = 1;
+    public static final int TOO_LOW = 2;
+    public static final int TOO_HIGH = 3;
+    public static final int CORRECT = 4;
     
     private Server server;
-    private Client client;
+    private volatile byte lastGuess;
     
     /** Creates new form HiLo */
     public Plugin(Server s) {
         server = s;
-        client = new Client(s);
         initComponents();
     }
     
-    public void start() {}
-    public void stop() {}
+    public void joinedGame() {}
+    public void updatePlayers(gamed.Player[] players) {}
+    public void renamePlayer(gamed.Player player) {}
     
+    public void guess(byte g) {
+        lastGuess = g;
+        byte cmd[] = { GUESS, g, 0, 0 };
+        server.sendGameData(cmd);
+    }
+    
+    public void handleGameData(byte[] cmd) {
+        System.err.format("Game data: %d %d\n", cmd[0], cmd[1]);
+        Result r;
+        switch (cmd[0]) {
+            case TOO_LOW:
+                r = Result.TOO_LOW;
+                break;
+            case TOO_HIGH:
+                r = Result.TOO_HIGH;
+                break;
+            default:
+                r = Result.CORRECT;
+        }
+        history.append(lastGuess+" is "+r.toString()+"\n");
+}
+ 
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -94,9 +121,8 @@ public class Plugin extends gamed.Game {
 
     private void guessButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_guessButtonActionPerformed
         byte b = Byte.parseByte(guess.getValue().toString());
-        Result r = client.guess(b);
-        history.append(Byte.toString(b));
-        history.append(" is "+r.toString()+"\n");
+        guess(b);
+
 }//GEN-LAST:event_guessButtonActionPerformed
 
     private void quitButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_quitButtonActionPerformed
@@ -117,9 +143,4 @@ public class Plugin extends gamed.Game {
     private javax.swing.JButton quitButton;
     // End of variables declaration//GEN-END:variables
     
-}
-
-class Guess {
-    public int guess;
-    public Result result;
 }

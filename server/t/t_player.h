@@ -1,9 +1,9 @@
-#ifndef GAME_TEST_H__
-#define GAME_TEST_H__
+#ifndef PLAYER_TEST_H__
+#define PLAYER_TEST_H__
 
 #include <cxxtest/TestSuite.h>
 
-class GameTest: public CxxTest::TestSuite {
+class PlayerTest: public CxxTest::TestSuite {
 public:
 
 	void setUp()    {};
