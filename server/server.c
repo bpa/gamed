@@ -30,6 +30,7 @@ GameModuleList game_module_list;
 
 void init_server(int port, const char *config_file) {
   openlog("gamed", LOG_CONS, LOG_USER);
+  syslog(LOG_INFO, "Starting game server");
   LIST_INIT(&game_module_list);
   event_init();
   initstate(time(NULL), &rand_state[0],8);
@@ -62,6 +63,7 @@ void run_as_daemon() {
 /******************************************************************************/
 
 void listen_on_port(int port) {
+    int reuse = 1;
     int listener;
     struct sockaddr_in sa;
     socklen_t sa_len;
@@ -77,6 +79,7 @@ void listen_on_port(int port) {
     sa.sin_addr.s_addr = htonl(INADDR_ANY);
 
     fprintf(stderr, "Binding to port %i\n", port);
+    setsockopt(listener, SOL_SOCKET, SO_REUSEPORT, &reuse, sizeof(int));
     if (bind(listener, (struct sockaddr*)&sa, sa_len) < 0) {
         perror("Unable to bind");
         exit(1);

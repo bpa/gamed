@@ -1,6 +1,7 @@
 #define _GNU_SOURCE
 #include <arpa/inet.h>
 #include <sys/types.h>
+#include <sys/socket.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -211,7 +212,6 @@ void cmd_list_players (Client *client, int len) {
 	    }
 		buff[buff_len] = '\0';
 	    cmd->length = htons(buff_len-4);
-        fprintf(stderr,"list_players: %s\n",&buff[4]);
         SEND_BUFF_TO_CLIENT(buff_len);
 	}
 	else {
@@ -238,17 +238,11 @@ void cmd_quit_game (Client *client, int len) {
 
 /******************************************************************************/
 void cmd_game_message (Client *client, int len) {
-    int i;
 	GamedCommand *cmd = (GamedCommand *)&buff[0];
 	if (client->game == NULL) {
 		PLAYER_ERROR(GAMED_ERR_NO_GAME);
 	}
     else {
-        fprintf(stderr,"Game message:");
-        for(i=0;i<len;i++) {
-            fprintf(stderr," %i", buff[i]);
-        }
-        fprintf(stderr,"\n");
         client->game->instance.state->player_event(
             (GameInstance*)client->game, &server_funcs, (Player*)client, &buff[4], len-4);
     }

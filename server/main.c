@@ -32,7 +32,6 @@ int main(int argc, char *argv[]) {
 				}
 				port = requested_port;
 				break;
-            case 'f':
 			case '?':
 				if (optopt == 'p') {
 					/* getopt is printing errors for me, so this isn't needed
@@ -57,13 +56,8 @@ int main(int argc, char *argv[]) {
             return 1;
         }
     }
-    if (config_file == NULL) {
-	    init_server(port, DEFAULT_CONFIG);
-    }
-    else {
-	    init_server(port, config_file);
-    }
-    free(config_file);
+	init_server(port, "gamed.conf");
+    /*free(config_file);*/
 	run_server();
 	return 0;
 }
