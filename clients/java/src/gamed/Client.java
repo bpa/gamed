@@ -114,14 +114,16 @@ public class Client {
     public void sendGameData(byte[] data) {
        if (socket == null) { return; }
        if (data == null || data.length == 0) { return; }
-       byte[] msg = new byte[4];
+       byte[] msg = new byte[data.length+4];
        msg[0] = CMD_GAME;
        msg[1] = CMD_GAME_MESSAGE;
        msg[2] = (byte) (0xff & (data.length >> 8));
        msg[3] = (byte) (0xff & data.length);
+       for(int i=0; i<data.length; i++) {
+           msg[i+4] = data[i];
+       }
        try {
            output.write(msg);
-           output.write(data);
            output.flush();
        }
        catch(IOException e) {

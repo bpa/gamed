@@ -38,7 +38,6 @@ public class Plugin extends gamed.Game {
     }
     
     public void handleGameData(byte[] cmd) {
-        System.err.format("Game data: %d %d\n", cmd[0], cmd[1]);
         Result r;
         switch (cmd[0]) {
             case TOO_LOW:

@@ -391,7 +391,6 @@ public class Display extends gamed.Game
     }
     
     public void actionPerformed(ActionEvent evt) {
-        System.out.println(evt.getActionCommand());
         String args[] = evt.getActionCommand().split(":");
         byte from   = Byte.parseByte(args[0]);
         byte to     = Byte.parseByte(args[1]);
@@ -412,7 +411,7 @@ public class Display extends gamed.Game
         }
         if ((infoflags & ImageObserver.ERROR) > 0) {
             images_downloaded++;
-            System.out.println("Error loading image");
+            System.err.println("Error loading image");
             return false;
         }
         if ((infoflags & ImageObserver.ALLBITS) > 0) {
@@ -429,7 +428,6 @@ public class Display extends gamed.Game
     }
     
     public void handleGameData(byte[] data) {
-        System.err.format("Got %d bytes: %d %d %d %d\n", data.length, data[0], data[1], data[2], data[3]);
         switch (data[0]) {
             case PLAYER_JOIN:
             case PLAYER_QUIT:
@@ -440,16 +438,12 @@ public class Display extends gamed.Game
                 System.err.flush();
                 break;
             case READY:
-                System.err.format("Player %d is ready\n", data[1]);
-                System.err.flush();
                 playerReady[data[1]] = true;
                 if (playerInd[data[1]] != -1) {
                     playerDisplays[playerInd[data[1]]].getModel().setSelected(true);
                 }
                 break;
             case NOTREADY:
-                System.err.format("Player %d is not ready\n", data[1]);
-                System.err.flush();
                 playerReady[data[1]] = false;
                 if (playerInd[data[1]] != -1) {
                     playerDisplays[playerInd[data[1]]].getModel().setSelected(false);
@@ -476,8 +470,6 @@ public class Display extends gamed.Game
                 break;
             case ATTACK_RESULT:
             case MOVE_RESULT:
-                System.err.println("Attack or move result");
-                System.err.flush();
                 countries[data[4]].set(data[5], data[6]);
                 int old_owner = countries[data[8]].owner;
                 countries[data[8]].set(data[9], data[10]);
@@ -490,15 +482,11 @@ public class Display extends gamed.Game
                 }
                 break;
             case GAME_STATUS:
-                System.err.println("Game status");
-                System.err.flush();
                 for (int i = 1; i <= 42; i++) {
                     countries[data[i*4]].set(data[i*4+1], data[i*4+2]);
                 }
                 break;
             case PLAYER_STATUS:
-                System.err.format("Player %d has %d armies\n", data[1], data[3]);
-                System.err.flush();
                 player_id = data[1];
                 reserve = data[3];
                 Color myColor = new Color(Country.token_colors[player_id]);
@@ -506,13 +494,9 @@ public class Display extends gamed.Game
                 reserveBG.setBackground(myColor);
                 break;
             case COUNTRY_STATUS:
-                System.err.format("Player %d now owns %d\n", data[0], data[2]);
-                System.err.flush();
                 countries[data[4]].set(data[5], data[6]);
                 break;
             case DEFEAT:
-                System.err.format("Player %d has been defeated\n", data[1]);
-                System.err.flush();
                 if (playerInd[data[1]] != -1) {
                     playerDisplays[playerInd[data[1]]].getModel().setSelected(false);
                     playerReady[data[1]] = false;
@@ -526,7 +510,6 @@ public class Display extends gamed.Game
     }
     
     public void updatePlayers(gamed.Player[] players) {
-        System.err.println("updatePlayers called "+players.length);
         int i=0;
         for (; i < players.length; i++) {
             playerInd[players[i].id] = i;
