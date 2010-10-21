@@ -1,19 +1,19 @@
-.SUFFIXES:
-.SUFFIXES: .so .cc .o
-SOFLAGS = -shared -Wl,-x
-CFLAGS = -Wall -pedantic -g
-OBJS = game.o
-INC = -I.. -I../../include -I/usr/local/include
+OBJS := $(patsubst %.c,%.o,$(wildcard *.c))
+CFLAGS = -Wall -fPIC
+INC = -I.. -I../../include
 CC = gcc
 
-run: $(OBJS) tests
+run: Rook.so test
 
-tests:
-	@make -C test
+Rook.so: $(OBJS)
+	ld -fPIC -shared -s -o Rook.so $(OBJS)
 
-.cc.o:
+test: 
+	@make -C t
+
+.c.o:
 	$(CC) $(CFLAGS) $(INC) $< -c -o $@
 
 clean:
-	rm -f *.o
-	@make -C test clean
+	rm -f *.o *.so
+	@make -C t clean

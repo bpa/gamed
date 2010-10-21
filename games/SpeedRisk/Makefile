@@ -1,17 +1,15 @@
-OBJS := $(patsubst %.c,%.o,$(wildcard ../*.c))
-CFLAGS = -Wall -g -fPIC
-OBJS = borders.o game.o
-INC = -I.. -I../../include -I/usr/local/include
+OBJS := $(patsubst %.c,%.o,$(wildcard *.c))
+CFLAGS = -Wall -fPIC
+INC = -I.. -I../../include
 CC = gcc
 
-run: tests SpeedRisk.so
+run: SpeedRisk.so test
 
-tests: $(OBJS)
-	@make -C t
-	t/runtests
-
-SpeedRisk.so: *.c
+SpeedRisk.so: $(OBJS)
 	ld -fPIC -shared -s -o SpeedRisk.so $(OBJS)
+
+test: 
+	@make -C t
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) $< -c -o $@

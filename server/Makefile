@@ -1,18 +1,29 @@
 .SUFFIXES:
 .SUFFIXES: .o .c
-#SOURCE != ls [^m]*.cc
-#OBJS = $(SOURCE:.cc=.o)
 OBJS := $(patsubst %.c,%.o,$(wildcard *.c))
-CFLAGS = -Wall -pedantic -ansi -O2 -I/usr/local/include -I../include -I../games
-LIBS = -L/usr/local/lib -levent
-#GAMES = -L../lib -lgame
-CC = gcc -g
+
+CFLAGS = -Wall -pedantic -ansi -O2 -fPIC
+INC = -I../include
+LIBS = -L/usr/local/lib -levent -ldl
+CC = gcc
+
+all: server test
 
 server: $(OBJS)
-	$(CC) $(CFLAGS) -o server $(OBJS) $(LIBS) $(GAMES)
+	$(CC) -o server $(OBJS) $(LIBS)
+
+test: gamed.so test-run
+
+test-run:
+	@make -C t
+
+gamed.so: $(OBJS)
+	ld -fPIC -shared -s -o gamed.so $(OBJS)
 
 .c.o:
-	$(CC) $(CFLAGS) -c $<
+	$(CC) $(CFLAGS) $(INC) -c $<
 
 clean:
-	rm -f *.o server
+	rm -f *.o *.so server
+	@make -C t clean
+

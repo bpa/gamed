@@ -1,21 +1,18 @@
-all: lib daemon game-modules game-clients
+all: _server _games _clients _docs
 
-lib:
-	mkdir -p lib
-
-daemon:
+_server:
 	@echo "----  Making all in server  ----"
 	@make -C server
 
-game-modules:
+_games:
 	@echo "---- Making all in games ----"
 	@make -C games
 
-game-clients:
+_clients:
 	@echo "---- Making all in clients ----"
 	@make -C clients
 
-docs:
+_docs:
 	@echo "---- Making all in docs  ----"
 	@make -C docs
 

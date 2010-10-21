@@ -1,6 +1,8 @@
 #ifndef GAMED_GAME_H
 #define GAMED_GAME_H
 
+#include <sys/cdefs.h>
+
 #ifndef __cplusplus
 typedef unsigned int bool;
 #define true 1

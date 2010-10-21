@@ -1,7 +1,6 @@
 #define _GNU_SOURCE
 #include <arpa/inet.h>
 #include <sys/types.h>
-#include <sys/socket.h>
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>

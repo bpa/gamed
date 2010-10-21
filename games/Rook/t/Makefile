@@ -1,23 +1,29 @@
-INC = -I../.. -I../../../include -I../../../include/cxxtest -I../../../test -I/usr/local/include 
-CFLAGS = -Wall $(INC) -g
-CC = g++
-TESTS != ls *.h
-LIBS = -L/usr/local/lib -levent
+.SUFFIXES:
+.SUFFIXES: .o .cpp
+OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
-test: runtests
-	@./runtests
+INC = -I../.. -I../../../include -iquote..
+CFLAGS = -Wall -pedantic -ansi 
+LIBS = -L.. -l:Rook.so -lgtest -lgtest_main
+CPP = g++
 
-runtests: tests.o game.o
-	$(CC) $(CFLAGS) $(LIBS) -o runtests game.o tests.o
+test: runtests run-tests
 
-runtests.cpp: $(TESTS)
-	../../../include/cxxtest/cxxtestgen.pl --error-printer -o runtests.cpp *.h
+runtests: $(OBJS) ../Rook.so ../../test/server.o
+	$(CPP) -o runtests ../../test/server.o $(LIBS) $(OBJS)
 
-tests.o: runtests.cpp
-	$(CC) $(CFLAGS) -c runtests.cpp -o tests.o
+run-tests:
+	./runtests
 
-game.o: ../game.cc
-	$(CC) $(CFLAGS) ../game.cc -c -o game.o
+../Rook.so: ../*.c
+	@make -C .. Rook.so
+
+../../test/server.o:
+	@make -C ../../test server.o
+
+.cpp.o:
+	$(CPP) $(CFLAGS) $(INC) -c $<
 
 clean:
-	rm -f runtests runtests.cpp *.o
+	rm -f runtests *.o
+

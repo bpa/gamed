@@ -107,8 +107,8 @@ void tell_player (Player *p, const char *msg, size_t len) {
         len = strlen(msg);
     }
     SET_CMD(CMD_GAME, CMD_MESSAGE, len, buff);
-    memcpy(&buff[4], msg, len);
-    if (send(((Client*)p)->sock, &buff[0], len+4, MSG_NOSIGNAL) == -1 ) {
+    if (send(((Client*)p)->sock, &buff[0], 4, MSG_NOSIGNAL) == -1 ||
+        send(((Client*)p)->sock, msg, len, MSG_NOSIGNAL) == -1) {
 		drop_client((Client*)p, -1);
     }
 }
@@ -137,9 +137,9 @@ void tell_all (GameInstance *g, const char *msg, size_t len) {
         len = strlen(msg);
     }
     SET_CMD(CMD_GAME, CMD_MESSAGE, len, buff);
-    memcpy(&buff[4], msg, len);
     LIST_FOREACH_SAFE(p, &((GameModuleInstance*)g)->players, player_entry, tmp) {
-        if (send(p->sock, &buff[0], len+4, MSG_NOSIGNAL) == -1) {
+        if (send(p->sock, &buff[0], 4, MSG_NOSIGNAL) == -1 ||
+            send(p->sock, msg, len, MSG_NOSIGNAL) == -1) {
 		    drop_client(p, -1);
         }
     }

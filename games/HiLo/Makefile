@@ -1,10 +1,10 @@
 .SUFFIXES:
-.SUFFIXES: .o .c .h
-CFLAGS = -fPIC -Wall -pedantic -g
+.SUFFIXES: .o .c
+CFLAGS = -fPIC -Wall -pedantic
 INC = -I.. -I../../include
 CC = gcc
 
-all: HiLo.o tests HiLo.so
+all: HiLo.so test
 
 HiLo.so: HiLo.o
 	ld -fPIC -shared -s -o HiLo.so HiLo.o
@@ -12,9 +12,8 @@ HiLo.so: HiLo.o
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $<
 
-tests: $(TESTS)
+test: 
 	@make -C t
-	t/runtests
 
 clean:
 	rm -f *.o *.so

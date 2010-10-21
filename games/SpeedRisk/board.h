@@ -7,6 +7,10 @@
 #define SR_GENERATION_PERIOD 30000 /* milliseconds */
 #define SR_MAX_PLAYERS           6
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct {
     Player *player;
     unsigned int countries_held;
@@ -20,5 +24,9 @@ typedef struct {
 } SpeedRiskData;
 
 void build_border_table();
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

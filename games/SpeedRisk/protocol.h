@@ -3,6 +3,10 @@
 
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define SR_NUM_COUNRIES 42
 typedef enum SR_COUNTRY {
 /* North America (9) */
@@ -88,5 +92,9 @@ typedef struct {
     SR_Country country1;
     SR_Country country2;
 } SR_Move_Result;
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

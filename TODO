@@ -1,20 +1,12 @@
-Wishlist
-  server should handle initialization of player list for Game*
 
-Testing helpers:
-  RandImposter
-  Deck stacking
-Features:
-  echo server
-  database API
-  database implementation
-  login API
-  login implementation
-  Config file
-  chat
-  HiLo
-  dynamically loaded modules
-Utilities:
-  Card
-  Deck
-  Dice
+Games:
+  Rook
+  Oh Hell!
+  Dubs
+  Pinocle
+  Euchre
+Bindings:
+  Lua (Check /old/old/Projects/tabletop/concept)
+  Python
+  Perl
+Wishlist:

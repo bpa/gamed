@@ -1,10 +1,12 @@
 #ifndef SERVER_H
 #define SERVER_H
 
+#include <sys/cdefs.h>
 #include <sys/queue.h>
+#include <sys/time.h>
+#include <event.h>
 #include <gamed/game.h>
 #include "command.h"
-#include "event.h"
 
 #define GAMED_PORT 7483
 
@@ -47,11 +49,15 @@ typedef void (*command_func)(Client *, int);
 extern char rand_state[8];
 extern char buff[1024];
 
+__BEGIN_DECLS
+
 void init_server(int port, const char *config_file);
 void run_server();
 void run_as_daemon();
 void handle_command(Client *, int len);
 void read_config (const char *config);
 void drop_client(Client *client, int r);
+
+__END_DECLS
 
 #endif

@@ -17,7 +17,7 @@ void read_config (const char *config) {
     char *root, *ok, *line;
 	FILE *c = fopen(config, "r");
     line = (char*)malloc(MAX_LINE_LEN);
-    root = "/usr/local/gamed";
+    root = get_current_dir_name();
 	if (c == NULL) {
 		fprintf(stderr, "Can't open %s: %s\n", config, strerror(errno));
 		return;
@@ -26,7 +26,7 @@ void read_config (const char *config) {
 		ok = fgets(&line[0], 1024, c);
 		if (ok == NULL) break;
 		if (strncmp("ServerRoot ", &line[0], 11) == 0) {
-			len = strlen(&line[11])+1;
+			len = strnlen(&line[11], MAX_LINE_LEN-12)+1;
             root = realloc(root, len);
             memcpy(root, &line[11], len);
             root[len] = '\0';

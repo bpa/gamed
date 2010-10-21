@@ -1,13 +1,29 @@
-OBJS := $(patsubst %.c,%.o,$(wildcard ../*.c))
-INC = -I../.. -I../../../include -I../../../include/cxxtest -I/usr/include
-CFLAGS = -Wall -g
-CC = g++
+.SUFFIXES:
+.SUFFIXES: .o .cpp
+OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
-runtests: runtests.cpp ../*.c ../*.h
-	$(CC) $(CFLAGS) $(INC) -o runtests runtests.cpp ../*.c
+CFLAGS = -Wall -pedantic -ansi 
+INC = -I../.. -I../../../include -iquote..
+LIBS = -L.. -l:SpeedRisk.so -lgtest -lgtest_main
+CPP = g++
 
-runtests.cpp: *.h
-	../../../include/cxxtest/cxxtestgen.pl --error-printer -o runtests.cpp *.h
+test: runtests run-tests
+
+runtests: $(OBJS) ../SpeedRisk.so ../../test/server.o
+	$(CPP) -o runtests ../../test/server.o $(LIBS) $(OBJS)
+
+run-tests:
+	./runtests
+
+../SpeedRisk.so: ../*.c
+	@make -C .. SpeedRisk.so
+
+../../test/server.o:
+	@make -C ../../test server.o
+
+.cpp.o:
+	$(CPP) $(CFLAGS) $(INC) -c $<
 
 clean:
-	rm -f runtests* *.so
+	rm -f runtests *.o
+

@@ -1,21 +1,25 @@
-CFLAGS = -Wall -I../src -I../include -I../include/cxxtest -I/usr/local/include -DTESTING
-LIBS = -L/usr/local/lib -levent -L../lib
-CC = g++
-TEST != ls *.h
-SRC != ls ../src/[^m]*.cc
-OBS = $(SRC:.cc=.o)
+.SUFFIXES:
+.SUFFIXES: .o .cpp
+OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
-run: runtests
-	@LD_LIBRARY_PATH=../lib ./runtests
+CFLAGS = -Wall -pedantic -ansi
+INC = -I../../include -iquote..
+LIBS = -L.. -l:gamed.so -levent -ldl -lgtest -lgtest_main
+CPP = g++ 
 
-runtests: runtests.cpp ../lib/libgamed.so
-	$(CC) $(CFLAGS) $(LIBS) -o runtests runtests.cpp -lgamed
+test: runtests run-tests
 
-../lib/libgamed.so: $(SRC)
-	@make -C ../src
+runtests: $(OBJS) ../gamed.so
+	$(CPP) -o runtests $(LIBS) $(OBJS)
 
-runtests.cpp: $(OBS)
-	../include/cxxtest/cxxtestgen.pl --error-printer -o runtests.cpp *.h
+run-tests:
+	./runtests
+
+../libgamed.so: ../*.c
+	@make -C ../ gamed.so
+
+.cpp.o:
+	$(CPP) $(CFLAGS) $(INC) -c $<
 
 clean:
-	rm -f runtests.cpp *.o
+	rm -f runtests *.o
