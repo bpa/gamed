@@ -1,0 +1,36 @@
+#! /usr/bin/perl6
+
+#use Getopt::Long;
+#use Pod::Usage;
+
+use Gamed;
+my $game = Gamed;
+$game.run;
+
+=begin END
+my ( $help, $daemonize, $file, $man, $port );
+GetOptions(
+    'f|file'   => \$file,
+    'h|help'   => \$help,
+    'p|port=i' => \$port,
+    'X'        => \$daemonize
+) || pod2usage(2);
+pod2usage(1) if ($help);
+
+Gamed::main_loop();
+
+__END__
+
+=head1 NAME
+
+gamed - run Gamed server
+
+=head1 SYNOPSIS
+
+gamed [-X] [-p port] [-f /path/to/config]
+
+ Options:
+   -f --file       File to use for config
+   -h --help       Show this help
+   -p --port       Bind to port instead of the default
+   -X              Don't daemonize, stay in foreground
