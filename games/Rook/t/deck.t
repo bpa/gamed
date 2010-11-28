@@ -1,13 +1,10 @@
 use Test;
+use Gamed::Game::Rook::Deck;
+use Gamed::Game::Rook::PartnershipDeck;
 
 my $deck = Gamed::Game::Rook::Deck;
-is( $deck.cards.elems, 57 );
-my $card = $deck.draw;
-isa_ok( $card, 'Gamed::Game::Rook::Card' );
-is( $deck.cards.elems, 56 );
+$deck.perl.say;
+is( $deck.elems, 57 );
 
 $deck = Gamed::Game::Rook::PartnershipDeck;
-is( $deck.cards.elems, 45 );
-
-my $hand = Gamed::Game::Rook::Hand;
-is( $hand.cards, 0 );
+is( $deck.elems, 45 );
