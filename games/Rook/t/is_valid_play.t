@@ -1,22 +1,26 @@
-use Test::More tests => 10;
-BEGIN { use_ok("Gamed::Game::Rook") }
-BEGIN { use_ok("Gamed::Game::Rook::Hand") }
+use Test;
+use Gamed::Game::Util::Card;
+use Gamed::Game::Rook::Hand;
 
-my $rook = new Gamed::Game::Rook::Card( suit => 'rook',  value => 15 );
-my $b10  = new Gamed::Game::Rook::Card( suit => 'black', value => 10 );
-my $b14  = new Gamed::Game::Rook::Card( suit => 'black', value => 14 );
-my $r14  = new Gamed::Game::Rook::Card( suit => 'red',   value => 14 );
-my $g14  = new Gamed::Game::Rook::Card( suit => 'green', value => 14 );
-my $hand = new Gamed::Game::Rook::Hand;
-$hand->add( $rook, $b10, $b14, $r14, 'hi' );
-is( @{$hand->cards}, 4 );
-#           is_valid_play( lead,    trump,   hand)
-ok(  $rook->is_valid_play( 'red',   'red',   $hand ), "Play rook when trump led" );
-ok(  $rook->is_valid_play( 'green', 'red',   $hand ), "Play rook when don't have lead" );
-ok( !$rook->is_valid_play( 'black', 'red',   $hand ), "Play rook when have lead" );
+my $hand = Gamed::Game::Rook::Hand.new;
+my $rook = Gamed::Game::Util::Card.new( suit => 'rook',  value => 15 );
+my $b10  = Gamed::Game::Util::Card.new( suit => 'black', value => 10 );
+my $b14  = Gamed::Game::Util::Card.new( suit => 'black', value => 14 );
+my $r14  = Gamed::Game::Util::Card.new( suit => 'red',   value => 14 );
+my $g14  = Gamed::Game::Util::Card.new( suit => 'green', value => 14 );
+$hand.add( ($rook, $b10, $b14, $r14) );
+is( $hand.elems, 4 );
 
-ok( ! $g14->is_valid_play( 'green', 'green', $hand ), "Play card you don't have" );
+#         is_valid_play( lead,    trump,   card)
+ok( $hand.is_valid_play( 'red',   'red',   $rook ), "Play rook when trump led" );
+ok(!$hand.is_valid_play( 'green', 'green', $r14 ),  "Must play rook when trump led if you don't have others" );
+ok( $hand.is_valid_play( 'green', 'red',   $rook ), "Play trump when don't have lead" );
+ok(!$hand.is_valid_play( 'black', 'red',   $rook ), "Play trump when have lead" );
 
-ok( ! $b14->is_valid_play( 'red',   'green', $hand ), "Play different card when you have suit led" );
-ok(   $b14->is_valid_play( 'black', 'green', $hand ), "Play card of suit led" );
-ok(   $b14->is_valid_play( 'green', 'red',   $hand ), "Play card when you don't have suit" );
+ok(!$hand.is_valid_play( 'green', 'green', $g14 ), "Play card you don't have" );
+
+ok(!$hand.is_valid_play( 'red',   'green', $b14 ), "Play different card when you have lead" );
+ok( $hand.is_valid_play( 'black', 'green', $b14 ), "Play card of lead" );
+ok( $hand.is_valid_play( 'green', 'red',   $b14 ), "Play card when you don't have lead" );
+
+done_testing;
