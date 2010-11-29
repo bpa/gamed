@@ -1,10 +1,12 @@
 use Test;
+plan *;
 use Gamed::Game::Rook::Deck;
 use Gamed::Game::Rook::PartnershipDeck;
 
-my $deck = Gamed::Game::Rook::Deck;
-$deck.perl.say;
+my $deck = Gamed::Game::Rook::Deck.new;
 is( $deck.elems, 57 );
 
-$deck = Gamed::Game::Rook::PartnershipDeck;
+$deck = Gamed::Game::Rook::PartnershipDeck.new;
 is( $deck.elems, 45 );
+
+done_testing;

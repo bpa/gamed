@@ -9,7 +9,7 @@ submethod BUILD {
         	@!cards.push(Gamed::Game::Util::Card.new( suit => $color, value => $value ));
     	}
 	}
-    @!cards.push(Gamed::Game::Util::Card( suit => 'rook', value => 15 ));
+    @!cards.push(Gamed::Game::Util::Card.new( suit => 'rook', value => 15 ));
 }
 
 method has_suit ( Str $suit, Str $trump ) {
