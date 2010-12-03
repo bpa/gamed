@@ -1,2 +1,1 @@
-class Gamed {
-}
+class Gamed;

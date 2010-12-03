@@ -1,13 +1,13 @@
-class Client {
-    use Gamed::Role::Client;
-    does Gamed::Role::Client;
-    has Str @!messages;
+use Gamed::Client;
 
-    method send ( $message ) {
-        @!messages.push(\$message);
-    }
+class Gamed::Test::Client is Gamed::Client;
 
-    method next () {
-        return @!messages.shift;
-    }
+has @!messages;
+
+method send ( %msg ) {
+    @!messages.push(%msg);
+}
+
+method next () {
+    return @!messages.shift;
 }
