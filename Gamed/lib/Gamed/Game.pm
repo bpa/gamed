@@ -6,6 +6,7 @@ use Gamed::Server;
 has Num $.version is rw;
 has Str $.name is rw;
 has Bool $.accepting_players is rw;
+has Bool $.in_progress is rw;
 has %!clients is rw;
 
 method game_init (Gamed::Server $server ) { ... }

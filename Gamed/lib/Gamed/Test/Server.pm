@@ -8,11 +8,12 @@ multi method send ( %msg ) {
 }
 
 multi method send ( %msg, $client ) {
-	%.client_msg{$client} = [] unless %.client_msg{$client}.defined;
-    %.client_msg{$client}.push(%msg);
+    my $msg = %msg;
+	%.client_msg{$client} = Array.new unless %.client_msg{$client}.defined;
+    %.client_msg{$client}.push($msg);
 }
 
 method reset () {
-    %.client_msg = {};
+    %.client_msg = ();
     @.broadcast = ();
 }
