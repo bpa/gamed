@@ -1,13 +1,27 @@
-class Gamed::Game::Color {
-    use Gamed::Role::Game;
-    use Gamed::Role::StateMachine;
-    does Gamed::Role::Game;
-    does Gamed::Role::StateMachine;
+use Gamed::Game;
+use Gamed::Role::StateMachine;
 
-    has Str $.name        = 'color';
-    has Str $.version     = '0.1';
+class Gamed::Game::Color is Gamed::Game does Gamed::Role::StateMachine;
 
-    submethod BUILD {
-        $.start_state = 'blue';
-    }
+use Gamed::Game::Color::Red;
+use Gamed::Game::Color::Blue;
+
+submethod BUILD () {
+	$.name    = 'Color';
+	$.version = '0.1';
+
+	self.add_states(
+		Gamed::Game::Color::Red.new,
+		Gamed::Game::Color::Blue.new);
+    self.change_state('blue');
+}
+
+method player_joined ( Gamed::Server $server, Gamed::Client $client ) {
+    $.accepting_players = False;
+    $.in_progress = True;
+}
+
+method player_quit ( Gamed::Server $server, Gamed::Client $client ) {
+    $.accepting_players = True;
+    $.in_progress = False;
 }

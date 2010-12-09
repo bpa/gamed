@@ -9,9 +9,14 @@ has Bool $.accepting_players is rw;
 has Bool $.in_progress is rw;
 has %!clients is rw;
 
+submethod BUILD {
+    $.accepting_players = True;
+    $.in_progress = True;
+}
+
 method game_init (Gamed::Server $server ) { ... }
 
-method handle_request (Gamed::Server $server, Gamed::Client $client, %msg) { ... }
+multi method handle_message (Gamed::Server $server, Gamed::Client $client, %msg) { ... }
 
 method player_join (Gamed::Server $server, Gamed::Client $client) { ... }
 

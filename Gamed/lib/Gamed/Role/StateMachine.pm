@@ -1,38 +1,29 @@
-role Gamed::Role::StateMachine {
-    use Gamed::Role::Client;
-    #use Gamed::Role::Message;
-    use Gamed::Role::State;
-    use Gamed::Role::Pluggable;
-    does Gamed::Role::Pluggable;
+role Gamed::Role::StateMachine;
 
-    has Str $.start_state = 'default';
-    has Str $!state;
-    has Gamed::Role::State %!states;
-    has Gamed::Role::State $!_state;
+use Gamed::Client;
+use Gamed::State;
 
-    multi method state () {
-        return $!state;
-    }
+has Str $!_current_state;
+has Gamed::State %!states;
+has Gamed::State $!_state;
 
-    multi method state ( Str $state ) {
-        die "No state $state defined" unless defined %!states{$state};
-        $!_state.leave(self) if $!_state;
-        $!_state = %!states{$state};
-        $!state = $state;
-        $!_state.enter(self);
-    }
-
-    submethod BUILD () {
-        %!states = self.plugins( 'Gamed::Role::State', self.WHAT ~ '::State' );
-        die "No starting state [{$.start_state}] exists for {self.WHAT}" unless %!states{$.start_state};
-        self.state($.start_state);
-    }
-
-    #submethod handle ( Gamed::Role::Client $client, Gamed::Role::Message $message ) {
-    submethod handle ( Gamed::Role::Client $client, $message ) {
-        say "StateMachine delegating to {$!state}";
-        $!_state.handle( $client, $message);
-    }
+multi method state () {
+	return $!_current_state;
 }
 
-1;
+multi method change_state ( Str $state, Gamed::Server $server? ) {
+	$!_state.leave_state($server, self) if $!_state;
+	$!_state = %!states{$state};
+	$!_current_state = $state;
+	$!_state.enter_state($server, self);
+}
+
+multi method handle_message( Gamed::Server $server, Gamed::Client $client, %msg ) {
+	$!_state.handle_message( $server, self, $client, %msg );
+}
+
+method add_states ( *@states ) {
+    for @states {
+        %!states{$_.name} = $_;
+    }
+}

@@ -8,8 +8,6 @@ has Int $.guesses is rw;
 submethod BUILD {
     $.name    = 'HiLo';
     $.version = '0.1';
-    $.in_progress = True;
-    $.accepting_players = True;
 }
 
 method player_joined( $server, $client ) {
