@@ -1,15 +1,9 @@
-#include "rook.h"
+use Gamed::State;
 
-//static RookCommand msg_command;
-//static RookError   msg_error;
+class Gamed::Game::Rook::Joining is Gamed::State;
 
-void start_waiting  (GameInstance *g, const Server *s);
-void handle_waiting (GameInstance *g, const Server *s, Player *p, const char *req, int len);
-
-State WAITING = { start_waiting, handle_waiting, NULL, NULL };
-
-void start_waiting (GameInstance *g, const Server *s) {
-    //all_cmd(g, s, ROOK_CMD_WAITING);
+method enter_state ( Gamed::Server $server ) {
+    $server.send( { state => 'waiting' } );
 /*
     int i;
     Deck *hand;
@@ -31,15 +25,7 @@ void start_waiting (GameInstance *g, const Server *s) {
 */
 }
 
-#define bid_next_player \
-    rook->current_player++; \
-    if (rook->current_player > 3) rook->current_player = 0; \
-    while (rook->players[rook->current_player].pass) { \
-        rook->current_player++; \
-        if (rook->current_player > 3) rook->current_player = 0; \
-    }
-
-void handle_waiting (GameInstance *g, const Server *s, Player *p, const char *req, int len) {
+multi method handle_message (Gamed::Server $server, Gamed::Client $client, %msg) {
 /*
     RookData *rook = (RookData*)g->data;
     if (p->in_game_id != rook->current_player) {

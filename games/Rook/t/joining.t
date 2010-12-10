@@ -1,7 +1,7 @@
 use Test;
-use Gamed::MockServer;
+use Gamed::Test::Server;
 
-my $server = MockServer.new;
+my $server = Gamed::Test::Server.new;
 my $game = Rook.new;
 isa_ok($game.state, Rook::State::Waiting);
 
@@ -9,7 +9,7 @@ isa_ok($game.state, Rook::State::Waiting);
  * 4 players join and the games starts automatically
  */
 my @players;
-for 1 .. 4 → $p_id {
+for 1 .. 4 -> $p_id {
 	my $player = Gamed::Player(name="Player $p_id");
 	@players.push(Gamed::Player());
 	$game.player_join($player, $server);
@@ -18,7 +18,7 @@ for 1 .. 4 → $p_id {
 	
 is($server.broadcast.elems, 5);
 
-for 1 .. 4 → $id {
+for 1 .. 4 -> $id {
 	is_deeply($server.broadcast[$id], { c => 'join', name => "Player $id", id => $id-1);
 }
 
