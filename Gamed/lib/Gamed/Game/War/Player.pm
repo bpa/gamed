@@ -1,10 +1,10 @@
 class Gamed::Game::War::Player;
 
-use Gamed::Game::Util::Deck;
+use Gamed::Util::Deck;
 
 has $deck;
 
 submethod BUILD {
-	$deck = Gamed::Game::Util::Deck.new;
+	$deck = Gamed::Util::Deck.new;
 }
 

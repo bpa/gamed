@@ -1,10 +1,10 @@
-class Gamed::Game::Util::Deck;
+class Gamed::Util::Deck;
 
-use Gamed::Game::Util::Card;
+use Gamed::Util::Card;
 
-has Gamed::Game::Util::Card @!cards is rw;
+has Gamed::Util::Card @!cards is rw;
 
-multi method add (Gamed::Game::Util::Card $card) {
+multi method add (Gamed::Util::Card $card) {
 	@!cards.push($card);
 }
 
@@ -34,7 +34,7 @@ method elems () {
     return @!cards.elems;
 }
 
-method has_card (Gamed::Game::Util::Card $card) {
+method has_card (Gamed::Util::Card $card) {
 	return $card ~~ any(@!cards);
 }
 

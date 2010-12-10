@@ -1,16 +1,16 @@
 use Test;
-use Gamed::Game::Util::Deck;
+use Gamed::Util::Deck;
 
-my $d = Gamed::Game::Util::Deck.new;
+my $d = Gamed::Util::Deck.new;
 is($d.elems, 0, "Deck starts empty");
 
 my @hearts;
-for 1 .. 13 { @hearts.push(Gamed::Game::Util::Card.new(suit=>'♥', value=>$_)) }
+for 1 .. 13 { @hearts.push(Gamed::Util::Card.new(suit=>'♥', value=>$_)) }
 
 $d.add(@hearts[0]);
  is($d.elems, 1, "Have one card after adding one");
  ok($d.has_card(@hearts[0]), "Can check for card with same instance added");
- ok($d.has_card(Gamed::Game::Util::Card.new(suit=>'♥', value=>1)), "Can check for card with a new instance that is the 'same'");
+ ok($d.has_card(Gamed::Util::Card.new(suit=>'♥', value=>1)), "Can check for card with a new instance that is the 'same'");
 nok($d.has_card(@hearts[1]), "Check for card not in deck");
 
 my $c = $d.draw;
