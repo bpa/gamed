@@ -1,5 +1,4 @@
 use Test;
-plan *;
 use Gamed::Game::Rook::Deck;
 use Gamed::Game::Rook::PartnershipDeck;
 

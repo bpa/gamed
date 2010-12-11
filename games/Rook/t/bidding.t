@@ -1,3 +1,9 @@
+use Test;
+
+ok(1);
+done_testing;
+
+=begin END
 #include <gtest/gtest.h>
 #include <Rook/rook.h>
 #include <test/server.h>

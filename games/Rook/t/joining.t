@@ -1,29 +1,29 @@
 use Test;
+use Gamed::Game::Rook;
 use Gamed::Test::Server;
+use Gamed::Client;
 
 my $server = Gamed::Test::Server.new;
-my $game = Rook.new;
-isa_ok($game.state, Rook::State::Waiting);
+my $game = Gamed::Game::Rook.new;
+is($game.state, 'joining', "Game starts in joining state");
 
-/**
- * 4 players join and the games starts automatically
- */
+# 4 players join and the games starts automatically
 my @players;
 for 1 .. 4 -> $p_id {
-	my $player = Gamed::Player(name="Player $p_id");
-	@players.push(Gamed::Player());
-	$game.player_join($player, $server);
+	my $player = Gamed::Client.new;#(name="Player $p_id");
+	@players.push($player);
+	$game.player_join($server, $player);
 	is($game.playing, $p_id);
 }
 	
-is($server.broadcast.elems, 5);
+is(+$server.broadcast, 5);
 
 for 1 .. 4 -> $id {
-	is_deeply($server.broadcast[$id], { c => 'join', name => "Player $id", id => $id-1);
+	is_deeply($server.broadcast[$id], { c => 'join', name => "Player $id", id => $id-1} );
 }
 
-is_deeply($server.broadcast[4], { c=> 'Change State', state => 'Bidding' });
-isa_ok($game.state, Rook::State::Bidding);
+is_deeply($server.broadcast[4], { c=> 'Change State', 'state' => 'Bidding' });
+is($game.state, 'bidding', "State changed to bidding");
 
 =begin END
 /**

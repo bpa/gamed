@@ -1,3 +1,5 @@
+use Gamed::Server;
+
 class Gamed::Test::Server is Gamed::Server;
 
 has %.client_msg is rw;

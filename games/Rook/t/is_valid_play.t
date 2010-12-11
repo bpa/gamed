@@ -1,13 +1,13 @@
 use Test;
-use Gamed::Game::Util::Card;
+use Gamed::Util::Card;
 use Gamed::Game::Rook::Hand;
 
 my $hand = Gamed::Game::Rook::Hand.new;
-my $rook = Gamed::Game::Util::Card.new( suit => 'rook',  value => 15 );
-my $b10  = Gamed::Game::Util::Card.new( suit => 'black', value => 10 );
-my $b14  = Gamed::Game::Util::Card.new( suit => 'black', value => 14 );
-my $r14  = Gamed::Game::Util::Card.new( suit => 'red',   value => 14 );
-my $g14  = Gamed::Game::Util::Card.new( suit => 'green', value => 14 );
+my $rook = Gamed::Util::Card.new( suit => 'rook',  value => 15 );
+my $b10  = Gamed::Util::Card.new( suit => 'black', value => 10 );
+my $b14  = Gamed::Util::Card.new( suit => 'black', value => 14 );
+my $r14  = Gamed::Util::Card.new( suit => 'red',   value => 14 );
+my $g14  = Gamed::Util::Card.new( suit => 'green', value => 14 );
 $hand.add( ($rook, $b10, $b14, $r14) );
 is( $hand.elems, 4 );
 

@@ -1,8 +1,8 @@
-use Gamed::Game::Util::Deck;
+use Gamed::Util::Deck;
 
-class Gamed::Game::Rook::Hand is Gamed::Game::Util::Deck;
+class Gamed::Game::Rook::Hand is Gamed::Util::Deck;
 
-method is_valid_play( Str $lead, Str $trump, Gamed::Game::Util::Card $card ) {
+method is_valid_play( Str $lead, Str $trump, Gamed::Util::Card $card ) {
 	return False unless $card ~~ any(@!cards);
 
 	my $have_lead = False;

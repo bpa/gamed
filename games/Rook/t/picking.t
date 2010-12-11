@@ -1,3 +1,8 @@
+use Test;
+ok(1);
+done_testing;
+
+=begin END
 #include <stdlib.h>
 #include <stdio.h>
 
