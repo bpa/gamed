@@ -2,8 +2,12 @@ use Gamed::State;
 
 class Gamed::Game::Rook::Joining is Gamed::State;
 
-method enter_state ( Gamed::Server $server ) {
-    $server.send( { 'state' => 'waiting' } );
+submethod BUILD () {
+    $.name = 'joining';
+}
+
+method enter_state ( Gamed::Server $server, Gamed::Game $game ) {
+    $server.send( { 'state' => 'joining' } );
 #    int i;
 #    Deck *hand;
 #    hand = (Deck*)rook->deck;
@@ -24,6 +28,7 @@ method enter_state ( Gamed::Server $server ) {
 #
 }
 
+=begin END
 multi method handle_message (Gamed::Server $server, Gamed::Client $client, %msg) {
 #    RookData *rook = (RookData*)g->data;
 #    if (p->in_game_id != rook->current_player) {

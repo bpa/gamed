@@ -35,7 +35,7 @@ method elems () {
 }
 
 method has_card (Gamed::Util::Card $card) {
-	return $card ~~ any(@!cards);
+	return $card ~~ @!cards;
 }
 
 method shuffle () {

@@ -1,11 +1,4 @@
-#include "rook.h"
+use Gamed::State;
 
-void start_playing (GameInstance *g, const Server *s);
-void handle_playing (GameInstance *g, const Server *s, Player *p, const char *req, int len);
+class Gamed::Game::Rook::Playing is Gamed::State;
 
-State PLAYING = { start_playing, handle_playing, NULL, NULL };
-
-void start_playing (GameInstance *g, const Server *s) {}
-
-void handle_playing (GameInstance *g, const Server *s, Player *p, const char *req, int len) {
-}

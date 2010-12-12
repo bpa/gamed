@@ -1,3 +1,8 @@
+use Gamed::State;
+
+class Gamed::Game::Rook::Picking is Gamed::State;
+
+=begin END
 #include "rook.h"
 
 void start_picking  (GameInstance *g, const Server *s);

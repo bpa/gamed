@@ -1,3 +1,17 @@
+use Gamed::State;
+
+class Gamed::Game::Rook::Bidding is Gamed::State;
+
+submethod BUILD () { 
+    $.name = 'bidding';
+}
+
+method enter_state ( Gamed::Server $server, Gamed::Game $game ) {
+    $game.accepting_players = False;
+    $server.send( { 'state' => 'bidding' } );
+}
+
+=begin END
 #include "rook.h"
 
 static RookCommand msg_command;
