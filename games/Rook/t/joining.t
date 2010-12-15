@@ -25,29 +25,3 @@ is_deeply($server.broadcast[4], ( 'state' => 'bidding' ), "Did we get a message 
 is($game.state, 'bidding', "State changed to bidding");
 
 done_testing;
-
-=begin END
-/**
- * Have one player start a single player game
- * The game should move into bidding
- */
-TEST_F(RookJoiningTest, start_single_player) {
-	//Player *p;
-	//cmd = { ROOK_CMD_READY, 0, 0, 0 };
-	//player_join(game, p);
-	//player_event(game, p, &cmd);
-}
-	void simple_command_all_test(Player *player, int command, int exp) {
-		reset_mocks();
-		cmd.command = command;
-		player_event(game, player, (char*)&cmd, 4);
-		ASSERT_EQ(exp, all_res->command);
-	}
-
-	void simple_command_plr_test(Player *player, int command, int exp) {
-		reset_mocks();
-		cmd.command = command;
-		player_event(game, player, (char*)&cmd, 4);
-		ASSERT_EQ(exp, plr_res->command);
-	}
-

@@ -1,141 +1,93 @@
 use Test;
+use Gamed::Test::RookTest;
 
-ok(1);
+class t::bidding is Gamed::Test::RookTest {
+
+    method setUp () {
+    	$.game = Gamed::Game::Rook.new;
+    	$.game.player_join($.server, $_) for @.players;
+    	$.game.change_state('bidding');
+    	$.server.reset;
+    }
+    	
+    method test_init () {
+    	is($.game.state, 'bidding', 'Now bidding');
+    	is($.game.bid, 95, 'Starting off, the bid is 95');
+    	is($.game.bidder, 'north', "Bid winner is the first player to start");
+        is($.game.passed, 0, 'No one has passed');
+    }
+    
+    method test_normal_bid () {
+        self.pass($.north);
+        self.pass($.east);
+        self.bid($.south, 120);
+        self.bid($.west,  140);
+        self.bid($.south, 150);
+        self.pass($.west);
+    
+    	is($.game.bid, 150, "Winning bid is 150");
+        is($.game.state, 'picking', 'Now picking trump');
+    	is($.game.bidder, 'south', "South took the bid");
+        is($.game.current_player, 'south', "South leads");
+    }
+    
+    method test_max_bid() {
+        self.bid($.north, 200);
+
+    	is($.game.bid, 200, "Winning bid is 200");
+        is($.game.state, 'picking', 'Now picking trump');
+    	is($.game.bidder, 'north', "North took the bid");
+        is($.game.current_player, 'north', "North leads");
+    }
+
+    method test_all_pass() {
+        self.pass($.north);
+        self.pass($.east);
+        self.pass($.south);
+
+    	is($.game.bid, 100, "Winning bid is 100 (forced open)");
+        is($.game.state, 'picking', 'Now picking trump');
+    	is($.game.bidder, 'west', "West took the bid by default");
+        is($.game.current_player, 'west', "West leads");
+    }
+
+    method test_invalid_bids() {
+        self.invalid_bid($.north,  95, 'bid too low');
+        self.invalid_bid($.north,   0, 'bid too low');
+    
+        self.invalid_bid($.north, 205, 'bid too high');
+        self.invalid_bid($.north, Inf, 'bid too high');
+    
+        self.invalid_bid($.west,  25, 'not your turn');
+        self.invalid_bid($.east, 150, 'not your turn');
+        self.invalid_bid($.south, 155, 'not your turn');
+    
+        self.invalid_bid($.north, 101, 'bid invalid');
+        self.invalid_bid($.north, 104, 'bid invalid');
+        self.invalid_bid($.north, 199, 'bid invalid');
+    
+        self.pass($.north);
+        self.bid($.east, 105);
+        self.bid($.south, 110);
+        self.bid($.west, 115);
+        is('east', $.game.current_player, "Skip north in rotation after pass");
+        self.invalid_bid($.north, 120, 'not your turn');
+        self.invalid_bid($.east, 105, 'bid too low');
+    }
+    
+    method pass ( $player ) {
+        $.game.handle_message( $.server, $player, { bid => 'pass' } );
+    }
+    
+    method bid ( $player, $bid ) {
+        $.game.handle_message( $.server, $player, { bid => $bid } );
+    }
+    
+    method invalid_bid ( $player, $bid, $error ) {
+        $.game.handle_message( $.server, $player, { bid => $bid } );
+    }
+
+}
+
+t::bidding.new.run_tests;
 done_testing;
-
-=begin END
-#include <gtest/gtest.h>
-#include <Rook/rook.h>
-#include <test/server.h>
-
-class RookBiddingTest: public ::testing::Test {
-public:
-
-/*
-	void SetUp()    {
-		game = create_instance(&SpeedRisk);
-        rook = (RookData*)game.data;
-        plr_res = (RookCommand*)&mock_plr_buff[0];
-        all_res = (RookCommand*)&mock_all_buff[0];
-        ASSERT_TRUE(player_join(&game, &pN));
-        ASSERT_TRUE(player_join(&game, &pE));
-        ASSERT_TRUE(player_join(&game, &pS));
-        ASSERT_TRUE(player_join(&game, &pW));
-        ASSERT_EQ(&ROOK_BIDDING, rook->state);
-        plr_res = (RookCommand*)&mock_plr_buff[0];
-        err = (RookError*)&mock_plr_buff[0];
-        all_res = (RookCommand*)&mock_all_buff[0];
-    }
-
-	void TearDown() {
-        Player *first, *next;
-        first = LIST_FIRST(&game.players);
-        while (first != NULL) {
-            next = LIST_NEXT(first, players);
-            LIST_REMOVE(first, players);
-            first = next;
-        }
-        free(game.data);
-        game.data = NULL;
-    }
-
-*/
-
-    #define pass(playerN) \
-        reset_mocks(); \
-        cmd.command = ROOK_CMD_PASS; \
-        handle_request(&game, &playerN, (char*)&cmd, 4); \
-        ASSERT_EQ(playerN.in_game_id, all_res->player); \
-        ASSERT_EQ(ROOK_CMD_PASS, all_res->command);
-
-    #define bid(playerN, player_bid) \
-        reset_mocks(); \
-        cmd.command = ROOK_CMD_BID; \
-        cmd.score = player_bid; \
-        handle_request(&game, &playerN, (char*)&cmd, 4); \
-        ASSERT_EQ(ROOK_CMD_BID, all_res->command); \
-        ASSERT_EQ(playerN.in_game_id, all_res->player); \
-        ASSERT_EQ(playerN.in_game_id, rook->bidder); \
-        ASSERT_EQ(player_bid, all_res->score); \
-        ASSERT_EQ(player_bid, rook->bid);
-
-    #define invalid_bid(playerN, bid, error_msg) \
-        reset_mocks(); \
-        cmd.command = ROOK_CMD_BID; \
-        cmd.score = bid; \
-        htons(cmd.score); \
-        handle_request(&game, &playerN, (char*)&cmd, 4); \
-        ASSERT_EQ(ROOK_CMD_NOP,   all_res->command); \
-        ASSERT_EQ(ROOK_CMD_ERROR, plr_res->command); \
-        ASSERT_EQ(error_msg, err->error);
-    Game game;
-    Player pN;
-    Player pE;
-    Player pS;
-    Player pW;
-    Game *rook;
-    RookCommand cmd;
-    RookError *err;
-    RookCommand *plr_res;
-    RookCommand *all_res;
-};
-
-/*
-
-void xtest_normal() {
-    pass(pN);
-    pass(pE);
-    bid(pS, 120);
-    bid(pW, 140);
-    bid(pS, 150);
-    pass(pW);
-
-    ASSERT_EQ(ROOK_PICKING_TRUMP, rook->state);
-    ASSERT_EQ(150,                rook->bid);
-    ASSERT_EQ(pS.in_game_id,      rook->bidder);
-    ASSERT_EQ(pS.in_game_id,      rook->current_player);
-    all_res = (RookCommand*)&mock_all_buff[1];
-    ASSERT_EQ(ROOK_CMD_PICKING_TRUMP, all_res->command);
-    ASSERT_EQ(pS.in_game_id, all_res->player);
-    ASSERT_EQ(150,           all_res->score);
-}
-
-void xtest_max_bid() {
-    bid(pN, 100);
-    bid(pE, 200);
-    ASSERT_EQ(ROOK_PICKING_TRUMP, rook->state);
-    ASSERT_EQ(200,                rook->bid);
-    ASSERT_EQ(pE.in_game_id,      rook->bidder);
-    ASSERT_EQ(pE.in_game_id,      rook->current_player);
-    all_res = (RookCommand*)&mock_all_buff[1];
-    ASSERT_EQ(ROOK_CMD_PICKING_TRUMP, all_res->command);
-    ASSERT_EQ(pE.in_game_id, all_res->player);
-    ASSERT_EQ(200,           all_res->score);
-}
-
-void xtest_invalid_bids() {
-    int16_t max = -1;
-    invalid_bid(pN,  95, ROOK_ERR_BID_TOO_LOW);
-    invalid_bid(pN,   0, ROOK_ERR_BID_TOO_LOW);
-
-    invalid_bid(pN, 205, ROOK_ERR_BID_TOO_HIGH);
-    invalid_bid(pN, max, ROOK_ERR_BID_TOO_HIGH);
-
-    invalid_bid(pW,  25, ROOK_ERR_NOT_YOUR_TURN);
-    invalid_bid(pE, 150, ROOK_ERR_NOT_YOUR_TURN);
-    invalid_bid(pS, 155, ROOK_ERR_NOT_YOUR_TURN);
-
-    invalid_bid(pN, 101, ROOK_ERR_INVALID_BID);
-    invalid_bid(pN, 104, ROOK_ERR_INVALID_BID);
-    invalid_bid(pN, 199, ROOK_ERR_INVALID_BID);
-
-    pass(pN);
-    bid(pE, 105);
-    bid(pS, 110);
-    bid(pW, 115);
-    ASSERT_EQ(pE.in_game_id, rook->current_player);
-    invalid_bid(pN, 120, ROOK_ERR_NOT_YOUR_TURN);
-    invalid_bid(pE, 105, ROOK_ERR_BID_TOO_LOW);
-}
-
-*/

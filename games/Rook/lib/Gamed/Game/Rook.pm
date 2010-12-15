@@ -10,12 +10,17 @@ use Gamed::Game::Rook::Bidding;
 has %.seats is rw;
 has $.deck is rw;
 has %.players is rw;
+has Int $.bid is rw;
+has Str $.bidder is rw;
+has Str $.current_player is rw;
+has Int $.passed is rw;
 
 submethod BUILD {
 	$.name    = 'Rook';
 	$.version = '0.1';
     $.deck = Gamed::Game::Rook::PartnershipDeck.new;
     for <north east south west> { %.seats{$_} = { hand => Gamed::Util::Deck.new } };
+    $.current_player = 'north';
 
 	self.add_states(
 		Gamed::Game::Rook::Joining.new,
