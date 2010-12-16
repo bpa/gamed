@@ -6,6 +6,7 @@ class t::bidding is Gamed::Test::RookTest {
     method setUp () {
     	$.game = Gamed::Game::Rook.new;
     	$.game.player_join($.server, $_) for @.players;
+		$.game.dealer = 'south';
     	$.game.change_state('bidding');
     	$.server.reset;
     }
@@ -13,7 +14,8 @@ class t::bidding is Gamed::Test::RookTest {
     method test_init () {
     	is($.game.state, 'bidding', 'Now bidding');
     	is($.game.bid, 95, 'Starting off, the bid is 95');
-    	is($.game.bidder, 'north', "Bid winner is the first player to start");
+    	is($.game.current_player, 'north', "player right of bidder is first");
+    	is($.game.bidder, Any, "No one has bid yet");
         is($.game.passed, 0, 'No one has passed');
     }
     
@@ -77,14 +79,26 @@ class t::bidding is Gamed::Test::RookTest {
     
     method pass ( $player ) {
         $.game.handle_message( $.server, $player, { bid => 'pass' } );
+		is(+$.server.client_msg, 0, "Result was broadcast");
+		is(+$.server.broadcast, 1, "Everyone got pass message");
+		is_deeply($.server.broadcast[0], { player => $player.game<seat>, event => 'bid', bid => 'pass' } );
+		$.server.reset;
     }
     
     method bid ( $player, $bid ) {
         $.game.handle_message( $.server, $player, { bid => $bid } );
+		is(+$.server.client_msg, 0, "Result was broadcast");
+		is(+$.server.broadcast, 1, "Everyone got bid message");
+		is_deeply($.server.broadcast[0], { player => $player.game<seat>, event => 'bid', bid => $bid } );
+		$.server.reset;
     }
     
     method invalid_bid ( $player, $bid, $error ) {
         $.game.handle_message( $.server, $player, { bid => $bid } );
+		is(+$.server.client_msg, 1, "Result was sent to client");
+		is(+$.server.client_msg{$player}, 1, "One error message sent to client");
+		is(+$.server.broadcast, 0, "Error was not broadcast");
+		is_deeply($.server.broadcast[0], { event => 'error', msg => $error } );
     }
 
 }
