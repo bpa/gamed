@@ -12,6 +12,7 @@ multi method state () {
 }
 
 multi method change_state ( Str $state, Gamed::Server $server? ) {
+	die "No state '$state' exists" unless %!states.exists($state);
 	$!_state.leave_state($server, self) if $!_state;
 	$!_state = %!states{$state};
 	$!_current_state = $state;

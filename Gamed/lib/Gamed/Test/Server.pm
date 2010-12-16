@@ -6,7 +6,8 @@ has %.client_msg is rw;
 has @.broadcast is rw;
 
 multi method send ( %msg ) {
-    @.broadcast.push(%msg);
+    my $msg = %msg;
+    @.broadcast.push($msg);
 }
 
 multi method send ( %msg, $client ) {

@@ -2,6 +2,10 @@ use Gamed::State;
 
 class Gamed::Game::Rook::Picking is Gamed::State;
 
+submethod BUILD {
+	$.name = 'picking';
+}
+
 =begin END
 #include "rook.h"
 

@@ -6,6 +6,7 @@ class Gamed::Game::Rook is Gamed::Game does Gamed::Role::StateMachine;
 use Gamed::Game::Rook::PartnershipDeck;
 use Gamed::Game::Rook::Joining;
 use Gamed::Game::Rook::Bidding;
+use Gamed::Game::Rook::Picking;
 
 has %.seats is rw;
 has $.deck is rw;
@@ -32,7 +33,8 @@ submethod BUILD {
 
 	self.add_states(
 		Gamed::Game::Rook::Joining.new,
-		Gamed::Game::Rook::Bidding.new);
+		Gamed::Game::Rook::Bidding.new,
+		Gamed::Game::Rook::Picking.new);
     self.change_state('joining');
 }
 

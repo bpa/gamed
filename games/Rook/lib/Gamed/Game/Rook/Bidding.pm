@@ -12,19 +12,24 @@ method enter_state ( Gamed::Server $server, Gamed::Game $rook ) {
 	$rook.bid = 95;
 	$rook.bidder = Any;
 	$rook.passed = 0;
+	for $rook.seats.values {
+		$_<passed> = False;
+	}
+	$rook.dealer = $rook.seats{$rook.dealer}<next>;
+	$rook.current_player = $rook.seats{$rook.dealer}<next>;
 }
 
 method handle_message ( Gamed::Server $server, Gamed::Game $rook, Gamed::Client $client, %msg ) {
-	if $client.name !~~ $rook.current_player {
+	if $client.game<seat> !~~ $rook.current_player {
 		$server.send( { event => 'error', msg => 'Not your turn' }, $client );
 		return;
 	}
 
 	given %msg<bid> {
 		when 'pass' {
+			$server.send( { event => 'bid', player => $rook.current_player, bid => 'pass' } );
 			$rook.current_player = self.next_player($rook);
 			$rook.seats{$client.game<seat>}<passed> = True;
-			$server.send( { event => 'bid', player => $rook.bidder, bid => 'pass' } );
 			$rook.passed++;
 			self.next_player($rook);
 			if $rook.passed == 3 {
