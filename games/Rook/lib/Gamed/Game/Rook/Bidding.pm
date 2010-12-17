@@ -21,18 +21,18 @@ method enter_state ( Gamed::Server $server, Gamed::Game $rook ) {
 
 method handle_message ( Gamed::Server $server, Gamed::Game $rook, Gamed::Client $client, %msg ) {
 	if $client.game<seat> !~~ $rook.current_player {
-		$server.send( { event => 'error', msg => 'Not your turn' }, $client );
+		$server.send( { event => 'error', msg => 'not your turn' }, $client );
 		return;
 	}
 
 	given %msg<bid> {
 		when 'pass' {
 			$server.send( { event => 'bid', player => $rook.current_player, bid => 'pass' } );
-			$rook.current_player = self.next_player($rook);
 			$rook.seats{$client.game<seat>}<passed> = True;
 			$rook.passed++;
 			self.next_player($rook);
 			if $rook.passed == 3 {
+				$rook.bid = 100 if $rook.bid < 100;
 				$rook.bidder = $rook.current_player;
 				$rook.change_state( 'picking', $server );
 			}

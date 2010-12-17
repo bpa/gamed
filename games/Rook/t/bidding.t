@@ -125,7 +125,8 @@ class t::bidding is Gamed::Test::RookTest {
 		is(+$.server.client_msg, 1, "Bid error was sent to client");
 		is(+$.server.client_msg{$player}, 1, "One error message sent to client");
 		is(+$.server.broadcast, 0, "Error was not broadcast");
-		is_deeply($.server.broadcast[0], { event => 'error', msg => $error } );
+		is_deeply($.server.client_msg{$player}[0], { event => 'error', msg => $error } );
+		$.server.reset;
     }
 
 }
