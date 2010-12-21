@@ -28,9 +28,7 @@ method enter_state ( Gamed::Server $server, Gamed::Game $game ) {
 #
 }
 
-=begin END
-multi method handle_message (Gamed::Server $server, Gamed::Client $client, %msg) {
-#    RookData *rook = (RookData*)g->data;
+multi method handle_message (Gamed::Server $server, Gamed::Game $rook, Gamed::Client $client, %msg) {
 #    if (p->in_game_id != rook->current_player) {
 #        give_error(p, ROOK_ERR_NOT_YOUR_TURN);
 #    }

@@ -1,6 +1,7 @@
-class Gamed::Test::RookTest;
+use Gamed::Test::Object;
 
-use Test;
+class Gamed::Test::RookTest is Gamed::Test::Object;
+
 use Gamed::Test::Server;
 use Gamed::Game::Rook;
 
@@ -20,14 +21,4 @@ submethod BUILD () {
     $.west  = Gamed::Client.new;
     @.players = $.north, $.east, $.south, $.west;
 	$.server = Gamed::Test::Server.new;
-}
-
-method run_tests () {
-	for self.HOW.methods(self) {
-        next unless $_.isa('Method') && /^test/;
-		ok(True, "**** Running $_ ****");
-		self.*setUp;
-		self.$_;
-		self.*tearDown;
-	}
 }
