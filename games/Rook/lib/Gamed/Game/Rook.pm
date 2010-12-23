@@ -23,10 +23,10 @@ submethod BUILD {
 	$.name    = 'Rook';
 	$.version = '0.1';
     $.deck = Gamed::Game::Rook::PartnershipDeck.new;
-    %.seats<north> = { hand => Gamed::Util::Deck.new, next => 'east'  };
-    %.seats<east>  = { hand => Gamed::Util::Deck.new, next => 'south' };
-    %.seats<south> = { hand => Gamed::Util::Deck.new, next => 'west'  };
-    %.seats<west>  = { hand => Gamed::Util::Deck.new, next => 'north' };
+    %.seats<north> = { hand => Gamed::Util::Deck.new, ready => True, next => 'east'  };
+    %.seats<east>  = { hand => Gamed::Util::Deck.new, ready => True, next => 'south' };
+    %.seats<south> = { hand => Gamed::Util::Deck.new, ready => True, next => 'west'  };
+    %.seats<west>  = { hand => Gamed::Util::Deck.new, ready => True, next => 'north' };
     $.players = 0;
     $.dealer = 'north';
     $.current_player = 'north';
@@ -46,7 +46,8 @@ method player_join (Gamed::Server $server, Gamed::Client $client) {
 		my $seat = %.seats{$dir};
         if !$seat<player>.defined {
             $seat<player> = $client;
-            $client.game<seat> = $dir;
+            $seat<ready> = False;
+            $client.game = { seat => $dir };
             $.players++;
             last;
         }
