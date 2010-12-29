@@ -1,6 +1,6 @@
 role Gamed::Role::StateMachine;
 
-use Gamed::Client;
+use Gamed::Player;
 use Gamed::State;
 
 has Str $!_current_state;
@@ -19,8 +19,8 @@ multi method change_state ( Str $state, Gamed::Server $server? ) {
 	$!_state.enter_state($server, self);
 }
 
-multi method handle_message( Gamed::Server $server, Gamed::Client $client, %msg ) {
-	$!_state.handle_message( $server, self, $client, %msg );
+multi method handle_message( Gamed::Server $server, Gamed::Player $player, %msg ) {
+	$!_state.handle_message( $server, self, $player, %msg );
 }
 
 method add_states ( *@states ) {

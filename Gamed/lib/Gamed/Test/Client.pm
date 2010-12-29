@@ -1,6 +1,6 @@
-use Gamed::Client;
+use Gamed::Player;
 
-class Gamed::Test::Client is Gamed::Client;
+class Gamed::Test::Client is Gamed::Player;
 
 has @!messages;
 

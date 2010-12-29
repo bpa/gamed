@@ -1,10 +1,10 @@
 class Gamed::Server;
 
-use Gamed::Client;
+use Gamed::Player;
 
-has Gamed::Client @.clients;
+has Gamed::Player @.players;
 
 multi method send ( %msg ) { ... }
 
-multi method send ( %msg, $client ) { ... }
+multi method send ( %msg, $player ) { ... }
 

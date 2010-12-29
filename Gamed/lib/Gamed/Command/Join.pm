@@ -4,20 +4,20 @@ class Gamed::Command::Join {
 
     has Str $.name = 'join';
 
-    method handle ( $gamed, $client, $message ) {
+    method handle ( $gamed, $player, $message ) {
         my ( $cmd, $name ) = $message;
         my $instance = $gamed.instances{$name};
         if ( $instance ) {
-            if ( $instance.is_join_allowed($client) ) {
-                $instance.add($client);
-                $instance.announce( [ game => 'join' => { player => $client.name, id => $client.player_id } ] );
+            if ( $instance.is_join_allowed($player) ) {
+                $instance.add($player);
+                $instance.announce( [ game => 'join' => { player => $player.name, id => $player.player_id } ] );
             }
             else {
-                $client.send( [ game => error => $client.error ] );
+                $player.send( [ game => error => $player.error ] );
             }
         }
         else {
-            $client.send( [ game => error => 'Game not available' ] );
+            $player.send( [ game => error => 'Game not available' ] );
         }
     }
 

@@ -9,10 +9,10 @@ my $server = IO::Socket::INET.socket( $PF_INET, $SOCK_STREAM, $TCP );
 $server.bind( 'localhost', 3939 );
 $server.listen();
 say "Listening";
-while my $client = $server.accept() {
+while my $player = $server.accept() {
     say "Accepted";
-    my $received = $client.recv();
-    $client.send( $received.chomp ~ " to you too!");
-    $client.close();
+    my $received = $player.recv();
+    $player.send( $received.chomp ~ " to you too!");
+    $player.close();
 }
 
