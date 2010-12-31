@@ -10,13 +10,13 @@ submethod BUILD {
     $.version = '0.1';
 }
 
-method player_joined( $server, $client ) {
+method player_joined( $server, $player ) {
     $.number  = 100.rand.ceiling;
     $.guesses = 0;
     $.accepting_players = False;
 }
 
-method handle_message ( Gamed::Server $server, Gamed::Client $client, %msg ) {
+method handle_message ( Gamed::Server $server, Gamed::Player $player, %msg ) {
     $.guesses++;
     my %resp = { guesses => $.guesses };
     if ( %msg<guess> == $.number ) {
@@ -30,10 +30,10 @@ method handle_message ( Gamed::Server $server, Gamed::Client $client, %msg ) {
           ?? 'Too low'
           !! 'Too high';
     }
-    $server.send( %resp, $client );
+    $server.send( %resp, $player );
 }
 
-method player_quit (Gamed::Server $server, Gamed::Client $client) {
+method player_quit (Gamed::Server $server, Gamed::Player $player) {
     $.in_progress = False;
     $.accepting_players = True;
 }

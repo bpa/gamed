@@ -3,7 +3,7 @@ class Gamed::Command::Create {
     does Gamed::Role::Command;
     has Str $.name = 'create';
 
-    method handle ( $gamed, $client, $message ) {
+    method handle ( $gamed, $player, $message ) {
         my ( $cmd, $game, $name ) = $message;
         if ( $gamed.games.exists($game) ) {
             my $instance = $gamed.instances{$name};
@@ -11,11 +11,11 @@ class Gamed::Command::Create {
                 $instance = eval($gamed.games{$game}.WHAT).new;
                 $gamed.instances{$name} = $instance;
             }
-            $instance.add($client);
-            $instance.announce( [ <game join>, { player => $client.name, id => $client.player_id } ] );
+            $instance.add($player);
+            $instance.announce( [ <game join>, { player => $player.name, id => $player.player_id } ] );
         }
         else {
-            $client.send( [ 'game', 'error', 'Game not available' ] );
+            $player.send( [ 'game', 'error', 'Game not available' ] );
         }
     }
 

@@ -1,17 +1,17 @@
 use Test;
 
-use Gamed::Client;
+use Gamed::Player;
 use Gamed::Game::HiLo;
 use Gamed::Test::Server;
 
 my $game = Gamed::Game::HiLo.new;
-my $client = Gamed::Client.new;
+my $player = Gamed::Player.new;
 my $server = Gamed::Test::Server.new;
 
 sub guess(Int $before, Int $after, Int $num, Str $expected) {
     is($game.guesses, $before, "$before: Before");
-	$game.handle_message($server, $client, { guess => $num });
-    my $res = $server.client_msg{$client};
+	$game.handle_message($server, $player, { guess => $num });
+    my $res = $server.player_msg{$player};
     is(+$res, 1, "$before: result has one element");
     is($res[0]<guesses>, $before+1, "$before: guesses is right");
     is($res[0]<result>, $expected, "$before: result matches");
@@ -21,7 +21,7 @@ sub guess(Int $before, Int $after, Int $num, Str $expected) {
 
 ok($game.in_progress, "Game starts out in progress");
 ok($game.accepting_players, "Game starts out accepting players");
-$game.player_joined($server, $client);
+$game.player_joined($server, $player);
 nok($game.accepting_players, "After joining, game isn't accepting players");
 $game.number = 12;
 is($game.name, 'HiLo', "Game is named");
@@ -38,7 +38,7 @@ guess(0, 0, 150, 'Correct');
 ok($game.number <= 100, "The new number is <= 100");
 ok($game.number > 0, "The new number is > 0");
 
-$game.player_quit($server, $client);
+$game.player_quit($server, $player);
 nok($game.in_progress, "Game is over after the player leaves");
 
 done_testing;

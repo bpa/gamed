@@ -2,7 +2,7 @@ use Gamed::Server;
 
 class Gamed::Test::Server is Gamed::Server;
 
-has %.client_msg is rw;
+has %.player_msg is rw;
 has @.broadcast is rw;
 
 multi method send ( %msg ) {
@@ -10,13 +10,13 @@ multi method send ( %msg ) {
     @.broadcast.push($msg);
 }
 
-multi method send ( %msg, $client ) {
+multi method send ( %msg, $player ) {
     my $msg = %msg;
-	%.client_msg{$client} = Array.new unless %.client_msg{$client}.defined;
-    %.client_msg{$client}.push($msg);
+	%.player_msg{$player} = Array.new unless %.player_msg{$player}.defined;
+    %.player_msg{$player}.push($msg);
 }
 
 method reset () {
-    %.client_msg = ();
+    %.player_msg = ();
     @.broadcast = ();
 }

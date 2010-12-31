@@ -8,8 +8,8 @@ method enter_state ( Gamed::Server $server, Gamed::Game $game ) {
 	$server.send( { enter => $.name } );
 }
 
-multi method handle_message ( Gamed::Server $server, Gamed::Game $game, Gamed::Client $client, %msg ) {
-    $server.send( { color => $.name }, $client );
+multi method handle_message ( Gamed::Server $server, Gamed::Game $game, Gamed::Player $player, %msg ) {
+    $server.send( { color => $.name }, $player );
     $game.change_state( $.next_state, $server ) if %msg<color> eq $.next_state;
 }
 
