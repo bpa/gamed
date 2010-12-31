@@ -29,8 +29,8 @@ is($msg[0]<color>, 'blue', "In blue state");
 
 my $broadcast = $server.broadcast;
 is(+$broadcast, 2, "Got 2 server messages back");
-is_deeply($broadcast[0], ( leave => 'blue' ), "Left blue state");
-is_deeply($broadcast[1], ( enter => 'red' ), "Entered red state");
+is_deeply($broadcast[0], { leave => 'blue' }, "Left blue state");
+is_deeply($broadcast[1], { enter => 'red' }, "Entered red state");
 
 $server.reset;
 $game.handle_message($server, $client, { color => 'red' });

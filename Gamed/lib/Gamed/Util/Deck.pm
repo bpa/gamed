@@ -34,6 +34,10 @@ method elems () {
     return @!cards.elems;
 }
 
+method Numeric () {
+	return +@!cards;
+}
+
 method has_card (Gamed::Util::Card $card) {
 	return $card ~~ @!cards;
 }

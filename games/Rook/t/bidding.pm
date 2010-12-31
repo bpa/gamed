@@ -22,15 +22,27 @@ class t::bidding is Gamed::Test::RookTest {
 		}
 
 		$.game.change_state('bidding');
+		is(+$.server.broadcast, 1, "State change message broadcast");
+		is_deeply($.server.broadcast[0], { 'state' => 'bidding' }, "Broadcast state message is correct");
     	is($.game.state, 'bidding', 'Now bidding');
     	is($.game.bid, 95, 'Starting off, the bid is 95');
     	is($.game.bidder, Any, "No one has bid yet");
 		is($.game.dealer, 'west', "Dealer changes");
     	is($.game.current_player, 'north', "player right of dealer is first");
         is($.game.passed, 0, 'No one has passed');
+
+		for @.players {
+			is($.server.client_msg{$_}{action}, 'deal', "{$_<seat>} was dealt to");
+			is(+$.server.client_msg{$_}{cards}, 10, "{$_<seat>} was dealt 10 cards");
+		}
+
 		for $.game.seats.pairs {
 			nok($_.value<passed>, "{$_.key} pass flag is clear");
+			is(+$_.value.hand, 10, "{$_.key} has 10 cards");
 		}
+
+		is(+$.server.client_msg, 4, "All players got a message");
+		is(+$.game.nest, 5, "The nest holds 5 cards");
     }
     
     method test_normal_bid () {

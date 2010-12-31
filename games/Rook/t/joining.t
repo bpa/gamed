@@ -12,6 +12,8 @@ class t::joining is Gamed::Test::RookTest {
 	method test_init() {
 		is($.game.state, 'joining', "Game starts in joining state");
 		is(+$.game.players, 0, "Game starts with no players");
+		is(+$.game.deck, 45, "Are all the cards in the deck");
+		is(+$_<hand>, 0, "Are the player hands empty") for $.game.seats.values;
 	}
 
 	method test_game_starts_with_4 () {

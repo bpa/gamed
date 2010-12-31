@@ -1,24 +1,16 @@
-class Gamed::Game::War {
-    use Gamed::Role::Game;
-    does Gamed::Role::Game;
+use Gamed::Game;
 
-    has Str $.name        = 'War';
-    has Str $.version     = '0.1';
-    has Int @!deck;
+class Gamed::Game::War is Gamed::Game;
 
-    submethod BUILD() {
-        $.max_players = 2;
-    }
+has Int @!deck;
 
-    method build_deck {
-            for 1 .. 3 {
-                for 1 .. 9 -> $val {
-                    push @!deck, $val;
-                }
-            }
-        }
-
-    method handle ( $game, $client, $message ) {
-    }
-
+submethod BUILD() {
+	$.name        = 'War';
+    $.version     = '0.1';
+	$.max_players = 2;
+	for 1 .. 3 {
+		for 1 .. 9 -> $val {
+			push @!deck, $val;
+		}
+	}
 }
