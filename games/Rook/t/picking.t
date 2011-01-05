@@ -14,13 +14,13 @@ class t::picking is Gamed::Test::RookTest {
     }
 
 	method test_init() {
-		is(+$.server.client_msg, 1, "Widow was sent");
-		is(+$.server.client_msg{$.south}, 1, "To south");
+		is(+$.server.player_msg, 1, "Widow was sent");
+		is(+$.server.player_msg{$.south}, 1, "To south");
 		#TODO check cards sent
-		is(+$.game.seats<north>.hand, 10, "North has 10 cards");
-		is(+$.game.seats<east>.hand,  10, "East has 10 cards");
-		is(+$.game.seats<south>.hand, 15, "South has 15 cards");
-		is(+$.game.seats<west>.hand,  10, "West has 10 cards");
+		is(+$.game.seats<north><hand>, 10, "North has 10 cards");
+		is(+$.game.seats<east><hand>,  10, "East has 10 cards");
+		is(+$.game.seats<south><hand>, 15, "South has 15 cards");
+		is(+$.game.seats<west><hand>,  10, "West has 10 cards");
 	}
 
 #unsigned char dealt_cards[] = { 0xF0, 0x81, 0x8E, 0x8D, 0x8C, 0x8B, 0x8A,

@@ -32,8 +32,8 @@ class t::bidding is Gamed::Test::RookTest {
         is($.game.passed, 0, 'No one has passed');
 
 		for @.players {
-			is($.server.client_msg{$_}{action}, 'deal', "{$_<seat>} was dealt to");
-			is(+$.server.client_msg{$_}{cards}, 10, "{$_<seat>} was dealt 10 cards");
+			is($.server.player_msg{$_}{action}, 'deal', "{$_<seat>} was dealt to");
+			is(+$.server.player_msg{$_}{cards}, 10, "{$_<seat>} was dealt 10 cards");
 		}
 
 		for $.game.seats.pairs {
@@ -41,7 +41,7 @@ class t::bidding is Gamed::Test::RookTest {
 			is(+$_.value.hand, 10, "{$_.key} has 10 cards");
 		}
 
-		is(+$.server.client_msg, 4, "All players got a message");
+		is(+$.server.player_msg, 4, "All players got a message");
 		is(+$.game.nest, 5, "The nest holds 5 cards");
     }
     
@@ -118,7 +118,7 @@ class t::bidding is Gamed::Test::RookTest {
 
     method pass ( $player ) {
         $.game.handle_message( $.server, $player, { bid => 'pass' } );
-		is(+$.server.client_msg, 0, "Pass was broadcast");
+		is(+$.server.player_msg, 0, "Pass was broadcast");
 		is(+$.server.broadcast, 1, "Everyone got pass message");
 		is_deeply($.server.broadcast[0], { player => $player.game<seat>, event => 'bid', bid => 'pass' } );
 		$.server.reset;
@@ -126,7 +126,7 @@ class t::bidding is Gamed::Test::RookTest {
     
     method bid ( $player, $bid ) {
         $.game.handle_message( $.server, $player, { bid => $bid } );
-		is(+$.server.client_msg, 0, "Bid was broadcast");
+		is(+$.server.player_msg, 0, "Bid was broadcast");
 		is(+$.server.broadcast, 1, "Everyone got bid message");
 		is_deeply($.server.broadcast[0], { player => $player.game<seat>, event => 'bid', bid => $bid } );
 		$.server.reset;
@@ -134,10 +134,10 @@ class t::bidding is Gamed::Test::RookTest {
     
     method invalid_bid ( $player, $bid, $error ) {
         $.game.handle_message( $.server, $player, { bid => $bid } );
-		is(+$.server.client_msg, 1, "Bid error was sent to client");
-		is(+$.server.client_msg{$player}, 1, "One error message sent to client");
+		is(+$.server.player_msg, 1, "Bid error was sent to client");
+		is(+$.server.player_msg{$player}, 1, "One error message sent to client");
 		is(+$.server.broadcast, 0, "Error was not broadcast");
-		is_deeply($.server.client_msg{$player}[0], { event => 'error', msg => $error } );
+		is_deeply($.server.player_msg{$player}[0], { event => 'error', msg => $error } );
 		$.server.reset;
     }
 

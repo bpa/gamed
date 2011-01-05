@@ -19,16 +19,16 @@ method enter_state ( Gamed::Server $server, Gamed::Game $rook ) {
 	$rook.current_player = $rook.seats{$rook.dealer}<next>;
 }
 
-method handle_message ( Gamed::Server $server, Gamed::Game $rook, Gamed::Client $client, %msg ) {
-	if $client.game<seat> !~~ $rook.current_player {
-		$server.send( { event => 'error', msg => 'not your turn' }, $client );
+method handle_message ( Gamed::Server $server, Gamed::Game $rook, Gamed::Player $player, %msg ) {
+	if $player.game<seat> !~~ $rook.current_player {
+		$server.send( { event => 'error', msg => 'not your turn' }, $player );
 		return;
 	}
 
 	given %msg<bid> {
 		when 'pass' {
 			$server.send( { event => 'bid', player => $rook.current_player, bid => 'pass' } );
-			$rook.seats{$client.game<seat>}<passed> = True;
+			$rook.seats{$player.game<seat>}<passed> = True;
 			$rook.passed++;
 			self.next_player($rook);
 			if $rook.passed == 3 {
@@ -38,17 +38,17 @@ method handle_message ( Gamed::Server $server, Gamed::Game $rook, Gamed::Client 
 			}
 		}
 		when $_ <= $rook.bid {
-			$server.send( { event => 'error', msg => 'bid too low' }, $client );
+			$server.send( { event => 'error', msg => 'bid too low' }, $player );
 		}
 		when $_ > 200 {
-			$server.send( { event => 'error', msg => 'bid too high' }, $client );
+			$server.send( { event => 'error', msg => 'bid too high' }, $player );
 		}
 		when $_ % 5 != 0 {
-			$server.send( { event => 'error', msg => 'bid invalid' }, $client );
+			$server.send( { event => 'error', msg => 'bid invalid' }, $player );
 		}
 		default {
 			$rook.bid = %msg<bid>;
-			$rook.bidder = $client.game<seat>;
+			$rook.bidder = $player.game<seat>;
 			$server.send( { event => 'bid', player => $rook.bidder, bid => $rook.bid } );
 			if $rook.bid == 200 {
 				$rook.change_state( 'picking', $server );

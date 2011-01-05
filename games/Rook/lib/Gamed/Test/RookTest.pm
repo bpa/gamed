@@ -15,10 +15,10 @@ has @.players is rw;
 
 submethod BUILD () {
 	my @players;
-    $.north = Gamed::Client.new;
-    $.east  = Gamed::Client.new;
-    $.south = Gamed::Client.new;
-    $.west  = Gamed::Client.new;
+    $.north = Gamed::Player.new;
+    $.east  = Gamed::Player.new;
+    $.south = Gamed::Player.new;
+    $.west  = Gamed::Player.new;
     @.players = $.north, $.east, $.south, $.west;
 	$.server = Gamed::Test::Server.new;
 }
