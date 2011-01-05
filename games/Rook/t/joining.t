@@ -90,4 +90,4 @@ class t::joining is Gamed::Test::RookTest {
 }
 
 t::joining.new.run_tests;
-done_testing;
+done;

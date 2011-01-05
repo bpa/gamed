@@ -41,4 +41,4 @@ is($msg[0]<color>, 'red', "In red state");
 $game.player_quit($server, $player);
 nok($game.in_progress, "Game is over after the player leaves");
 
-done_testing;
+done;

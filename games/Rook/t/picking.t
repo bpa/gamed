@@ -6,11 +6,12 @@ class t::picking is Gamed::Test::RookTest {
     method setUp () {
     	$.game = Gamed::Game::Rook.new;
     	$.game.player_join($.server, $_) for @.players;
+		$.game.change_state('bidding');
 		$.game.bid = 150;
 		$.game.bidder = 'south';
 		$.game.current_player = 'south';
     	$.server.reset;
-    	$.game.change_state('picking');
+    	$.game.change_state('picking', $.server);
     }
 
 	method test_init() {
@@ -59,5 +60,5 @@ class t::picking is Gamed::Test::RookTest {
 }
 
 t::picking.new.run_tests;
-done_testing;
+done;
 

@@ -9,11 +9,15 @@ submethod BUILD () {
 method enter_state ( Gamed::Server $server, Gamed::Game $rook ) {
 	$rook.accepting_players = False;
 	$server.send( { 'state' => 'bidding' } );
+	$rook.deck.add($_<hand>.draw(*)) for $rook.seats.values;
+	$rook.deck.shuffle;
 	$rook.bid = 95;
 	$rook.bidder = Any;
 	$rook.passed = 0;
 	for $rook.seats.values {
 		$_<passed> = False;
+		$_<hand>.add($rook.deck.draw(10));
+		$server.send( { action => 'deal', cards => $_<hand> }, $_<player> );
 	}
 	$rook.dealer = $rook.seats{$rook.dealer}<next>;
 	$rook.current_player = $rook.seats{$rook.dealer}<next>;

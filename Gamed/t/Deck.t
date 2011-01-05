@@ -55,4 +55,4 @@ $d.add(@hearts);
 is(@hand.elems, 3, "Drawing some cards should return the number asked");
 is(+$d, 10, "Drawing some cards should leave a smaller deck, but not empty");
 
-done_testing;
+done;

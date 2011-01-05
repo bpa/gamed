@@ -23,4 +23,4 @@ ok(!$hand.is_valid_play( 'red',   'green', $b14 ), "Play different card when you
 ok( $hand.is_valid_play( 'black', 'green', $b14 ), "Play card of lead" );
 ok( $hand.is_valid_play( 'green', 'red',   $b14 ), "Play card when you don't have lead" );
 
-done_testing;
+done;

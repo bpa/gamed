@@ -7,18 +7,15 @@ submethod BUILD {
 }
 
 method enter_state ( Gamed::Server $server, Gamed::Game $game ) {
-	$server.send( 'state' => 'picking' );
-	$game.deck.add($_<hand>.draw(*)) for $game.seats.values;
-	$game.deck.add($game.nest.draw(*));
-	$game.deck.shuffle;
-	for $game.seats.values {
-		$_<hand>.add($game.deck.draw(10));
-		$server.send( { action => 'deal', cards => $_<hand> }, $_<player>);
-	}
-	$game.nest.add($game.deck.draw(5));
+	$server.send( { 'state' => 'picking' } );
+	$server.send( { action => 'nest', cards => $game.deck }, $game.seats{$game.bidder}<player> );
+	$game.seats{$game.bidder}<hand>.add($game.deck.pick(*));
 }
 
-multi method handle_message (Gamed::Server $server, Gamed::Game $rook, Gamed::Player $player, %msg) {
+multi method handle_message ( Gamed::Server $server, Gamed::Game $game, Gamed::Player $player, %msg ) {
+#    unsigned char mask, trump;
+#    unsigned char card;
+#    RookData *rook = (RookData*)game->data;
 #    RookPlayer *rp = &rook->players[p->in_game_id];
 #    if (p->in_game_id != rook->bidder) {
 #        give_error(p, ROOK_ERR_NOT_YOUR_TURN);

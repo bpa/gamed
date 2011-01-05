@@ -8,4 +8,4 @@ is( $deck.elems, 57 );
 $deck = Gamed::Game::Rook::PartnershipDeck.new;
 is( $deck.elems, 45 );
 
-done_testing;
+done;
