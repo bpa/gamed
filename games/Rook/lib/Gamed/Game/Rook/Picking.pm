@@ -2,7 +2,7 @@ use Gamed::State;
 
 class Gamed::Game::Rook::Picking is Gamed::State;
 
-submethod BUILD {
+submethod BUILD () {
 	$.name = 'picking';
 }
 

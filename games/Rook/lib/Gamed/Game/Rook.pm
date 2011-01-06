@@ -7,15 +7,19 @@ use Gamed::Game::Rook::PartnershipDeck;
 use Gamed::Game::Rook::Joining;
 use Gamed::Game::Rook::Bidding;
 use Gamed::Game::Rook::Picking;
+use Gamed::Game::Rook::Playing;
 
+#TODO: move bidder, bid, trump into round
 has %.seats is rw;
 has $.deck is rw;
 has $.players is rw;
 has Int $.bid is rw;
+has Str $.trump is rw;
 has Str $.bidder is rw;
 has Str $.dealer is rw;
 has Str $.current_player is rw;
 has Int $.passed is rw;
+has %.round is rw;
 has @!seats;
 
 submethod BUILD {
@@ -34,7 +38,8 @@ submethod BUILD {
 	self.add_states(
 		Gamed::Game::Rook::Joining.new,
 		Gamed::Game::Rook::Bidding.new,
-		Gamed::Game::Rook::Picking.new);
+		Gamed::Game::Rook::Picking.new,
+		Gamed::Game::Rook::Playing.new);
     self.change_state('joining');
 }
 
