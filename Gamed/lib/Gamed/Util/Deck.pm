@@ -13,13 +13,13 @@ multi method add (@card) {
 }
 
 multi method draw () {
-	return @!cards.pop;
+	return @!cards.shift;
 }
 
 multi method draw (Int $num) {
 	my @hand;
     for 1 .. $num {
-        @hand.unshift(@!cards.pop);
+        @hand.push(@!cards.shift);
     }
     return @hand;
 }
@@ -39,7 +39,7 @@ method Numeric () {
 }
 
 method has_card (Gamed::Util::Card $card) {
-	return $card ~~ @!cards;
+	return $card ~~ any(@!cards);
 }
 
 method shuffle () {
@@ -74,4 +74,8 @@ method _remove($card) {
             return;
         }
     }
+}
+
+method Str () {
+	return "Cards: " ~ @!cards.join(' ');
 }
