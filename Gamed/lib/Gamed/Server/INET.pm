@@ -1,9 +1,9 @@
-class Gamed::Server;
+use Gamed::Server;
 
-use Gamed::Player;
+class Gamed::Server::INET is Gamed::Server;
 
 has $!sock;
-has Gamed::Player @.players;
+has $!filter;
 
 submethod BUILD () {
 	$!sock = IO::Socket::INET.new(
@@ -13,9 +13,9 @@ submethod BUILD () {
         );
 }
 
-method send ( %msg ) {
+multi method send ( %msg ) {
 	
 }
 
-method send ( %msg, $player ) {}
+multi method send ( %msg, $player ) { ... }
 

@@ -1,0 +1,10 @@
+#! /usr/bin/perl6
+
+use ncurses;
+
+my $win = initscr();
+mvaddstr(13,33,"Hello, world!");
+refresh();
+sleep(3);
+endwin();
+delscreen($win);

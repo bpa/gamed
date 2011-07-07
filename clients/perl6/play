@@ -1,0 +1,13 @@
+#! /usr/bin/perl6
+
+use JSON::Tiny;
+
+my $conn = IO::Socket::INET.new(:host('localhost'), :port(3939))
+		but role { 
+			method say($hash){self.send(to-json($hash))}
+		};
+		
+$conn.say({s=>'login',name=>'Bruce'});
+say $conn.recv;
+$conn.say({s=>'join',game=>'HiLo'});
+

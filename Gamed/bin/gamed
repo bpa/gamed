@@ -10,10 +10,10 @@ $game.run;
 =begin END
 my ( $help, $daemonize, $file, $man, $port );
 GetOptions(
-    'f|file'   => \$file,
+    'f|config'   => \$file,
     'h|help'   => \$help,
     'p|port=i' => \$port,
-    'X'        => \$daemonize
+    'X'        => \$nodaemonize
 ) || pod2usage(2);
 pod2usage(1) if ($help);
 
