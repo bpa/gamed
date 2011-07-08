@@ -1,13 +1,25 @@
 #! /usr/bin/perl6
 
 use JSON::Tiny;
+use NativeCall;
+
+sub inputAvailable() returns Int is native('input') { ... }
 
 my $conn = IO::Socket::INET.new(:host('localhost'), :port(3939))
 		but role { 
-			method say($hash){self.send(to-json($hash))}
+			method give($hash){self.send(to-json($hash))}
+			method take($hash){self.send(to-json($hash))}
 		};
 		
 $conn.say({s=>'login',name=>'Bruce'});
 say $conn.recv;
 $conn.say({s=>'join',game=>'HiLo'});
 
+loop {
+	print ">> ";
+	until (inputAvailable()) {
+		sleep .2;
+	}
+	my $cmd = $*IN.get;
+	say $cmd;
+}
