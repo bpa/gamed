@@ -3,23 +3,30 @@
 use JSON::Tiny;
 use NativeCall;
 
-sub inputAvailable() returns Int is native('input') { ... }
+#sub inputAvailable() returns Int is native('input') { ... }
 
 my $conn = IO::Socket::INET.new(:host('localhost'), :port(3939))
 		but role { 
-			method give($hash){self.send(to-json($hash))}
-			method take($hash){self.send(to-json($hash))}
+			method give($hash){ self.send(to-json($hash)) }
+			method take()     { from-json($!PIO.recv()) }
+			method read()     { $!PIO.recv() }
+
+			method ready () { 
+					fail("Not connected") unless $!PIO; 
+					return $!PIO.poll(1, 0, 0); 
+			}
+
 		};
 		
-$conn.say({s=>'login',name=>'Bruce'});
-say $conn.recv;
-$conn.say({s=>'join',game=>'HiLo'});
+$conn.give({s=>'login',name=>'Bruce'});
+my $r = $conn.read();
+$conn.give({s=>'join',game=>'HiLo'});
+$r = $conn.read();
 
+# This is for HiLo only for the moment
 loop {
 	print ">> ";
-	until (inputAvailable()) {
-		sleep .2;
-	}
 	my $cmd = $*IN.get;
-	say $cmd;
+	$conn.give({ g=>'guess', guess=>$cmd});
+	say $conn.read;
 }

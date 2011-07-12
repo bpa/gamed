@@ -14,10 +14,18 @@ submethod BUILD {
     $.in_progress = True;
 }
 
-method game_init (Gamed::Server $server ) { ... }
+method game_init () { ... }
 
-multi method handle_message (Gamed::Server $server, Gamed::Player $player, %msg) { ... }
+multi method handle_message (Gamed::Player $player, %msg) { ... }
 
-method player_join (Gamed::Server $server, Gamed::Player $player) { ... }
+method player_join (Gamed::Player $player) { ... }
 
-method player_quit (Gamed::Server $server, Gamed::Player $player) { ... }
+method player_quit (Gamed::Player $player) { ... }
+
+multi method send ( %msg ) {
+	%!players.values>>.send(%msg);
+}
+
+multi method send ( %msg, $player ) {
+	$player.send(%msg);
+}

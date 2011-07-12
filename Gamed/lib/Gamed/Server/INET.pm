@@ -13,6 +13,10 @@ submethod BUILD () {
         );
 }
 
+method accept() {
+	return $!sock.accept();
+}
+
 multi method send ( %msg ) {
 	
 }

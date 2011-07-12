@@ -1,7 +1,12 @@
-#! /usr/bin/perl6
+class ncurses_client;
 
 use ncurses;
 
+has $!screen;
+has $!input_window;
+has $!output_window;
+
+submethod BUILD() {
 my $scr = initscr();
 keypad($scr, 1);
 noecho();
@@ -29,3 +34,5 @@ delwin($log);
 delwin($input);
 delwin($win);
 endwin();
+}
+
