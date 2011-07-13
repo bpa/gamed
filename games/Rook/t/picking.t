@@ -1,22 +1,24 @@
 use Test;
 use Gamed::Test::RookTest;
+use Gamed::Test::Game;
 
 class t::picking is Gamed::Test::RookTest {
 
     method setUp () {
-    	$.game = Gamed::Game::Rook.new;
-    	$.game.player_join($.server, $_) for @.players;
+    	$.game = Gamed::Game::Rook.new does Gamed::Test::Game;
+    	$.game.player_join($_) for @.players;
 		$.game.change_state('bidding');
 		$.game.bid = 150;
 		$.game.bidder = 'south';
 		$.game.current_player = 'south';
-    	$.server.reset;
-    	$.game.change_state('picking', $.server);
+    	$.game.reset;
+    	$.game.change_state('picking');
     }
 
 	method test_init() {
-		is(+$.server.player_msg, 1, "Widow was sent");
-		is(+$.server.player_msg{$.south}, 1, "To south");
+		# 1 because of the state change message
+		is(+$.game.broadcast, 1, "Widow was sent only to player");
+		is(+$.south.messages, 1, "To south");
 		#TODO check cards sent
 		is(+$.game.seats<north><hand>, 10, "North has 10 cards");
 		is(+$.game.seats<east><hand>,  10, "East has 10 cards");

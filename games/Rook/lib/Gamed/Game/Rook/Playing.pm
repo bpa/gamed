@@ -6,8 +6,8 @@ submethod BUILD () {
 	$.name = 'playing';
 }
 
-method enter_state ( Gamed::Server $server, Gamed::Game $game ) {
-	$server.send( { 'state' => 'playing' } );
+method enter_state ( Gamed::Game $game ) {
+	$game.send( { 'state' => 'playing' } );
 	$game.round = {
 		ns_points => 0,
 		ew_points => 0,

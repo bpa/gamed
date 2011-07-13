@@ -2,8 +2,8 @@ use Gamed::Test::Object;
 
 class Gamed::Test::RookTest is Gamed::Test::Object;
 
-use Gamed::Test::Server;
 use Gamed::Game::Rook;
+use Gamed::Test::Player;
 
 has $.server is rw;
 has $.north is rw;
@@ -15,10 +15,9 @@ has @.players is rw;
 
 submethod BUILD () {
 	my @players;
-    $.north = Gamed::Player.new( name => 'north', id => 1 );
-    $.east  = Gamed::Player.new( name => 'east',  id => 2 );
-    $.south = Gamed::Player.new( name => 'south', id => 3 );
-    $.west  = Gamed::Player.new( name => 'west',  id => 4 );
+    $.north = Gamed::Test::Player.new( name => 'north', id => 1 );
+    $.east  = Gamed::Test::Player.new( name => 'east',  id => 2 );
+    $.south = Gamed::Test::Player.new( name => 'south', id => 3 );
+    $.west  = Gamed::Test::Player.new( name => 'west',  id => 4 );
     @.players = $.north, $.east, $.south, $.west;
-	$.server = Gamed::Test::Server.new;
 }

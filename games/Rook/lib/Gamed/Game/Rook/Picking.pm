@@ -6,13 +6,13 @@ submethod BUILD () {
 	$.name = 'picking';
 }
 
-method enter_state ( Gamed::Server $server, Gamed::Game $game ) {
-	$server.send( { 'state' => 'picking' } );
-	$server.send( { action => 'nest', cards => $game.deck }, $game.seats{$game.bidder}<player> );
+method enter_state ( Gamed::Game $game ) {
+	$game.send( { 'state' => 'picking' } );
+	$game.send( { action => 'nest', cards => $game.deck }, $game.seats{$game.bidder}<player> );
 	$game.seats{$game.bidder}<hand>.add($game.deck.pick(*));
 }
 
-multi method handle_message ( Gamed::Server $server, Gamed::Game $game, Gamed::Player $player, %msg ) {
+multi method handle_message ( Gamed::Game $game, Gamed::Player $player, %msg ) {
 #    unsigned char mask, trump;
 #    unsigned char card;
 #    RookData *rook = (RookData*)game->data;

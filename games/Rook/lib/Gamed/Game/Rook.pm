@@ -43,7 +43,7 @@ submethod BUILD {
     self.change_state('joining');
 }
 
-method player_join (Gamed::Server $server, Gamed::Player $player) {
+method player_join (Gamed::Player $player) {
 	$.in_progress = True;
 
 	# For now, maintain ordering for tests
@@ -54,16 +54,18 @@ method player_join (Gamed::Server $server, Gamed::Player $player) {
             $seat<ready> = False;
             $player.game = { seat => $dir };
             $.players++;
+			%!players{$dir} = $player;
             last;
         }
     }
     
-    $server.send( { player_joined => $player.game<seat> } );
-    self.change_state('bidding', $server) if $.players == 4;
+    self.send( { player_joined => $player.game<seat> } );
+    self.change_state('bidding') if $.players == 4;
 }
 
-method player_quit (Gamed::Server $server, Gamed::Player $player) {
+method player_quit (Gamed::Player $player) {
     $.players--;
-    %.seats{$player.game<seat>}<player> = Any;
+    %.seats{$player.game<seat>}<player> = Mu;
+	%!players.delete($player.game<seat>);
 	$.in_progress = False if $.players < 1;
 }
