@@ -4,15 +4,15 @@ class Gamed::Game::Color::State is Gamed::State;
 
 has $.next_state is rw;
 
-method enter_state ( Gamed::Server $server, Gamed::Game $game ) {
-	$server.send( { enter => $.name } );
+method enter_state ( Gamed::Game $game ) {
+	$game.send( { enter => $.name } );
 }
 
-multi method handle_message ( Gamed::Server $server, Gamed::Game $game, Gamed::Player $player, %msg ) {
-    $server.send( { color => $.name }, $player );
-    $game.change_state( $.next_state, $server ) if %msg<color> eq $.next_state;
+multi method handle_message ( Gamed::Game $game, Gamed::Player $player, %msg ) {
+    $player.send( { color => $.name } );
+    $game.change_state( $.next_state ) if %msg<color> eq $.next_state;
 }
 
-method leave_state ( Gamed::Server $server, Gamed::Game $game ) {
-	$server.send( { leave => $.name } );
+method leave_state ( Gamed::Game $game ) {
+	$game.send( { leave => $.name } );
 }

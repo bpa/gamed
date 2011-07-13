@@ -16,12 +16,13 @@ submethod BUILD () {
     self.change_state('blue');
 }
 
-method player_joined ( Gamed::Server $server, Gamed::Player $player ) {
+method player_joined ( Gamed::Player $player ) {
+	%!players<p> = $player;
     $.accepting_players = False;
     $.in_progress = True;
 }
 
-method player_quit ( Gamed::Server $server, Gamed::Player $player ) {
+method player_quit ( Gamed::Player $player ) {
     $.accepting_players = True;
     $.in_progress = False;
 }

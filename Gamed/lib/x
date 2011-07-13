@@ -1,9 +1,0 @@
-use Gamed::Server::INET;
-
-my $s = Gamed::Server::INET.new();
-while my $c = $s.accept() {
-while my $r = $c.recv() {
-		say "Got " ~ $r;
-		$c.send("Hello " ~ $r ~ "\n");
-	}
-}

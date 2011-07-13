@@ -1,7 +1,6 @@
 class Gamed::Game;
 
 use Gamed::Player;
-use Gamed::Server;
 
 has Num $.version is rw;
 has Str $.name is rw;

@@ -1,6 +1,4 @@
-use Gamed::Server;
-
-class Gamed::Server::INET is Gamed::Server;
+class Gamed::Server::INET;
 
 has $!sock;
 has $!filter;

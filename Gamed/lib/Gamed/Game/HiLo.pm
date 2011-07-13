@@ -11,6 +11,7 @@ submethod BUILD {
 }
 
 method player_joined( $player ) {
+	%!players<p> = $player;
     $.number  = 100.rand.ceiling;
     $.guesses = 0;
     $.accepting_players = False;
