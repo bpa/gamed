@@ -2,8 +2,9 @@
 
 use JSON::Tiny;
 use NativeCall;
+use Game;
 
-#sub inputAvailable() returns Int is native('input') { ... }
+sub inputAvailable() returns Int is native('input') { ... }
 
 my $conn = IO::Socket::INET.new(:host('localhost'), :port(3939))
 		but role { 
@@ -20,13 +21,32 @@ my $conn = IO::Socket::INET.new(:host('localhost'), :port(3939))
 		
 $conn.give({s=>'login',name=>'Bruce'});
 my $r = $conn.read();
-$conn.give({s=>'join',game=>'HiLo'});
-$r = $conn.read();
 
-# This is for HiLo only for the moment
+my $game;
+
+my %commands = (
+	'join' => sub (@a) { $game = client(@a[1]) },
+	'Xjoin' => sub (@a) { $conn.give({s=>'join',game=>@a[1]}) },
+	'quit' => sub (@a) { exit 0 },
+	'exit' => sub (@a) { exit 0 },
+);
+
+say "Games available: ";
+say games_available;
+
+print ">> ";
 loop {
-	print ">> ";
-	my $cmd = $*IN.get;
-	$conn.give({ g=>'guess', guess=>$cmd});
-	say $conn.read;
+	if (inputAvailable) {
+		my $cmd = $*IN.get;
+		my @args = $cmd.split(' ');
+		if (%commands{@args[0]}) {
+			%commands{@args[0]}(@args);
+		}
+		else {
+			$conn.give({ g=>'guess', guess=>$cmd});
+		}
+		print ">> ";
+	}
+	sleep(.1);
+	say $conn.read if $conn.ready;
 }
