@@ -13,12 +13,14 @@ method run() {
             :localport(3939),
             :listen,
         );
-	say "Waiting for one client";
-	my $c = $sock.accept();
-	my $game = Gamed::Game::HiLo.new;
-	my $player = Gamed::Player.new(:sock($c));
-	$game.player_join($player);
-	while my $r = $c.recv() {
-		$game.handle_message($player, from-json($r));
+	loop {
+		my $c = $sock.accept();
+		my $game = Gamed::Game::HiLo.new;
+		my $player = Gamed::Player.new(:sock($c));
+		$game.player_join($player);
+		while my $r = $c.recv() {
+			say $r;
+			$game.handle_message($player, from-json($r));
+		}
 	}
 }

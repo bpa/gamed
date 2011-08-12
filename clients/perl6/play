@@ -1,6 +1,5 @@
 #! /usr/bin/perl6
 
-use JSON::Tiny;
 use NativeCall;
 use Game;
 
@@ -8,6 +7,7 @@ sub inputAvailable() returns Int is native('input') { ... }
 
 my $conn = IO::Socket::INET.new(:host('localhost'), :port(3939))
 		but role { 
+			use JSON::Tiny;
 			method give($hash){ self.send(to-json($hash)) }
 			method take()     { from-json($!PIO.recv()) }
 			method read()     { $!PIO.recv() }
@@ -22,28 +22,45 @@ my $conn = IO::Socket::INET.new(:host('localhost'), :port(3939))
 $conn.give({s=>'login',name=>'Bruce'});
 my $r = $conn.read();
 
-my $game;
+my $game = client('Base');
 
 my %commands = (
-	'join' => sub (@a) { $game = client(@a[1]) },
-	'Xjoin' => sub (@a) { $conn.give({s=>'join',game=>@a[1]}) },
-	'quit' => sub (@a) { exit 0 },
-	'exit' => sub (@a) { exit 0 },
+	'create' => sub ($name, $type, :$cmd) {
+		$game = client($type);
+		$conn.give({s=>'create',name=>$name,game=>$type});
+	},
+	'join' => sub ($name, :$cmd) {
+		$game = client($name);
+		$conn.give({s=>'join',name=>$name});
+	},
+	'quit' => sub (:$cmd) { exit 0 },
+	'exit' => sub (:$cmd) { exit 0 },
 );
 
-say "Games available: ";
-say games_available;
+say "Games available: ", games_available.join(' ');
 
 print ">> ";
 loop {
 	if (inputAvailable) {
-		my $cmd = $*IN.get;
-		my @args = $cmd.split(' ');
-		if (%commands{@args[0]}) {
-			%commands{@args[0]}(@args);
+		my $input = $*IN.get;
+		my ($cmd, @args) = $input.split(' ');
+		my &f = %commands{$cmd};
+		if (&f.defined) {
+			try {
+				&f(:$cmd, |@args);
+				CATCH {
+					say $!;
+					say gather {
+						take $cmd;
+						for &f.signature.params -> $s {
+							take $s.name.substr(1) unless $s.optional;
+						}
+					}.join(' ');
+				}
+			}
 		}
 		else {
-			$conn.give({ g=>'guess', guess=>$cmd});
+			$conn.give({ g=>'guess', guess=>$input});
 		}
 		print ">> ";
 	}

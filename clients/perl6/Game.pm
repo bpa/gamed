@@ -3,7 +3,8 @@ module Game;
 sub games_available() is export {
 	my @games;
 	for dir('Game', :test(/.*\.p<[m6]>$/)) -> $file {
-		my $module = "Game/$file";
+		next if $file ~~ 'Base.pm';
+		my $module = $file;
 		$module ~~ s:g/\//::/;
 		$module ~~ s/...$//;
 		@games.push($module);
@@ -12,6 +13,7 @@ sub games_available() is export {
 }
 
 sub client(Str $game) is export {
-	require $game;
-	return $game.new;
+	my $module = "Game::$game";
+	require $module;
+	return "$module.new".eval;
 }
