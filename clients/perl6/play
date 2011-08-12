@@ -5,6 +5,24 @@ use Game;
 
 sub inputAvailable() returns Int is native('input') { ... }
 
+sub games_available() {
+	my @games;
+	for dir('Commands', :test(/.*\.p<[m6]>$/)) -> $file {
+		next if $file ~~ 'Base.pm';
+		my $module = $file;
+		$module ~~ s:g/\//::/;
+		$module ~~ s/...$//;
+		@games.push($module);
+	}
+	return @games;
+}
+
+sub client(Str $game) {
+	my $module = "Commands::$game";
+	require $module;
+	return "$module.new".eval;
+}
+
 my $conn = IO::Socket::INET.new(:host('localhost'), :port(3939))
 		but role { 
 			use JSON::Tiny;
@@ -22,20 +40,8 @@ my $conn = IO::Socket::INET.new(:host('localhost'), :port(3939))
 $conn.give({s=>'login',name=>'Bruce'});
 my $r = $conn.read();
 
-my $game = client('Base');
-
-my %commands = (
-	'create' => sub ($name, $type, :$cmd) {
-		$game = client($type);
-		$conn.give({s=>'create',name=>$name,game=>$type});
-	},
-	'join' => sub ($name, :$cmd) {
-		$game = client($name);
-		$conn.give({s=>'join',name=>$name});
-	},
-	'quit' => sub (:$cmd) { exit 0 },
-	'exit' => sub (:$cmd) { exit 0 },
-);
+my $meta = client('Server');
+my $game;
 
 say "Games available: ", games_available.join(' ');
 
@@ -43,27 +49,13 @@ print ">> ";
 loop {
 	if (inputAvailable) {
 		my $input = $*IN.get;
-		my ($cmd, @args) = $input.split(' ');
-		my &f = %commands{$cmd};
-		if (&f.defined) {
-			try {
-				&f(:$cmd, |@args);
-				CATCH {
-					say $!;
-					say gather {
-						take $cmd;
-						for &f.signature.params -> $s {
-							take $s.name.substr(1) unless $s.optional;
-						}
-					}.join(' ');
-				}
-			}
-		}
-		else {
-			$conn.give({ g=>'guess', guess=>$input});
-		}
+		my $message = $server.command($input) || $game.command($input);
+		$conn.give($message) if $message.defined;
 		print ">> ";
 	}
 	sleep(.1);
-	say $conn.read if $conn.ready;
+	if $conn.ready {
+		%resp = $conn.take;
+		%resp{s}.defined ?? $server.message(%resp) !! $game.message(%resp);
+	}
 }
