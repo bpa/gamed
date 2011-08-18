@@ -1,8 +1,5 @@
 #! /usr/bin/perl6
 
-#use Getopt::Long;
-#use Pod::Usage;
-
 use Gamed;
 my $game = Gamed;
 $game.run;

@@ -1,26 +1,33 @@
 class Gamed;
 
-use Gamed::Game::HiLo;
 use JSON::Tiny;
-
-#has $!games;
-#has $!commands;
-#has $!players;
+use Gamed::Commands;
 
 method run() {
+	my @!players;
 	my $sock = IO::Socket::INET.new(
             :localhost('localhost'),
             :localport(3939),
             :listen,
-        );
+        )
+		but role {
+			method ready () { 
+					fail("Not connected") unless $!PIO; 
+					return $!PIO.poll(1, 0, 0); 
+			}
+		}
 	loop {
-		my $c = $sock.accept();
-		my $game = Gamed::Game::HiLo.new;
-		my $player = Gamed::Player.new(:sock($c));
-		$game.player_join($player);
-		while my $r = $c.recv() {
-			say $r;
-			$game.handle_message($player, from-json($r));
+		if $sock.ready() {
+			my $c = $sock.accept();
+			@!players.push(Gamed::Player.new(:sock($c)));
+		}
+		for @!players -> $p {
+			try {
+				my $msg = $p.get_input;
+				if $msg.defined {
+					$p.game.handle_message($p, from-json($msg));
+				}
+			}
 		}
 	}
 }
