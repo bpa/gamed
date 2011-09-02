@@ -1,10 +1,13 @@
-class Gamed;
+use Gamed::Server::Commands;
+
+class Gamed does Gamed::Server::Commands;
 
 use JSON::Tiny;
-use Gamed::Commands;
+
+has %!games;
+has @!players;
 
 method run() {
-	my @!players;
 	my $sock = IO::Socket::INET.new(
             :localhost('localhost'),
             :localport(3939),
@@ -15,7 +18,7 @@ method run() {
 					fail("Not connected") unless $!PIO; 
 					return $!PIO.poll(1, 0, 0); 
 			}
-		}
+		};
 	loop {
 		if $sock.ready() {
 			my $c = $sock.accept();
@@ -23,9 +26,10 @@ method run() {
 		}
 		for @!players -> $p {
 			try {
-				my $msg = $p.get_input;
+				my $msg = from-json($p.get_input);
 				if $msg.defined {
-					$p.game.handle_message($p, from-json($msg));
+					handle_message($p, $msg)
+					|| $p.game.handle_message($p, $msg);
 				}
 			}
 		}
