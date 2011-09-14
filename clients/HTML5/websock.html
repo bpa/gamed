@@ -1,0 +1,27 @@
+<html>
+<head>
+<script type="text/javascript">
+if ("WebSocket" in window) {
+  var ws = new WebSocket("ws://localhost:3939/");
+  ws.onopen = function() {
+    // Web Socket is connected. You can send data by send() method.
+	console.log("sending hello");
+    ws.send("hello");
+  };
+  ws.onmessage = function (evt) {
+	console.log("onmessage");
+	var received_msg = evt.data;
+		console.log(received_msg);
+    ws.send("bye");
+	};
+  ws.onclose = function() { // websocket is closed.
+	console.log("onclose");
+    };
+} else {
+  console.log(":-(");
+}
+</script>
+</head>
+<body>
+</body>
+</html>

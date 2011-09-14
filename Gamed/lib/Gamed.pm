@@ -1,24 +1,19 @@
-use Gamed::Server::Commands;
+#use Gamed::Server::Commands;
 
-class Gamed does Gamed::Server::Commands;
+class Gamed;# does Gamed::Server::Commands;
 
 use JSON::Tiny;
+use WebSocket;
 
 has %!games;
 has @!players;
 
 method run() {
-	my $sock = IO::Socket::INET.new(
+	my $sock = WebSocket.new(
             :localhost('localhost'),
             :localport(3939),
             :listen,
-        )
-		but role {
-			method ready () { 
-					fail("Not connected") unless $!PIO; 
-					return $!PIO.poll(1, 0, 0); 
-			}
-		};
+        );
 	loop {
 		if $sock.ready() {
 			my $c = $sock.accept();
