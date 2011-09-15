@@ -1,8 +1,39 @@
 #! /usr/bin/perl6
 
 use Gamed;
-my $game = Gamed;
-$game.run;
+use Gamed::Client;
+use Gamed::Player;
+use Gamed::Socket;
+
+my $gamed = Gamed;
+my $sock = Gamed::Socket.new(
+		:localhost('localhost'),
+		:localport(3939),
+		:listen,
+	);
+
+loop {
+	my %players;
+	if $sock.ready() {
+		say "Got connection...";
+		my $s = $sock.accept;
+		my $c = Gamed::Client.new(:sock($s));
+		%players{$s} = Gamed::Player.new(:client($c));
+	}
+	for %players -> $p {
+		try {
+			if $p.key.failed {
+				say "delete";
+				%players.delete($p.key);
+			}
+			elsif $p.key.ready {
+				say "ready";
+				$p.game.handle_message($p, $p.read);
+			}
+		}
+	}
+	sleep .1;
+}
 
 =begin END
 my ( $help, $daemonize, $file, $man, $port );
