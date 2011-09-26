@@ -1,7 +1,7 @@
-use Gamed::Player;
-use Gamed::Personality;
+use Gamed::Client;
 
 class Gamed::Bot is Gamed::Client;
+use Gamed::Personality;
 
 has Gamed::Personality $.personality;
 

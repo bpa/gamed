@@ -1,4 +1,4 @@
-class Gamed::State;
+role Gamed::State;
 
 use Gamed::Player;
 use Gamed::Game;

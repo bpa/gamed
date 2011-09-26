@@ -1,12 +1,13 @@
 <html>
 <head>
+<script type="text/javascript" src="jquery-1.6.4.min.js"></script>
+<script type="text/javascript" src="jquery.json-2.3.min.js"></script>
 <script type="text/javascript">
 if ("WebSocket" in window) {
   var ws = new WebSocket("ws://localhost:3939/");
   ws.onopen = function() {
-    // Web Socket is connected. You can send data by send() method.
 	console.log("sending hello");
-    ws.send("hello");
+    ws.send($.toJSON({"s":"list_games"}));
   };
   ws.onmessage = function (evt) {
 	console.log("onmessage");
