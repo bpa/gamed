@@ -12,23 +12,27 @@ my $sock = Gamed::Socket.new(
 		:listen,
 	);
 
+say "Ready.";
 loop {
-	my %players;
+	my @players;
 	if $sock.ready() {
 		say "Got connection...";
 		my $s = $sock.accept;
-		my $c = Gamed::Client.new(:sock($s));
-		%players{$s} = Gamed::Player.new(:client($c));
+		my $c = Gamed::Client.new($s);
+		@players.push({p=>Gamed::Player.new(:client($c)), s=>$s});
 	}
-	for %players -> $p {
+	for @players -> $p {
 		try {
-			if $p.key.failed {
-				say "delete";
-				%players.delete($p.key);
-			}
-			elsif $p.key.ready {
+			#if $p<s>.failed {
+			#	say "delete";
+			#	@players.delete($p.key);
+			#}
+			if $p<s>.ready {
 				say "ready";
-				$p.game.handle_message($p, $p.read);
+				$gamed.handle_message($p<p>, $p<s>.recv);
+			}
+			CATCH {
+				say $!;
 			}
 		}
 	}

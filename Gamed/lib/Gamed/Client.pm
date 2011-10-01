@@ -5,7 +5,7 @@ use JSON::Tiny;
 has $!sock;
 
 method new ($sock) {
-	my $websocket = WebSocket.wrap($sock);
+	my $websocket = WebSocket.new(:sock($sock));
 	$websocket.do-server-handshake;
 	return self.bless(*, :sock($websocket));
 }

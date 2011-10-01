@@ -1,6 +1,5 @@
-class Gamed::Game::Color::State;
 use Gamed::State;
-does Gamed::State;
+class Gamed::Game::Color::State does Gamed::State;
 
 use Gamed::Game;
 use Gamed::Player;
