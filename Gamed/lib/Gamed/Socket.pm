@@ -13,13 +13,16 @@ role NormalNetOpts {
 class Gamed::Socket::Wrapper {
 	does IO::Socket;
 	does NormalNetOpts;
+
 	method recv() {
 		return $!PIO.recv;
 	}
 }
 
-class Gamed::Socket is IO::Socket::INET does NormalNetOpts;
+class Gamed::Socket is IO::Socket::INET does NormalNetOpts {
 
-submethod accept() {
-	return Gamed::Socket::Wrapper.new(:PIO($!PIO.accept));
+	submethod accept() {
+		return Gamed::Socket::Wrapper.new(:PIO($!PIO.accept));
+	}
+
 }

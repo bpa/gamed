@@ -12,9 +12,9 @@ my $sock = Gamed::Socket.new(
 		:listen,
 	);
 
-say "Ready.";
+say "Listening...";
+my @players;
 loop {
-	my @players;
 	if $sock.ready() {
 		say "Got connection...";
 		my $s = $sock.accept;
@@ -29,10 +29,11 @@ loop {
 			#}
 			if $p<s>.ready {
 				say "ready";
-				$gamed.handle_message($p<p>, $p<s>.recv);
+				$gamed.handle_message($p<p>, $p<p>.recv);
 			}
 			CATCH {
 				say $!;
+				exit;
 			}
 		}
 	}

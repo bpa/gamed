@@ -6,12 +6,16 @@ has $!sock;
 
 method new ($sock) {
 	my $websocket = WebSocket.new(:sock($sock));
-	$websocket.do-server-handshake;
 	return self.bless(*, :sock($websocket));
 }
 
 method recv() {
-	return from-json($!sock.recv);
+	say $!sock;
+	my $r = $!sock.recv;
+	say $r;
+	say "got it";
+	return from-json($r);
+	#return from-json($!sock.recv);
 }
 
 method send(%msg) {

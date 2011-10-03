@@ -4,7 +4,7 @@
 #include <glib.h>
 #include <stdio.h>
 
-int setup() {
+void setup() {
 	if (!gcry_check_version (GCRYPT_VERSION)) {
 		fputs ("libgcrypt version mismatch\n", stderr);
 		exit (2);
@@ -32,4 +32,10 @@ unsigned char *sha1_base64(const unsigned char *data) {
 	base64 = base64_encode(sum);
 	free(sum);
 	return base64;
+}
+
+unsigned char *unframe_09(const unsign char *frame) {
+}
+
+unsigned char *frame_09(const unsign char *data) {
 }
