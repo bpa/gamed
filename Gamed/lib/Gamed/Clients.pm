@@ -1,11 +1,11 @@
-class Gamed::Client;
+class Gamed::Clients;
 
 use NativeCall;
 use JSON::Tiny;
 
-method listen ($sock) {
-	my $websocket = WebSocket.new(:sock($sock));
-	return self.bless(*, :sock($websocket));
+sub listen(Int $port) returns Boolean is native('client');
+
+sub next_event() is export {
 }
 
 method recv() {

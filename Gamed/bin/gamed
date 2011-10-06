@@ -2,42 +2,14 @@
 
 use Gamed;
 use Gamed::Client;
-use Gamed::Player;
-use Gamed::Socket;
 
-my $gamed = Gamed;
-my $sock = Gamed::Socket.new(
-		:localhost('localhost'),
-		:localport(3939),
-		:listen,
-	);
-
+Gamed::Clients.listen(3939);
 say "Listening...";
-my @players;
-loop {
-	if $sock.ready() {
-		say "Got connection...";
-		my $s = $sock.accept;
-		my $c = Gamed::Client.new($s);
-		@players.push({p=>Gamed::Player.new(:client($c)), s=>$s});
-	}
-	for @players -> $p {
-		try {
-			#if $p<s>.failed {
-			#	say "delete";
-			#	@players.delete($p.key);
-			#}
-			if $p<s>.ready {
-				say "ready";
-				$gamed.handle_message($p<p>, $p<p>.recv);
-			}
-			CATCH {
-				say $!;
-				exit;
-			}
-		}
-	}
-	sleep .1;
+
+my $gamed = Gamed.new;
+loop { 
+	my $event = next_event;
+	$gamed.handle(|$event);
 }
 
 =begin END
