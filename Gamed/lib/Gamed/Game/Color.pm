@@ -1,10 +1,10 @@
-#use Gamed::Game;
+use Gamed::Game;
 use Gamed::Role::StateMachine;
 
 class Gamed::Game::Color is Gamed::Game does Gamed::Role::StateMachine;
 
-#use Gamed::Game::Color::Red;
-#use Gamed::Game::Color::Blue;
+use Gamed::Game::Color::Red;
+use Gamed::Game::Color::Blue;
 
 submethod BUILD () {
 	$.name    = 'Color';

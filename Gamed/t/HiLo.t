@@ -20,7 +20,7 @@ sub guess(Int $before, Int $after, Int $num, Str $expected) {
 
 ok($game.in_progress, "Game starts out in progress");
 ok($game.accepting_players, "Game starts out accepting players");
-$game.player_joined($player);
+$game.player_join($player);
 nok($game.accepting_players, "After joining, game isn't accepting players");
 $game.number = 12;
 is($game.name, 'HiLo', "Game is named");

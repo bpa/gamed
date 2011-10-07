@@ -1,9 +1,6 @@
-#use Gamed::State;
+use Gamed::State;
 class Gamed::Game::Color::State is Gamed::State;
-
 use Gamed::Game;
-use Gamed::Player;
-
 has $.next_state is rw;
 
 method enter_state ( Gamed::Game $game ) {

@@ -3,7 +3,7 @@ class Gamed::Clients;
 use NativeCall;
 use JSON::Tiny;
 
-sub listen(Int $port) returns Boolean is native('client');
+method listen(Int $port) returns Int is native('client') { ... }
 
 sub next_event() is export {
 }

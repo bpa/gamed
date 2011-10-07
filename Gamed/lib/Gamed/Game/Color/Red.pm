@@ -1,4 +1,4 @@
-#use Gamed::Game::Color::State;
+use Gamed::Game::Color::State;
 
 class Gamed::Game::Color::Red is Gamed::Game::Color::State;
 

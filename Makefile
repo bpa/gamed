@@ -1,8 +1,12 @@
-all: _server _games _clients _docs
+all: _server _games _clients _docs _Gamed
 
 _server:
 	@echo "----  Making all in server  ----"
 	@make -C server
+
+_Gamed:
+	@echo "----  Making all in Gamed  ----"
+	@make -C Gamed
 
 _games:
 	@echo "---- Making all in games ----"

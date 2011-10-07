@@ -8,8 +8,8 @@ say "Listening...";
 
 my $gamed = Gamed.new;
 loop { 
-	my $event = next_event;
-	$gamed.handle(|$event);
+	my @event = next_event;
+	$gamed.handle(|@event);
 }
 
 =begin END

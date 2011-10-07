@@ -4,7 +4,7 @@ use WebSocket::v0;
 use WebSocket::v8;
 
 method new ($sock) {
-	my $header = $sock.recv;
+	my $header = $!sock.recv;
 	my %h;
 	my $bits;
 	for $header.split("\r\n") -> $l {

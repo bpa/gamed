@@ -1,10 +1,7 @@
 role Gamed::State;
 
-use Gamed::Player;
-use Gamed::Game;
-
 has Str $.name is rw;
 
-method enter_state ( Gamed::Game $game ) { }
-multi method handle_message ( Gamed::Game $game, Gamed::Player $player, %msg ) { ... }
-method leave_state ( Gamed::Game $game ) { }
+method enter_state ( $game ) { }
+multi method handle_message ( $game, $player, %msg ) { ... }
+method leave_state ( $game ) { }

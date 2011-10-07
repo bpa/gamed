@@ -4,7 +4,7 @@ use Gamed::Game::Color;
 use Gamed::Test::Game;
 use Gamed::Test::Player;
 
-my $game = Gamed::Game::Color.new() does Gamed::Test::Game;
+my $game = Gamed::Game::Color.new() but Gamed::Test::Game;
 my $player = Gamed::Test::Player.new;
 
 ok($game.in_progress, "Game starts out in progress");

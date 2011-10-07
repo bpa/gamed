@@ -1,12 +1,9 @@
 class Gamed::Player;
 
-has $!game;
 has $!client;
+has $.game is rw;
+has $.id;
 
 method send(%msg) {
 	$!client.send(%msg);
-}
-
-method recv() {
-	$!client.recv();
 }

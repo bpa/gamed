@@ -10,7 +10,7 @@ submethod BUILD {
     $.version = '0.1';
 }
 
-method player_joined( $player ) {
+method player_join ( $player ) {
 	%!players<p> = $player;
     $.number  = 100.rand.ceiling;
     $.guesses = 0;
