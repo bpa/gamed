@@ -1,5 +1,6 @@
 #ifndef CLIENT_SUPPORTING_LIB
 #define CLIENT_SUPPORTING_LIB
+#include <event2/event.h>
 #include <sys/queue.h>
 
 typedef struct st_client_list_head ClientList;

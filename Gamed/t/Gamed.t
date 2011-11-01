@@ -27,3 +27,4 @@ is_deeply(%msg, { guesses=>1, result=>'Too low' });
 
 $g.handle(0, $p, { s=>'quit' });
 isa_ok($p.game, Gamed::Game::None);
+done;

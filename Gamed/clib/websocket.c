@@ -14,7 +14,7 @@ ClientList clients;
 EventQueue queue;
 struct event_base *event_base;
 
-int setup() {
+void setup() {
 	if (!gcry_check_version (GCRYPT_VERSION)) {
 		fputs ("libgcrypt version mismatch\n", stderr);
 		exit (2);
@@ -25,7 +25,22 @@ int setup() {
 	event_base = event_base_new();
 	LIST_INIT(&clients);
 	TAILQ_INIT(&queue);
-	return 0; //NativeCall can't handle void return
+}
+
+void cb_func(evutil_socket_t fd, short what, void *arg) {
+	const char *data = arg;
+	printf("Got an event on socket %d:%s%s%s%s [%s]",
+			(int) fd,
+			(what&EV_TIMEOUT) ? " timeout" : "",
+			(what&EV_READ)    ? " read" : "",
+			(what&EV_WRITE)   ? " write" : "",
+			(what&EV_SIGNAL)  ? " signal" : "",
+			data);
+}
+
+static void listener_cb(struct evconnlistener *listener, evutil_socket_t fd, struct sockaddr *sa, int socklen, void *user_data) {
+	struct event *ev1 = event_new(event_base, fd, EV_READ|EV_PERSIST, cb_func, (char*)"Reading event");
+	event_add(ev1, NULL);
 }
 
 int listen_on_port(int port) {
@@ -33,6 +48,7 @@ int listen_on_port(int port) {
     struct sockaddr_in sa;
     socklen_t sa_len;
     listener = socket(PF_INET, SOCK_STREAM, IPPROTO_IP);
+	setup();
     if (listener < 0) {
         perror("socket");
         exit(1);
@@ -58,7 +74,7 @@ int listen_on_port(int port) {
 
 Event *next_event() {
 	Event *ev;
-	if (queue.tqh_first == NULL)
+	if (queue.tqh_first == NULL) {
 		event_base_loop(event_base, EVLOOP_ONCE);
 	}
 	ev = queue.tqh_first;
@@ -69,7 +85,7 @@ Event *next_event() {
 Client *c_event_client(Event *event) { return event->client; }
 unsigned char *c_event_message(Event *event) { return event->message; }
 int c_event_type(Event *event) { return event->type; }
-int c_event_free(Event *event) { x }
+int c_event_free(Event *event) { free(event); return 0; }
 
 unsigned char *sha1sum(const unsigned char *data) {
 	int size = gcry_md_get_algo_dlen(GCRY_MD_SHA1);
@@ -104,7 +120,7 @@ void bin(unsigned char data) {
 	printf(" ");
 }
 
-unsigned char *decode_v8(const unsigned char *data) {
+const unsigned char *decode_v8(const unsigned char *data) {
 	int i;
 	for (i=0;i<16;i++) {
 		bin(data[i]);

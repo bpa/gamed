@@ -1,6 +1,5 @@
 class WebSocket::v8;
 
-use Support;
 has $!sock;
 
 method new($sock, %header, $extra) {
