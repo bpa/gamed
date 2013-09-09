@@ -98,6 +98,10 @@ void produce_armies (GameInstance *g, const Server *s) {
             player_cmd_a(s, p->player, SR_CMD_GET_ARMIES, p->armies);
         }
     }
+	if (board->army_generation_time > 15)
+		board->army_generation_time--;
+	all_cmd_f(g, s, SR_CMD_NEXT_ARMY_PRODUCTION, board->army_generation_time);
+	s->add_timer(g, board->army_generation_time, false);
 }
 
 void init_board(GameInstance *game, const Server *s) {
@@ -166,6 +170,7 @@ void game_init (GameInstance *g, const Server *s) {
     bzero(data, sizeof(SpeedRiskData));
     g->data = data;
     data->status.command.command = SR_CMD_GAME_STATUS;
+    data->army_generation_time = SR_GENERATION_PERIOD;
     msg_error.command = SR_CMD_ERROR;
     msg_move.command.command = SR_CMD_MOVE_RESULT;
     build_border_table();
@@ -237,7 +242,7 @@ void start_placing(GameInstance *g, const Server *s) {
 void start_playing(GameInstance *g, const Server *s) {
 	msg_command.command = SR_CMD_BEGIN;
 	s->tell_all(g,(char*)&msg_command,4);
-	s->add_timer(g, SR_GENERATION_PERIOD, true);
+	s->add_timer(g, ((SpeedRiskData*)g->data)->army_generation_time, false);
 	s->log(g, "Starting SpeedRisk");
 	strcpy(g->status, "At war");
 }

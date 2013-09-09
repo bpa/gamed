@@ -21,6 +21,7 @@ typedef struct {
 typedef struct {
     SR_Game_Status status;
     SR_Player      players[SR_MAX_PLAYERS];
+    int            army_generation_time;
 } SpeedRiskData;
 
 void build_border_table();
