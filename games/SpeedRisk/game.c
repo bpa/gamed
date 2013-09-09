@@ -101,7 +101,7 @@ void produce_armies (GameInstance *g, const Server *s) {
 	if (board->army_generation_time > 15)
 		board->army_generation_time--;
 	all_cmd_f(g, s, SR_CMD_NEXT_ARMY_PRODUCTION, board->army_generation_time);
-	s->add_timer(g, board->army_generation_time, false);
+	s->add_timer(g, board->army_generation_time * 1000, false);
 }
 
 void init_board(GameInstance *game, const Server *s) {
@@ -242,9 +242,10 @@ void start_placing(GameInstance *g, const Server *s) {
 void start_playing(GameInstance *g, const Server *s) {
 	msg_command.command = SR_CMD_BEGIN;
 	s->tell_all(g,(char*)&msg_command,4);
-	s->add_timer(g, ((SpeedRiskData*)g->data)->army_generation_time, false);
+	s->add_timer(g, ((SpeedRiskData*)g->data)->army_generation_time * 1000, false);
 	s->log(g, "Starting SpeedRisk");
 	strcpy(g->status, "At war");
+	all_cmd_f(g, s, SR_CMD_NEXT_ARMY_PRODUCTION, ((SpeedRiskData*)g->data)->army_generation_time);
 }
 
 void start_ending(GameInstance *g, const Server *s) {

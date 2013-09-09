@@ -151,11 +151,13 @@ void handle_network_event(int sock, short event, void *args) {
             }
         }
         buff[r] = '\0';
+		/*
         fprintf(stderr,"%i %i %i:", buff[0], buff[1], (unsigned short)buff[2]);
         for(i=4;i<r+4;i++) {
             fprintf(stderr," %u", buff[i]);
         }
         fprintf(stderr,"\n");
+		*/
         switch (cmd->command) {
             case CMD_NOP:
                 if (send(sock, 0x0000, 4, MSG_DONTWAIT) == -1) {
