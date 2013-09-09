@@ -282,10 +282,28 @@ void quit_game (GameInstance *g, const Server *s) {
         return; \
     }
 
+void give_player_status(GameInstance *g, const Server *s, Player *p, const char *req, int len) {
+    	SpeedRiskData *srd;
+	int i;
+	SR_Player *player;
+    	srd = (SpeedRiskData*)g->data;
+	msg_command.command = SR_CMD_PLAYER_STATUS;
+	msg_command.from = p->in_game_id;
+	msg_command.to = g->playing;
+	msg_command.armies = srd->players[p->in_game_id].armies;
+	s->tell_player(p,(char*)&msg_command,4);
+
+	for (i=0; i<SR_MAX_PLAYERS; i++) {
+		player = &srd->players[i];
+		if (player->player != NULL) {
+			player_cmd_f(s, p, player->ready ? SR_CMD_READY : SR_CMD_NOTREADY, i);
+		}
+	}
+}
+
 void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *req, int len) {
     SpeedRiskData *srd;
 	int all_ready, i;
-	SR_Player *player;
     SR_Command *cmd = (SR_Command*)req;
 	return_if_invalid(cmd);
     srd = (SpeedRiskData*)g->data;
@@ -311,18 +329,7 @@ void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *req
 			all_cmd_f(g, s, SR_CMD_NOTREADY, p->in_game_id);
 			break;
 		case SR_CMD_PLAYER_STATUS:
-			msg_command.command = SR_CMD_PLAYER_STATUS;
-			msg_command.from = p->in_game_id;
-			msg_command.to = g->playing;
-			msg_command.armies = 0;
-			s->tell_player(p,(char*)&msg_command,4);
-
-			for (i=0; i<SR_MAX_PLAYERS; i++) {
-				player = &srd->players[i];
-				if (player->player != NULL) {
-					player_cmd_f(s, p, player->ready ? SR_CMD_READY : SR_CMD_NOTREADY, i);
-				}
-			}
+			give_player_status(g, s, p, req, len);
 			break;
 		default:
 			player_error(s, p, SR_ERR_INVALID_CMD);
@@ -367,6 +374,9 @@ void handle_placing(GameInstance *g, const Server *s, Player *p, const char *req
 				player_cmd_a(s, p, SR_CMD_GET_ARMIES,
 					srd->players[p->in_game_id].armies);
 			}
+		case SR_CMD_PLAYER_STATUS:
+			give_player_status(g, s, p, req, len);
+			break;
             break;
 		default:
 			player_error(s, p, SR_ERR_INVALID_CMD);
