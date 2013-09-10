@@ -107,8 +107,8 @@ void tell_player (Player *p, const char *msg, size_t len) {
         len = strlen(msg);
     }
     SET_CMD(CMD_GAME, CMD_MESSAGE, len, buff);
-    if (send(((Client*)p)->sock, &buff[0], 4, MSG_NOSIGNAL) == -1 ||
-        send(((Client*)p)->sock, msg, len, MSG_NOSIGNAL) == -1) {
+	memcpy(&buff[4], msg, len);
+    if (send(((Client*)p)->sock, &buff[0], len+4, MSG_NOSIGNAL) == -1) {
 		drop_client((Client*)p, -1);
     }
 }
