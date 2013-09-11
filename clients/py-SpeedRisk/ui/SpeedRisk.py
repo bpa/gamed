@@ -1,12 +1,10 @@
-#!/usr/local/bin/python
-
 import os
 import pygame
 import traceback
+from client.SpeedRisk import SpeedRisk
 from pygame.locals import *
-from Borders import borders
+from client.SpeedRiskBorders import borders
 from math import ceil
-from Client import *
 
 dirty = True
 color = pygame.color.THECOLORS
@@ -40,7 +38,6 @@ class CountryDisplay(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self, group)
         self.sprites = [self]
         self.setup(img, x, y, lx, ly, country, False)
-        self.country.add_observer(self,['armies','owner'])
         self.render_token()
 
     def add_image(self, img, x, y, lx, ly):
@@ -55,14 +52,13 @@ class CountryDisplay(pygame.sprite.Sprite):
              something in that supports all the operations of the base object'''
         if sprite != None: self = sprite
         self.country = country
-        self.name = COUNTRIES[country.id]
         self.image = img
         self.rect = img.get_rect().move(x,y)
         self.set_selected(selected)
         self.token_pos = (lx, ly)
 
     def render_token(self):
-        global client
+        global client, font
         if self.country.owner == client.player_id:
             self.token = font.render(str(self.country.armies), True, \
                 black, TOKEN_COLORS[self.country.owner])
@@ -70,20 +66,12 @@ class CountryDisplay(pygame.sprite.Sprite):
         else:
             self.token = font.render(str(self.country.armies), True, black)
 
-    def handle_observation(self, c, field, old, new):
-        global dirty
-        dirty = True
-        self.render_token()
-        if field == 'owner':
-            self.set_selected(self.selected)
-
     def set_selected(self, selected):
         global dirty
         dirty = True
         self.selected = selected
         color = PLAYER_COLORS[self.country.owner]
         if selected:
-            reverse = (255 - color[0], 255 - color[1], 255 - color[2])
             for s in self.sprites:
                 c = pygame.surfarray.pixels3d(s.image)
                 #c[1::2,1::2] = (0,0,0)
@@ -147,24 +135,24 @@ class Status:
     def __init__(self, client):
         self.font = pygame.font.Font(None, 24)
         self.players = map(lambda p: Player(p, self.font), range(6))
+        self.state = "Waiting for players"
         self.background_rect = pygame.Rect(0,0,1,1)
-        client.add_observer(self, ['players','state','reserve'])
-        client.set_status(self)
         self.client = client
         self.status = "Waiting for players"
         self.status_rect = pygame.Rect(0,0,10,10)
         self.armies = "0 in reserve"
         self.armies_rect = pygame.Rect(0,0,10,10)
-        self.handle_observation(client, 'state', None, None)
-        self.handle_observation(client, None, None, None)
-        self.update_players()
+        self.realign()
+        self.redraw()
 
-    def handle_observation(self, c, field, old, new):
-        if field == 'state':
-            self.status_rect.size = self.font.size(c.state)
-        else:
-            self.armies = "%i armies in reserve" % c.reserve
-            self.armies_rect.size = self.font.size(self.armies)
+    def update_state(self, state):
+        self.status_rect.size = self.font.size(state)
+        self.realign()
+        self.redraw()
+
+    def update_armies(self, reserve):
+        self.armies = "%i armies in reserve" % reserve
+        self.armies_rect.size = self.font.size(self.armies)
         self.realign()
         self.redraw()
 
@@ -229,14 +217,14 @@ class Status:
                 bg.blit(p.status, r)
                 y = y + pad
         y = 0
-        for l in range(2 + players):
+        for l in range(2 + len(players)):
             line(bg, black, (0, y), (right, y))
             y = y + pad
         line(bg, black, (0, y-1), (right, y-1))
         line(bg, black, (0, 0), (0, bottom))
         line(bg, black, (right-1, 0), (right-1, bottom))
-        line(bg, black, (pad, 0), (pad, players*pad))
-        text = self.font.render(self.client.state, True, black)
+        line(bg, black, (pad, 0), (pad, len(players)*pad))
+        text = self.font.render(self.state, True, black)
         bg.blit(text, self.status_rect)
         text = self.font.render(self.armies, True, black)
         bg.blit(text, self.armies_rect)
@@ -247,9 +235,6 @@ class Status:
             self.players[player].set_ready(ready)
             self.redraw()
             dirty = True
-
-    def update_players(self):
-        self.client.update_players()
 
     def add_player(self, names):
         while len(names) > 0:
@@ -312,21 +297,22 @@ class Picker:
         else:
             return 0
 
-class SpeedRiskUI:
-    def __init__(self):
+class SpeedRiskUI(SpeedRisk):
+    def __init__(self, host, port, name):
+        SpeedRisk.__init__(self, host, port, name)
         #pygame.key.set_repeat(500,15)
         #pygame.display.list_modes(0,FULLSCREEN|HWACCEL)
-        global client
+        global client, font, black, players
+        font = pygame.font.Font(None, 20)
+        black = pygame.color.Color('black')
+        players = pygame.sprite.RenderPlain()
+        client = self
         ss = pygame.Rect(0,0,650,375)
         self.screen_size = ss
         self.screen = pygame.display.set_mode(ss.size,HWACCEL)
         self.clock = pygame.time.Clock()
         self.fg = pygame.color.Color('white')
         self.bg = pygame.color.Color('black')
-        self.client = Client(self)
-        client = self.client
-        self.status = Status(self.client)
-        self.client.add_observer(self, ['players'])
         self.load_images()
         self.picker = Picker(ss)
         self.selected_country = None
@@ -335,6 +321,7 @@ class SpeedRiskUI:
         self.action = None
         self.action_from = 0
         self.action_to = 0
+        self.status = Status(self)
 
     def run(self):
         self.running = True
@@ -342,16 +329,7 @@ class SpeedRiskUI:
             self.draw_screen()
             self.handle_user_events()
             try:
-                reading = True
-                while reading:
-                    (reading, action) = self.client.recv_command()
-                    if reading:
-                        if action == 'UPDATE':
-                            if self.selected_country != None:
-                                if self.selected_country.country.owner \
-                                        != self.client.player_id:
-                                    self.selected_country.set_selected(False)
-                                    self.selected_country = None
+                self.poll()
             except Exception, e:
                 traceback.print_exc()
             self.clock.tick(40);
@@ -372,13 +350,13 @@ class SpeedRiskUI:
                 self.overlay_info[id].add_image(image, \
                     int(x), int(y), int(lx), int(ly))
             else:
-                obj = self.client.countries[id]
+                obj = self.countries[id]
                 self.overlay_info[id] = \
                     CountryDisplay(self.overlays, image, \
                         int(x), int(y), int(lx), int(ly), obj)
 
     def draw_screen(self):
-        global dirty
+        global dirty, players
         #self.screen.fill(self.bg)
         if dirty:
             self.screen.blit(self.background,(0,0))
@@ -398,18 +376,18 @@ class SpeedRiskUI:
                    event.key == ord('q'):
                     self.running = False
                 elif event.key == ord('r'):
-                    if self.client.ready:
-                        self.client.ready = False
-                        self.client.send_command('NOTREADY')
+                    if self.ready:
+                        self.ready = False
+                        self.not_ready()
                     else:
-                        self.client.ready = True
-                        self.client.send_command('READY')
+                        self.ready = True
+                        self.sr_ready()
             elif event.type == MOUSEBUTTONDOWN:
                 if event.button == 1:
                     self.last_click_pos = event.pos
                     chosen = self.picker.armies_chosen(event.pos)
                     if chosen > 0:
-                        self.client.send_command(self.action, self.action_from, 
+                        self.send_command(self.action, self.action_from, 
                             self.action_to, chosen)
                         self.picker.deactivate()
                         return
@@ -432,7 +410,7 @@ class SpeedRiskUI:
                                     self.init_move_or_attack(event.pos,c)
                                 else:
                                     self.picker.deactivate()
-                            if c.country.owner == self.client.player_id:
+                            if c.country.owner == self.player_id:
                                 if self.selected_country != None:
                                     self.selected_country.set_selected(False)
                                 self.selected_country = c
@@ -440,8 +418,8 @@ class SpeedRiskUI:
                         self.last_click = now
 
     def init_place(self, pos, to_country):
-        if self.client.reserve > 0:
-            self.picker.activate(pos, self.client.reserve)
+        if self.reserve > 0:
+            self.picker.activate(pos, self.reserve)
             self.choosing_count = True
             self.action = 'PLACE';
             self.action_to = to_country.country.id
@@ -461,15 +439,10 @@ class SpeedRiskUI:
                 self.action_to   = t_id
             else:
                 armies = min(armies_available, 3)
-                self.client.send_command('ATTACK', f_id, t_id, armies)
+                self.attack(f_id, t_id, armies)
                 self.picker.deactivate()
         else:
             self.picker.deactivate()
-
-    def handle_observation(self, c, field, old, new):
-        #if field == 'players':
-        if old != new:
-            self.status.update_players()
 
     def finish_attack(self, cid):
         c = self.overlay_info[cid]
@@ -480,11 +453,3 @@ class SpeedRiskUI:
                 self.selected_country = c
                 c.set_selected(True)
 
-if __name__ == "__main__":
-    pygame.display.init()
-    pygame.font.init()
-    font = pygame.font.Font(None, 20)
-    black = pygame.color.Color('black')
-    players = pygame.sprite.RenderPlain()
-    ui = SpeedRiskUI()
-    ui.run()

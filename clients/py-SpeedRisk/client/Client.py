@@ -1,5 +1,6 @@
 import socket
 from struct import pack, unpack
+import SpeedRisk
 
 class Client:
     _commands = {}
@@ -11,11 +12,15 @@ class Client:
         self.sock.setblocking(0)
 
     def poll(self):
+        while self.poll_one():
+            pass
+
+    def poll_one(self):
         cmd = None
         try:
             cmd = self.sock.recv(4)
         except:
-            return
+            return False
         (major, minor, msg_len) = unpack(">2bH", cmd)
         msg = None
         if msg_len > 0:
@@ -24,8 +29,8 @@ class Client:
             self.sock.setblocking(0)
         handler = None
         try:
-            handler = Client._commands[major][minor]
-        except AttributeError:
+            handler = Client._commands[major, minor]
+        except KeyError:
             print "No handler for %i %i" % (major, minor)
             return
         try:
@@ -33,6 +38,7 @@ class Client:
             h(msg)
         except AttributeError:
             print "No callback for %s" % handler
+        return True
 
 def __command(major, minor, name):
     def wrapped(self, *msg):
@@ -44,9 +50,7 @@ def __command(major, minor, name):
             self.sock.send(pack(">2BH", major, minor, 0))
     setattr(Client, name, wrapped)
 
-    if not Client._commands.has_key(major):
-        Client._commands[major] = {}
-    Client._commands[major][minor] = "on_" + name
+    Client._commands[major, minor] = "on_%s" % name
 
 __command(1, 0, 'invalid_command')
 __command(2, 0, 'game_full')
