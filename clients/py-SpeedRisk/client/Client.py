@@ -1,6 +1,6 @@
+import client
 import socket
 from struct import pack, unpack
-import SpeedRisk
 
 class Client:
     _commands = {}
@@ -37,7 +37,8 @@ class Client:
             h = getattr(self, handler)
             h(msg)
         except AttributeError:
-            print "No callback for %s" % handler
+            if client.warnings:
+                print "No callback for %s" % handler
         return True
 
 def __command(major, minor, name):

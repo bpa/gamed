@@ -38,6 +38,7 @@ public class Country {
     protected boolean isSelected;
     protected Rectangle bounds;
     protected Rectangle iconBounds;
+	volatile boolean initialized = false;
     
     protected Country() {}
     
@@ -53,6 +54,8 @@ public class Country {
         img = makeBufferedImage(overlay);
         bounds = new Rectangle(x, y, img.getWidth(), img.getHeight());
         iconBounds = new Rectangle(lx, ly, 18, 15);
+		initialized = true;
+		colorImage(img);
     }
     
     public void setOwner(int o) {
@@ -74,6 +77,8 @@ public class Country {
     
     public void setSelected(boolean selected) {
         isSelected = selected;
+		if (!initialized)
+			return;
         if (isSelected) {
             colorSelectedImage(img);
         } else {
@@ -126,10 +131,6 @@ public class Country {
         for (int i=0; i<w; i++) {
             for (int j=0; j<h; j++) {
                 v = image.getRGB(i, j);
-                //c[::] = (0,0,0)
-                //c[ ::2, ::2] = color
-                //c[1::4,1::4] = color
-// TODO Evaluate if stipple is worth doing or not
                 image.setRGB(i, j, v & 0xff000000);
             }
         }            

@@ -30,19 +30,24 @@ public class Kamchat extends Country {
         y2 = 57;
     }
     
+	@Override
     public void init() {
-        super.init();
         img2 = makeBufferedImage(overlay2);
         bounds2 = new Rectangle(x2, y2, img2.getWidth(), img2.getHeight());
+        super.init();
     }
     
+	@Override
     public void paint(Graphics g) {
         g.drawImage(img, x, y, null);
         g.drawImage(img2, x2, y2, null);
     }
 
+	@Override
     public void setSelected(boolean selected) {
         isSelected = selected;
+		if (!initialized)
+			return;
         if (isSelected) {
             colorSelectedImage(img);
             colorSelectedImage(img2);
@@ -52,6 +57,7 @@ public class Kamchat extends Country {
         }
     }
 
+	@Override
     public boolean contains(java.awt.Point p) {
         if (super.contains(p)) {
             return true;

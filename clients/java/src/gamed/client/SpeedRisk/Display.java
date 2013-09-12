@@ -50,6 +50,7 @@ public class Display extends gamed.Game
         playerDisplays = new JCheckBox[6];
         playerReady = new boolean[6];
         initComponents();
+        initCountries();
         atWar = false;
         byte cmd[] = {PLAYER_STATUS, 0, 0, 0};
         s.sendGameData(cmd);
@@ -80,7 +81,6 @@ public class Display extends gamed.Game
     
     public void run() {
 		armyGenerationProgress.setVisible(false);
-        initCountries();
         initMediaDownload();
         while(images_downloaded < TOTAL_IMAGES) {
             try {

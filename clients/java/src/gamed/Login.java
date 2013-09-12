@@ -7,7 +7,6 @@ package gamed;
  */
 import javax.swing.JApplet;
 import java.awt.CardLayout;
-import java.lang.Thread;
 
 /**
  *
@@ -18,7 +17,6 @@ public class Login extends JApplet implements GameListing, Server, Runnable {
     private volatile Game currentGame;
     private Thread thread;
     private volatile boolean running;
-    private boolean eraseStatus;
     private PollGames pollThread;
     private volatile String game;
 
@@ -285,7 +283,6 @@ public class Login extends JApplet implements GameListing, Server, Runnable {
         }
     }
     
-    
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.DefaultListModel gameList;
     private javax.swing.JList availableGameList;
@@ -383,6 +380,5 @@ public class Login extends JApplet implements GameListing, Server, Runnable {
     
     public void handleErrorMessage(String error) {
         statusLabel.setText(error);
-        eraseStatus = false;
     }
 }

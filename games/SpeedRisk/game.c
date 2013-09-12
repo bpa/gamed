@@ -289,10 +289,10 @@ void quit_game (GameInstance *g, const Server *s) {
     }
 
 void give_player_status(GameInstance *g, const Server *s, Player *p, const char *req, int len) {
-    	SpeedRiskData *srd;
+    SpeedRiskData *srd;
 	int i;
 	SR_Player *player;
-    	srd = (SpeedRiskData*)g->data;
+    srd = (SpeedRiskData*)g->data;
 	msg_command.command = SR_CMD_PLAYER_STATUS;
 	msg_command.from = p->in_game_id;
 	msg_command.to = g->playing;
@@ -316,6 +316,8 @@ void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *req
 	switch (cmd->command) {
 		case SR_CMD_READY:
 			if (g->playing > 1) {
+				if (srd->players[p->in_game_id].ready)
+					return;
 				srd->players[p->in_game_id].ready = true;
 				all_cmd_f(g, s, SR_CMD_READY, p->in_game_id);
 				all_ready = true;
@@ -331,6 +333,8 @@ void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *req
 			}
 			break;
 		case SR_CMD_NOTREADY:
+			if (!srd->players[p->in_game_id].ready)
+				return;
 			srd->players[p->in_game_id].ready = false;
 			all_cmd_f(g, s, SR_CMD_NOTREADY, p->in_game_id);
 			break;
@@ -351,6 +355,8 @@ void handle_placing(GameInstance *g, const Server *s, Player *p, const char *req
     srd = (SpeedRiskData*)g->data;
 	switch (cmd->command) {
 		case SR_CMD_READY:
+			if (srd->players[p->in_game_id].ready)
+				return;
 			srd->players[p->in_game_id].ready = true;
 			all_cmd_f(g, s, SR_CMD_READY, p->in_game_id);
 			all_ready = true;
@@ -362,6 +368,8 @@ void handle_placing(GameInstance *g, const Server *s, Player *p, const char *req
 			}
 			break;
 		case SR_CMD_NOTREADY:
+			if (!srd->players[p->in_game_id].ready)
+				return;
 			srd->players[p->in_game_id].ready = false;
 			all_cmd_f(g, s, SR_CMD_NOTREADY, p->in_game_id);
 			break;
@@ -382,7 +390,6 @@ void handle_placing(GameInstance *g, const Server *s, Player *p, const char *req
 			}
 		case SR_CMD_PLAYER_STATUS:
 			give_player_status(g, s, p, req, len);
-			break;
             break;
 		default:
 			player_error(s, p, SR_ERR_INVALID_CMD);

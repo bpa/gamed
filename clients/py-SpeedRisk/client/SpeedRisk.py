@@ -1,4 +1,4 @@
-import socket
+import client
 from Client import Client
 from struct import pack, unpack
 
@@ -20,16 +20,24 @@ class SpeedRisk(Client):
     def __init__(self, host, port, name):
         Client.__init__(self, host, port, name)
         self.init_countries()
-        self.ready = False
         self.players = map(lambda x: Player(x), range(6))
         self.reserve = 0
         self.player_id = 0
+
+    def on_join_game(self, game):
+        self.player_status()
+
+    def on_create_game(self, game):
+        self.player_status()
 
     def on_player_join(self):
         self.list_players()
 
     def on_player_quit(self):
         self.list_players()
+
+    def on_player_status(self, f, t, a):
+        self.player_id = f
 
     def init_countries(self):
         self.countries = map(lambda i: Country(i[0], i[1]),
@@ -56,21 +64,22 @@ class SpeedRisk(Client):
         except AttributeError:
             print "No command known for op", op
             return
+        print name, f, t, a
         try:
             handler = getattr(self, name)
             args = handler.func_code.co_argcount
             if args == 1:
-                handler(self)
+                handler()
             elif args == 2:
-                handler(self, data)
+                handler(data)
             else:
                 if data == None:
-                    handler(self, f, t, a)
+                    handler(f, t, a)
                 else:
-                    handler(self, f, t, a, data)
+                    handler(f, t, a, data)
         except AttributeError:
-            print "No handler for", name
-            pass
+            if client.warnings:
+                print "No handler for", name
 
 def __command(op, name):
     def wrapped(self, f=0, t=0, a=0):
@@ -79,10 +88,10 @@ def __command(op, name):
     setattr(SpeedRisk, name, wrapped)
     SpeedRisk._commands[op] = "on_" + name
 
-__command( 0, 'sr_player_join')
+__command( 0, 'player_join')
 __command( 1, 'message')
-__command( 2, 'sr_error')
-__command( 3, 'sr_ready')
+__command( 2, 'error')
+__command( 3, 'ready')
 __command( 4, 'not_ready')
 __command( 5, 'start_placing')
 __command( 6, 'begin')
