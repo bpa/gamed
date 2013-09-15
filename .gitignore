@@ -4,3 +4,5 @@
 runtests
 /clients/java/build/
 /clients/java/dist/
+*.sw?
+*~
