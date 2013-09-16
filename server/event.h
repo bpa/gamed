@@ -7,6 +7,6 @@ typedef unsigned char u_char;
 
 #include <sys/time.h>
 #include <time.h>
-#include <event.h>
+#include <event2/event.h>
 
 #endif

@@ -4,7 +4,7 @@ OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
 CFLAGS = -Wall -pedantic -ansi
 INC = -I../../include -iquote..
-LIBS = -L.. -l:gamed.so -levent -ldl -lgtest -lgtest_main
+LIBS = -lpthread ../gamed.so -L /usr/local/lib -levent -ldl -lgtest -lgtest_main
 CPP = g++ 
 
 test: runtests run-tests

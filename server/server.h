@@ -4,7 +4,7 @@
 #include <sys/cdefs.h>
 #include <sys/queue.h>
 #include <sys/time.h>
-#include <event.h>
+#include <event2/event.h>
 #include <gamed/game.h>
 #include "command.h"
 
@@ -19,27 +19,27 @@ LIST_HEAD(st_game_module_instance_head, st_game_module_instance);
 LIST_HEAD(st_game_module_list_head, st_game_module);
 
 typedef struct st_client {
-    Player player;
+	Player player;
 	int sock;
-    GameModuleInstance *game;
-    LIST_ENTRY(st_client) client_entry;
-    LIST_ENTRY(st_client) player_entry;
-    struct event ev;
+	GameModuleInstance *game;
+	LIST_ENTRY(st_client) client_entry;
+	LIST_ENTRY(st_client) player_entry;
+	struct event *ev;
 } Client;
 
 typedef struct st_game_module {
 	Game game;
-    LIST_ENTRY(st_game_module) game_entry;
+	LIST_ENTRY(st_game_module) game_entry;
 	GameModuleInstanceList instance_list;
 	int instances;
 } GameModule;
 
 struct st_game_module_instance {
 	GameInstance instance;
-    LIST_ENTRY(st_game_module_instance) game_instance_entry;
+	LIST_ENTRY(st_game_module_instance) game_instance_entry;
 	ClientList players;
 	GameModule *module;
-    struct event timer;
+	struct event *timer;
 	struct timeval period;
 	int timer_is_persistent;
 };

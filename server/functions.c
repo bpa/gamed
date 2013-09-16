@@ -22,6 +22,7 @@ void tell_all(GameInstance *g, const char *fmt, size_t);
 void add_timer(GameInstance *g, int milliseconds, bool persistent);
 void log_message(GameInstance *g, const char *fmt, ...);
 extern void handle_timer(int sock, short event, void *args);
+extern event_base *ev_base;
 
 Server server_funcs = {
 	&get_random,
@@ -51,8 +52,8 @@ void change_state(GameInstance *g, State *s) {
     if (g->state != NULL && g->state->leave_state != NULL) {
 		g->state->leave_state(g, &server_funcs);
 	}
-	if (event_pending(&((GameModuleInstance *)g)->timer, EV_TIMEOUT, NULL)) {
-		event_del(&((GameModuleInstance *)g)->timer);
+	if (event_pending(((GameModuleInstance *)g)->timer, EV_TIMEOUT, NULL)) {
+		event_del(((GameModuleInstance *)g)->timer);
 	}
     g->state = s;
     if (s->enter_state != NULL) {
@@ -63,7 +64,8 @@ void change_state(GameInstance *g, State *s) {
 /******************************************************************************/
 void game_over(GameInstance *g) {
 	Client *first, *next;
-	first = LIST_FIRST(&((GameModuleInstance *)g)->players);
+	GameModuleInstance *instance = (GameModuleInstance *)g;
+	first = LIST_FIRST(&instance->players);
 	while (first != NULL) {
 		next = LIST_NEXT(first, player_entry);
 		LIST_REMOVE(first, player_entry);
@@ -72,17 +74,18 @@ void game_over(GameInstance *g) {
 		first = next;
 	}
 	g->playing = 0;
-	if (((GameModuleInstance*)g)->module->game.destroy != NULL) {
-		((GameModuleInstance*)g)->module->game.destroy(g, &server_funcs);
+	if (instance->module->game.destroy != NULL) {
+		instance->module->game.destroy(g, &server_funcs);
 	}
 	else {
 		if (g->data != NULL) free(g->data);
 	}
-	((GameModuleInstance*)g)->module->instances--;
-	if (event_initialized(&((GameModuleInstance*)g)->timer)) {
-		event_del(&((GameModuleInstance*)g)->timer);
+	instance->module->instances--;
+	if (event_initialized(instance->timer)) {
+		event_del(instance->timer);
+		event_free(instance->timer);
 	}
-    LIST_REMOVE(((GameModuleInstance*)g), game_instance_entry);
+    LIST_REMOVE(instance, game_instance_entry);
 	free(g);
 }
 /******************************************************************************/
@@ -151,8 +154,8 @@ void add_timer (GameInstance *game, int milliseconds, bool persistent) {
 	g->period.tv_sec = milliseconds / 1000;
 	g->period.tv_usec = (milliseconds % 1000) * 1000;
 	g->timer_is_persistent = persistent;
-    event_set(&g->timer, 0, EV_TIMEOUT, &handle_timer, g);
-    event_add(&g->timer, &g->period);
+    g->timer = event_new(ev_base, -1, 0, &handle_timer, g);
+    event_add(g->timer, &g->period);
 }
 /******************************************************************************/
 
