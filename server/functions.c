@@ -22,7 +22,6 @@ void tell_all(GameInstance *g, const char *fmt, size_t);
 void add_timer(GameInstance *g, int milliseconds, bool persistent);
 void log_message(GameInstance *g, const char *fmt, ...);
 extern void handle_timer(int sock, short event, void *args);
-extern event_base *ev_base;
 
 Server server_funcs = {
 	&get_random,
@@ -52,8 +51,9 @@ void change_state(GameInstance *g, State *s) {
     if (g->state != NULL && g->state->leave_state != NULL) {
 		g->state->leave_state(g, &server_funcs);
 	}
-	if (event_pending(((GameModuleInstance *)g)->timer, EV_TIMEOUT, NULL)) {
-		event_del(((GameModuleInstance *)g)->timer);
+	if (((GameModuleInstance *)g)->timer != NULL && 
+		event_pending(((GameModuleInstance *)g)->timer, EV_TIMEOUT, NULL)) {
+			event_del(((GameModuleInstance *)g)->timer);
 	}
     g->state = s;
     if (s->enter_state != NULL) {

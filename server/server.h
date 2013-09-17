@@ -48,6 +48,7 @@ typedef void (*command_func)(Client *, int);
 
 extern char rand_state[8];
 extern char buff[1024];
+extern struct event_base *ev_base;
 
 __BEGIN_DECLS
 

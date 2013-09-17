@@ -16,13 +16,13 @@ static void listen_on_port(int port);
 static void handle_sig_hup(int sock, short event, void *args);
 static void handle_connect(int sock, short event, void *args);
 static void handle_network_event(int sock, short event, void *args);
-static struct event_base *ev_base;
 static struct event *ev_connection;
 static struct event *ev_sig_hup;
 static GamedCommand invalid;
 extern Server server_funcs;
 extern command_func player_commands[];
 extern command_func game_commands[];
+struct event_base *ev_base;
 
 /******************************************************************************/
 
@@ -47,7 +47,7 @@ void init_server(int port, const char *config_file) {
 /******************************************************************************/
 
 void run_server() {
-  event_dispatch();
+  event_base_dispatch(ev_base);
 }
 
 /******************************************************************************/
@@ -87,9 +87,9 @@ void listen_on_port(int port) {
         perror("Listen failed: ");
         exit(1);
     }
-    event_set(&ev_connection, listener, EV_READ | EV_PERSIST,
+    ev_connection = event_new(ev_base, listener, EV_READ | EV_PERSIST,
          handle_connect, NULL);
-    event_add(&ev_connection,NULL);
+    event_add(ev_connection, NULL);
 }
 
 /******************************************************************************/
@@ -107,9 +107,9 @@ void handle_connect(int listener, short event, void *args) {
     client = (Client*)malloc(sizeof(Client));
     bzero(client,sizeof(Client));
     client->sock = sock;
-    event_set((struct event*)&client->ev, sock, EV_READ | EV_PERSIST,
+	client->ev = event_new(ev_base, sock, EV_READ | EV_PERSIST,
         &handle_network_event, client);
-    event_add((struct event*)&client->ev,NULL);
+    event_add(client->ev, NULL);
     /* TODO add to authenticating list */
     /* printf("Received connection\n"); */
 }
@@ -127,7 +127,7 @@ void handle_connect(int listener, short event, void *args) {
     }
 
 void handle_network_event(int sock, short event, void *args) {
-    int r, i;
+    int r;
     GamedCommand *cmd;
     Client *client = (Client*)args;
 
@@ -186,8 +186,9 @@ void handle_network_event(int sock, short event, void *args) {
 void drop_client(Client *client, int r) {
     int sock = client->sock;
     shutdown(sock, SHUT_RDWR);
-    if (event_initialized(&client->ev)) {
-        event_del(&client->ev);
+    if (event_initialized(client->ev)) {
+        event_del(client->ev);
+        event_free(client->ev);
     }
     if (client->game != NULL) {
         client->game->instance.playing--;
@@ -217,12 +218,12 @@ void handle_timer (int sock, short event, void *args) {
     if (g->instance.state->timer_event != NULL) {
         g->instance.state->timer_event((GameInstance*)g, &server_funcs);
         if (g->timer_is_persistent) {
-            event_add(&g->timer, &g->period);
+            event_add(g->timer, &g->period);
         }
     }
     else {
-        if (event_initialized(&g->timer)) {
-            event_del(&g->timer);
+        if (event_initialized(g->timer)) {
+            event_del(g->timer);
         }
     }
 }

@@ -1,6 +1,6 @@
 .SUFFIXES:
 .SUFFIXES: .o .c
-OBJS := $(patsubst %.c,%.o,$(wildcard *.c))
+OBJS = $(patsubst %.c,%.o,$(wildcard *.c))
 
 CFLAGS = -Wall -pedantic -ansi -O2 -fPIC
 INC = -I../include
