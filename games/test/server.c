@@ -57,7 +57,7 @@ void player_quit(GameInstance *g, Player *p) {
 	((GameModuleInstance*)g)->module->game.player_quit(g, &server, p);
 }
 
-void set_random(long a, long b=-1, long c=-1, long d=-1, long e=-1) {
+void set_random(long a, long b, long c, long d, long e) {
     next_rand[0] = a;
     next_rand[1] = b;
     next_rand[2] = c;

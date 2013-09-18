@@ -3,14 +3,14 @@
 OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
 CFLAGS = -Wall -pedantic -ansi 
-INC = -I../.. -I../../../include -iquote..
-LIBS = -L.. -l:SpeedRisk.so -lgtest -lgtest_main
+INC = -I../.. -I../../../include -iquote.. -I$(GTEST_HOME)/include
+LIBS = -lpthread ../SpeedRisk.so
 CPP = g++
 
 test: runtests run-tests
 
 runtests: $(OBJS) ../SpeedRisk.so ../../test/server.o
-	$(CPP) -o runtests ../../test/server.o $(LIBS) $(OBJS)
+	$(CPP) -o runtests ../../test/server.o $(LIBS) $(OBJS) $(GTEST_HOME)/src/gtest_main.cc $(GTEST_HOME)/lib/.libs/libgtest.a
 
 run-tests:
 	./runtests
