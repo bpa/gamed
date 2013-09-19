@@ -3,14 +3,14 @@
 OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
 CFLAGS = -Wall -pedantic -ansi
-INC = -I../../include -iquote..
-LIBS = -L.. -l:gamed.so -levent -ldl -lgtest -lgtest_main
+INC = -I../../include -iquote.. -I$(GTEST_HOME)/include
+LIBS = -lpthread ../gamed.so -L /usr/local/lib -levent -ldl 
 CPP = g++ 
 
 test: runtests run-tests
 
 runtests: $(OBJS) ../gamed.so
-	$(CPP) -o runtests $(LIBS) $(OBJS)
+	$(CPP) -o runtests $(LIBS) $(OBJS) $(GTEST_HOME)/src/gtest_main.cc $(GTEST_HOME)/lib/.libs/libgtest.a
 
 run-tests:
 	./runtests
