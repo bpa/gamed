@@ -1,0 +1,166 @@
+---
+players: 6
+territories:
+- name: Eastern US
+  borders:
+  - Central America
+- name: Northwest Territory
+  borders:
+  - Alberta
+  - Greenland
+  - Ontario
+- name: Western US
+  borders:
+  - Eastern US
+  - Central America
+- name: Ontario
+  borders:
+  - Quebec
+  - Eastern US
+  - Western US
+- name: Central America
+  borders:
+  - Venezuela
+- name: Alberta
+  borders:
+  - Ontario
+  - Western US
+- name: Greenland
+  borders:
+  - Iceland
+  - Quebec
+  - Ontario
+- name: Alaska
+  borders:
+  - Kamchatka
+  - Northwest Territory
+  - Alberta
+- name: Quebec
+  borders:
+  - Eastern US
+- name: Brazil
+  borders:
+  - North Africa
+  - Argentina
+- name: Venezuela
+  borders:
+  - Brazil
+  - Peru
+- name: Argentina
+- name: Peru
+  borders:
+  - Brazil
+  - Argentina
+- name: Iceland
+  borders:
+  - Scandinavia
+  - Great Britain
+- name: Southern Europe
+  borders:
+  - Middle East
+  - Egypt
+  - North Africa
+- name: Ukraine
+  borders:
+  - Ural
+  - Afghanistan
+  - Middle East
+  - Southern Europe
+  - Northern Europe
+- name: Scandinavia
+  borders:
+  - Ukraine
+  - Northern Europe
+  - Great Britain
+- name: Great Britain
+  borders:
+  - Northern Europe
+  - Western Europe
+- name: Western Europe
+  borders:
+  - Southern Europe
+  - Northern Africa
+- name: Northern Europe
+  borders:
+  - Southern Europe
+  - Western Europe
+- name: Egypt
+  border:
+  - Middle East
+  - East Africa
+- name: Congo
+  borders:
+  - South Africa
+- name: Madagascar
+- name: South Africa
+  borders:
+  - Madagascar
+- name: East Africa
+  borders:
+  - Middle East
+  - Madagascar
+  - South Africa
+  - Congo
+- name: North Africa
+  borders:
+  - Egypt
+  - East Africa
+  - Congo
+- name: Afghanistan
+  borders:
+  - China
+  - India
+  - Middle East
+- name: Mongolia
+  borders:
+  - Japan
+  - China
+- name: Ural
+  borders:
+  - Siberia
+  - China
+  - Afghanistan
+- name: Japan
+- name: Irkutsk
+  borders:
+  - Mongolia
+- name: India
+  borders:
+  - Siam
+- name: Siam
+  borders:
+  - Indonesia
+- name: Yakutsk
+  borders:
+  - Kamchatka
+  - Irkutsk
+- name: Siberia
+  borders:
+  - Yakutsk
+  - Irkutsk
+  - Mongolia
+  - China
+- name: China
+  borders:
+  - India
+  - Siam
+- name: Kamchatka
+  borders:
+  - Japan
+  - Mongolia
+  - Irkutsk
+- name: Middle East
+  borders:
+  - India
+- name: New Guinea
+  borders:
+  - Western Australia
+  - Eastern Australia
+- name: Indonesia
+  borders:
+  - New Guinea
+  - Western Australia
+- name: Western Australia
+  borders:
+  - Eastern Australia
+- name: Eastern Australia
