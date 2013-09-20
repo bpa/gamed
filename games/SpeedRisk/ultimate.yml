@@ -41,13 +41,13 @@ continents:
     - 06
     - 07
 regions:
-  '00':
+  00:
     bonus: 2
     territories:
     - 000
     - 001
     - 002
-  '01':
+  01:
     bonus: 6
     territories:
     - 010
@@ -56,11 +56,11 @@ regions:
     - 013
     - 014
     - 015
-  '02':
+  02:
     bonus: 2
     territories:
     - 020
-  '03':
+  03:
     bonus: 6
     territories:
     - 030
@@ -68,7 +68,7 @@ regions:
     - 032
     - 033
     - 034
-  '04':
+  04:
     bonus: 4
     territories:
     - 040
@@ -76,14 +76,14 @@ regions:
     - 042
     - 043
     - 044
-  '05':
+  05:
     bonus: 3
     territories:
     - 050
     - 051
     - 052
     - 053
-  '06':
+  06:
     bonus: 5
     territories:
     - 060
@@ -91,7 +91,7 @@ regions:
     - 062
     - 063
     - 064
-  '07':
+  07:
     bonus: 4
     territories:
     - 070
@@ -100,14 +100,14 @@ regions:
     - 073
     - 074
     - 075
-  '08':
+  08:
     bonus: 3
     territories:
     - 080
     - 081
     - 082
     - 083
-  '09':
+  09:
     bonus: 5
     territories:
     - 090
@@ -116,7 +116,7 @@ regions:
     - 093
     - 094
     - 095
-  '10':
+  10:
     bonus: 5
     territories:
     - 100
@@ -124,7 +124,7 @@ regions:
     - 102
     - 103
     - 104
-  '11':
+  11:
     bonus: 5
     territories:
     - 110
@@ -133,7 +133,7 @@ regions:
     - 113
     - 114
     - 115
-  '12':
+  12:
     bonus: 6
     territories:
     - 120
@@ -143,7 +143,7 @@ regions:
     - 124
     - 125
     - 126
-  '13':
+  13:
     bonus: 6
     territories:
     - 130
@@ -153,13 +153,13 @@ regions:
     - 134
     - 135
     - 136
-  '14':
+  14:
     bonus: 2
     territories:
     - 140
     - 141
     - 142
-  '15':
+  15:
     bonus: 5
     territories:
     - 150
@@ -167,7 +167,7 @@ regions:
     - 152
     - 153
     - 154
-  '16':
+  16:
     bonus: 5
     territories:
     - 160
@@ -175,7 +175,7 @@ regions:
     - 162
     - 163
     - 164
-  '17':
+  17:
     bonus: 4
     territories:
     - 170
@@ -183,14 +183,14 @@ regions:
     - 172
     - 173
     - 174
-  '18':
+  18:
     bonus: 3
     territories:
     - 180
     - 181
     - 182
     - 183
-  '19':
+  19:
     bonus: 6
     territories:
     - 190
@@ -199,7 +199,7 @@ regions:
     - 193
     - 194
     - 195
-  '20':
+  20:
     bonus: 4
     territories:
     - 200
@@ -208,25 +208,25 @@ regions:
     - 203
     - 204
     - 205
-  '21':
+  21:
     bonus: 3
     territories:
     - 210
     - 211
     - 212
     - 213
-  '22':
+  22:
     bonus: 2
     territories:
     - 220
     - 221
-  '23':
+  23:
     bonus: 3
     territories:
     - 230
     - 231
     - 232
-  '24':
+  24:
     bonus: 5
     territories:
     - 240
@@ -236,7 +236,7 @@ regions:
     - 244
     - 245
     - 246
-  '25':
+  25:
     bonus: 4
     territories:
     - 250
@@ -246,399 +246,399 @@ regions:
     - 254
     - 255
 territories:
-  '000':
-    territories:
-    - 246
-    - 001
-  '001':
-    territories:
-    - 000
-    - 002
-  '002':
-    territories:
-    - 001
-    - 255
-  '010':
-    territories:
-    - 035
-    - 011
-    - 013
-    - 012
-  '011':
-    territories:
-    - 020
-    - 013
-    - 010
-  '012':
-    territories:
-    - 035
-    - 010
-    - 013
-    - 031
-    - 030
-  '013':
-    territories:
-    - 010
-    - 011
-    - 014
-    - 031
-  '014':
-    territories:
-    - 015
-    - 013
-  '015':
-    territories:
-    - 020
-    - 014
-  '020':
-    territories:
-    - 191
-    - 130
-    - 131
-    - 015
-    - 011
-  '030':
-    territories:
-    - 012
-    - 031
-    - 033
-  '031':
-    territories:
-    - 012
-    - 013
-    - 032
-    - 034
-    - 033
-    - 030
-  '032':
-    territories:
-    - 031
-    - 034
-  '033':
-    territories:
-    - 030
-    - 031
-    - 034
-    - 040
-  '034':
-    territories:
-    - 032
-    - 043
-    - 033
-    - 031
-  '040':
-    territories:
-    - 033
-    - 041
-    - 244
-  '041':
-    territories:
-    - 040
-    - 042
-  '042':
-    territories:
-    - 041
-    - 043
-    - 051
-  '043':
-    territories:
-    - 034
-    - 044
-    - 042
-  '044':
-    territories:
-    - 043
-  '050':
-    territories:
-    - 051
-    - 060
-  '051':
-    territories:
-    - 042
-    - 052
-    - 070
-    - 060
-    - 050
-  '052':
-    territories:
-    - 053
-    - 070
-    - 051
-  '053':
-    territories:
-    - 052
-  '060':
-    territories:
-    - 050
-    - 061
-  '061':
-    territories:
-    - 070
-    - 072
-    - 063
-    - 064
-    - 062
-    - 060
-  '062':
-    territories:
-    - 061
-    - 064
-  '063':
-    territories:
-    - 061
-    - 072
-    - 064
-  '064':
-    territories:
-    - 061
-    - 063
-    - 080
-    - 062
-  '070':
-    territories:
-    - 051
-    - 052
-    - 071
-    - 072
-    - 061
-  '071':
-    territories:
-    - 070
-    - 094
-    - 073
-    - 072
-  '072':
-    territories:
-    - 070
-    - 071
-    - 073
-    - 074
-    - 063
-    - 061
-  '073':
-    territories:
-    - 071
-    - 074
-    - 072
-  '074':
-    territories:
-    - 072
-    - 073
-    - 075
-  '075':
-    territories:
-    - 074
-  '080':
-    territories:
-    - 080
-    - 081
-    - 082
-    - 083
-    - 064
-  '081':
-    territories:
-    - 080
-    - 081
-    - 082
-    - 083
-    - 126
-  '082':
-    territories:
-    - 080
-    - 081
-    - 082
-    - 083
-  '083':
-    territories:
-    - 080
-    - 081
-    - 082
-    - 083
-    - 250
-  '090':
-    territories:
-    - 133
-    - 091
-    - 092
-  '091':
-    territories:
-    - 100
-    - 101
-    - 093
-    - 092
-    - 090
-  '092':
-    territories:
-    - 090
-    - 091
-    - 093
-    - 094
-  '093':
-    territories:
-    - 091
-  '094':
-    territories: []
-  '095':
-    territories: []
-  '100':
-    territories: []
-  '101':
-    territories: []
-  '102':
-    territories: []
-  '103':
-    territories: []
-  '104':
-    territories: []
-  '110':
-    territories: []
-  '111':
-    territories: []
-  '112':
-    territories: []
-  '113':
-    territories: []
-  '114':
-    territories: []
-  '115':
-    territories: []
-  '120':
-    territories: []
-  '121':
-    territories: []
-  '122':
-    territories: []
-  '123':
-    territories: []
-  '124':
-    territories: []
-  '125':
-    territories: []
-  '126':
-    territories: []
-  '130':
-    territories: []
-  '131':
-    territories: []
-  '132':
-    territories: []
-  '133':
-    territories: []
-  '134':
-    territories: []
-  '135':
-    territories: []
-  '136':
-    territories: []
-  '140':
-    territories: []
-  '141':
-    territories: []
-  '142':
-    territories: []
-  '150':
-    territories: []
-  '151':
-    territories: []
-  '152':
-    territories: []
-  '153':
-    territories: []
-  '154':
-    territories: []
-  '160':
-    territories: []
-  '161':
-    territories: []
-  '162':
-    territories: []
-  '163':
-    territories: []
-  '164':
-    territories: []
-  '170':
-    territories: []
-  '171':
-    territories: []
-  '172':
-    territories: []
-  '173':
-    territories: []
-  '174':
-    territories: []
-  '180':
-    territories: []
-  '181':
-    territories: []
-  '182':
-    territories: []
-  '183':
-    territories: []
-  '190':
-    territories: []
-  '191':
-    territories: []
-  '192':
-    territories: []
-  '193':
-    territories: []
-  '194':
-    territories: []
-  '195':
-    territories: []
-  '200':
-    territories: []
-  '201':
-    territories: []
-  '202':
-    territories: []
-  '203':
-    territories: []
-  '204':
-    territories: []
-  '205':
-    territories: []
-  '210':
-    territories: []
-  '211':
-    territories: []
-  '212':
-    territories: []
-  '213':
-    territories: []
-  '220':
-    territories: []
-  '221':
-    territories: []
-  '230':
-    territories: []
-  '231':
-    territories: []
-  '232':
-    territories: []
-  '240':
-    territories: []
-  '241':
-    territories: []
-  '242':
-    territories: []
-  '243':
-    territories: []
-  '244':
-    territories: []
-  '245':
-    territories: []
-  '246':
-    territories: []
-  '250':
-    territories: []
-  '251':
-    territories: []
-  '252':
-    territories: []
-  '253':
-    territories: []
-  '254':
-    territories: []
-  '255':
-    territories: []
+- name: 000
+  borders:
+  - 246
+  - 001
+- name: 001
+  borders:
+  - 000
+  - 002
+- name: 002
+  borders:
+  - 001
+  - 255
+- name: 010
+  borders:
+  - 035
+  - 011
+  - 013
+  - 012
+- name: 011
+  borders:
+  - 020
+  - 013
+  - 010
+- name: 012
+  borders:
+  - 035
+  - 010
+  - 013
+  - 031
+  - 030
+- name: 013
+  borders:
+  - 010
+  - 011
+  - 014
+  - 031
+- name: 014
+  borders:
+  - 015
+  - 013
+- name: 015
+  borders:
+  - 020
+  - 014
+- name: 020
+  borders:
+  - 191
+  - 130
+  - 131
+  - 015
+  - 011
+- name: 030
+  borders:
+  - 012
+  - 031
+  - 033
+- name: 031
+  borders:
+  - 012
+  - 013
+  - 032
+  - 034
+  - 033
+  - 030
+- name: 032
+  borders:
+  - 031
+  - 034
+- name: 033
+  borders:
+  - 030
+  - 031
+  - 034
+  - 040
+- name: 034
+  borders:
+  - 032
+  - 043
+  - 033
+  - 031
+- name: 040
+  borders:
+  - 033
+  - 041
+  - 244
+- name: 041
+  borders:
+  - 040
+  - 042
+- name: 042
+  borders:
+  - 041
+  - 043
+  - 051
+- name: 043
+  borders:
+  - 034
+  - 044
+  - 042
+- name: 044
+  borders:
+  - 043
+- name: 050
+  borders:
+  - 051
+  - 060
+- name: 051
+  borders:
+  - 042
+  - 052
+  - 070
+  - 060
+  - 050
+- name: 052
+  borders:
+  - 053
+  - 070
+  - 051
+- name: 053
+  borders:
+  - 052
+- name: 060
+  borders:
+  - 050
+  - 061
+- name: 061
+  borders:
+  - 070
+  - 072
+  - 063
+  - 064
+  - 062
+  - 060
+- name: 062
+  borders:
+  - 061
+  - 064
+- name: 063
+  borders:
+  - 061
+  - 072
+  - 064
+- name: 064
+  borders:
+  - 061
+  - 063
+  - 080
+  - 062
+- name: 070
+  borders:
+  - 051
+  - 052
+  - 071
+  - 072
+  - 061
+- name: 071
+  borders:
+  - 070
+  - 094
+  - 073
+  - 072
+- name: 072
+  borders:
+  - 070
+  - 071
+  - 073
+  - 074
+  - 063
+  - 061
+- name: 073
+  borders:
+  - 071
+  - 074
+  - 072
+- name: 074
+  borders:
+  - 072
+  - 073
+  - 075
+- name: 075
+  borders:
+  - 074
+- name: 080
+  borders:
+  - 080
+  - 081
+  - 082
+  - 083
+  - 064
+- name: 081
+  borders:
+  - 080
+  - 081
+  - 082
+  - 083
+  - 126
+- name: 082
+  borders:
+  - 080
+  - 081
+  - 082
+  - 083
+- name: 083
+  borders:
+  - 080
+  - 081
+  - 082
+  - 083
+  - 250
+- name: 090
+  borders:
+  - 133
+  - 091
+  - 092
+- name: 091
+  borders:
+  - 100
+  - 101
+  - 093
+  - 092
+  - 090
+- name: 092
+  borders:
+  - 090
+  - 091
+  - 093
+  - 094
+- name: 093
+  borders:
+  - 091
+- name: 094
+  borders: []
+- name: 095
+  borders: []
+- name: 100
+  borders: []
+- name: 101
+  borders: []
+- name: 102
+  borders: []
+- name: 103
+  borders: []
+- name: 104
+  borders: []
+- name: 110
+  borders: []
+- name: 111
+  borders: []
+- name: 112
+  borders: []
+- name: 113
+  borders: []
+- name: 114
+  borders: []
+- name: 115
+  borders: []
+- name: 120
+  borders: []
+- name: 121
+  borders: []
+- name: 122
+  borders: []
+- name: 123
+  borders: []
+- name: 124
+  borders: []
+- name: 125
+  borders: []
+- name: 126
+  borders: []
+- name: 130
+  borders: []
+- name: 131
+  borders: []
+- name: 132
+  borders: []
+- name: 133
+  borders: []
+- name: 134
+  borders: []
+- name: 135
+  borders: []
+- name: 136
+  borders: []
+- name: 140
+  borders: []
+- name: 141
+  borders: []
+- name: 142
+  borders: []
+- name: 150
+  borders: []
+- name: 151
+  borders: []
+- name: 152
+  borders: []
+- name: 153
+  borders: []
+- name: 154
+  borders: []
+- name: 160
+  borders: []
+- name: 161
+  borders: []
+- name: 162
+  borders: []
+- name: 163
+  borders: []
+- name: 164
+  borders: []
+- name: 170
+  borders: []
+- name: 171
+  borders: []
+- name: 172
+  borders: []
+- name: 173
+  borders: []
+- name: 174
+  borders: []
+- name: 180
+  borders: []
+- name: 181
+  borders: []
+- name: 182
+  borders: []
+- name: 183
+  borders: []
+- name: 190
+  borders: []
+- name: 191
+  borders: []
+- name: 192
+  borders: []
+- name: 193
+  borders: []
+- name: 194
+  borders: []
+- name: 195
+  borders: []
+- name: 200
+  borders: []
+- name: 201
+  borders: []
+- name: 202
+  borders: []
+- name: 203
+  borders: []
+- name: 204
+  borders: []
+- name: 205
+  borders: []
+- name: 210
+  borders: []
+- name: 211
+  borders: []
+- name: 212
+  borders: []
+- name: 213
+  borders: []
+- name: 220
+  borders: []
+- name: 221
+  borders: []
+- name: 230
+  borders: []
+- name: 231
+  borders: []
+- name: 232
+  borders: []
+- name: 240
+  borders: []
+- name: 241
+  borders: []
+- name: 242
+  borders: []
+- name: 243
+  borders: []
+- name: 244
+  borders: []
+- name: 245
+  borders: []
+- name: 246
+  borders: []
+- name: 250
+  borders: []
+- name: 251
+  borders: []
+- name: 252
+  borders: []
+- name: 253
+  borders: []
+- name: 254
+  borders: []
+- name: 255
+  borders: []
