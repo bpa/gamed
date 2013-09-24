@@ -1,5 +1,6 @@
 ---
 players: 6
+army_generation_period: 25
 territories:
 - name: Eastern US
   borders:

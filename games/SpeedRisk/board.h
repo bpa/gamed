@@ -4,9 +4,6 @@
 #include <gamed/game.h>
 #include <SpeedRisk/protocol.h>
 
-#define SR_GENERATION_PERIOD 25 //Seconds
-#define SR_MAX_PLAYERS           6
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -23,8 +20,6 @@ typedef struct {
     SR_Player      players[SR_MAX_PLAYERS];
     int            army_generation_time;
 } SpeedRiskData;
-
-void build_border_table();
 
 #ifdef __cplusplus
 }
