@@ -164,3 +164,64 @@ territories:
   borders:
   - Eastern Australia
 - name: Eastern Australia
+continents:
+  North America:
+    bonus: 5
+    territories:
+    - Eastern US
+    - Northwest Territory
+    - Western US
+    - Ontario
+    - Central America
+    - Alberta
+    - Greenland
+    - Alaska
+    - Quebec
+  South America:
+    bonus: 2
+    territories:
+    - Brazil
+    - Venezuela
+    - Argentina
+    - Peru
+  Europe:
+    bonus: 5
+    territories:
+    - Iceland
+    - Southern_europe
+    - Ukraine
+    - Scandinavia
+    - Great Britain
+    - Western Europe
+    - Northern Europe
+  Africa:
+    bonus: 3
+    territories:
+    - Egypt
+    - Congo
+    - Madagascar
+    - South Africa
+    - East Africa
+    - North Africa
+  Asia:
+    bonus: 7
+    territories:
+    - Afghanistan
+    - Mongolia
+    - Ural
+    - Japan
+    - Irkutsk
+    - India
+    - Siam
+    - Yakutsk
+    - Siberia
+    - China
+    - Kamchatka
+    - Middle East
+  Australia:
+    bonus: 2
+    territories:
+    - New Guinea
+    - Indonesia
+    - Western Australia
+    - Eastern Australia
