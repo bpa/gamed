@@ -9,10 +9,7 @@ static SR_Command msg_command;
 /* static SR_Country msg_country; */
 static SR_Error   msg_error;
 static SR_Move_Result msg_move;
-static int STARTING_ARMIES[] = { 0, 0, 26, 21, 19, 16, 13 };
 
-void player_join   (GameInstance *g, const Server *s, Player *p);
-void player_quit   (GameInstance *g, const Server *s, Player *p);
 void start_placing (GameInstance *g, const Server *s);
 void start_playing (GameInstance *g, const Server *s);
 void start_ending  (GameInstance *g, const Server *s);
@@ -23,8 +20,6 @@ void handle_placing(GameInstance *g, const Server *s, Player *p, const char *, i
 void handle_playing(GameInstance *g, const Server *s, Player *p, const char *, int len);
 void handle_done   (GameInstance *g, const Server *s, Player *p, const char *, int len);
 
-Game SpeedRisk = { GAMED_GAME, "SpeedRisk", "0.3", game_init_classic, NULL, player_join, player_quit };
-Game UltimateRisk = { GAMED_GAME, "UltimateRisk", "0.1", game_init_ultimate, NULL, player_join, player_quit };
 State SR_WAITING_FOR_PLAYERS = { NULL,          handle_waiting, NULL,            NULL };
 State SR_PLACING             = { start_placing, handle_placing, NULL,            NULL };
 State SR_RUNNING             = { start_playing, handle_playing, produce_armies,  NULL };
@@ -134,7 +129,7 @@ void init_board(GameInstance *game, const Server *s) {
     }
     for (i=0; i < game->playing; i++) {
         risk->players[i].armies *= 2;
-        risk->players[i].armies += STARTING_ARMIES[game->playing];
+        risk->players[i].armies += risk->board->starting_armies[game->playing];
         player_cmd_a(s, risk->players[i].player, SR_CMD_GET_ARMIES, 
             risk->players[i].armies);
     }
@@ -165,12 +160,13 @@ void give_country_status(GameInstance *g, const Server *s, Player *p, int countr
     }
 }
 
-void game_init (GameInstance *g, const Server *s) {
+void game_init (GameInstance *g, const Server *s, Board *board) {
     SpeedRiskData *risk = (SpeedRiskData*)malloc(sizeof(SpeedRiskData));
     bzero(risk, sizeof(SpeedRiskData));
     g->data = risk;
+	risk->board = board;
     risk->status.command.command = SR_CMD_GAME_STATUS;
-    risk->army_generation_period = risk->board->army_generation_period;
+    risk->army_generation_period = board->army_generation_period;
     msg_error.command = SR_CMD_ERROR;
     msg_move.command.command = SR_CMD_MOVE_RESULT;
 	g->state = &SR_WAITING_FOR_PLAYERS;

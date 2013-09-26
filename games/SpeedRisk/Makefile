@@ -17,3 +17,8 @@ test:
 clean:
 	rm -f *.o *.so
 	@make -C t clean
+
+borders: boards.o test_borders.c
+	gcc test_borders.c -c -I../../include -I ..
+	gcc test_borders.o borders.o boards.o game.o
+	./a.out

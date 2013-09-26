@@ -39,7 +39,10 @@ sub write_borders {
 		my $a = $yaml->{id}{$t->{name}};
 		for my $border (@{$t->{borders}}) {
 			my $b = $yaml->{id}{$border};
-			next unless $b;
+			unless (defined $b) {
+				print "Can't find $border in $name\n";
+				next;
+			}
 			$table[$a][$b] = 1;
 			$table[$b][$a] = 1;
 		}
@@ -91,15 +94,21 @@ sub write_init {
 	my $players = $yaml->{players};
 	my $period = $yaml->{army_generation_period} || 25;
 	my $territories = scalar(@{$yaml->{territories}});
+	my $game = $yaml->{name};
+	my $version = $yaml->{version};
+	print $source "int $name\_starting_armies[] = {", join (',', @{$yaml->{starting_armies}}), "};\n";
 	print $source <<INIT;
-Board *board_init_$name() {
-	Board *board = (Board *) malloc(sizeof(Board));
-	board->max_players = $players;
-	board->army_generation_period = $period;
-	board->territories = $territories;
-	board->borders = &$name\_borders[0][0];
-	board->bonuses = &$name\_bonuses[0];
-	return board;
+Board board_$name = {
+	.max_players = $players,
+	.starting_armies = &$name\_starting_armies[0],
+	.army_generation_period = $period,
+	.territories = $territories,
+	.borders = &$name\_borders[0][0],
+	.bonuses = &$name\_bonuses[0]
+};
+void game_init_$name(GameInstance *g, const Server *s, Board *board) {
+	game_init(g, s, &board_$name);
 }
+Game $game = { GAMED_GAME, "$game", "$version", game_init_$name, NULL, player_join, player_quit };
 INIT
 }

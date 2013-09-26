@@ -23,6 +23,7 @@ typedef struct {
 
 typedef struct {
 	int max_players;
+  int *starting_armies;
 	int territories;
 	char *borders;
 	Bonus *bonuses;
@@ -36,7 +37,9 @@ typedef struct {
 	int            army_generation_period;
 } SpeedRiskData;
 
-void game_init     (GameInstance *g, const Server *s);
+void game_init   (GameInstance *g, const Server *s, Board *board);
+void player_join (GameInstance *g, const Server *s, Player *p);
+void player_quit (GameInstance *g, const Server *s, Player *p);
 
 #ifdef __cplusplus
 }

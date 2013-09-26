@@ -1,5 +1,8 @@
 ---
+name: SpeedRisk
+version: 0.3
 players: 6
+starting_armies: [ 0, 0, 26, 21, 19, 16, 13 ]
 army_generation_period: 25
 territories:
 - name: Eastern US
@@ -80,7 +83,7 @@ territories:
 - name: Western Europe
   borders:
   - Southern Europe
-  - Northern Africa
+  - North Africa
 - name: Northern Europe
   borders:
   - Southern Europe
