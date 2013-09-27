@@ -18,23 +18,24 @@ typedef struct {
 typedef struct {
 	int bonus;
 	int territories;
-	char *required;
+	int *required;
 } Bonus;
 
 typedef struct {
 	int max_players;
-  int *starting_armies;
+	int *starting_armies;
 	int territories;
 	char *borders;
+	int regions;
 	Bonus *bonuses;
 	int army_generation_period;
 } Board;
 
 typedef struct {
-    SR_Game_Status status;
     SR_Player      *players;
     Board          *board;
 	int            army_generation_period;
+    SR_Game_Status status;
 } SpeedRiskData;
 
 void game_init   (GameInstance *g, const Server *s, Board *board);

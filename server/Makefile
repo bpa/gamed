@@ -5,7 +5,7 @@ OBJS = $(patsubst %.c,%.o,$(wildcard *.c))
 CFLAGS = -Wall -pedantic -ansi -O2 -fPIC
 INC = -I../include
 LIBS = -L/usr/local/lib -levent -ldl
-CC = gcc
+CC = gcc -g
 
 all: server test
 

@@ -2,7 +2,6 @@
 #define SPEEDRISK_TEST_H
 
 #include <SpeedRisk/board.h>
-#include <SpeedRisk/borders.h>
 #include <SpeedRisk/protocol.h>
 #include <gamed/game.h>
 

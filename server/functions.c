@@ -81,7 +81,7 @@ void game_over(GameInstance *g) {
 		if (g->data != NULL) free(g->data);
 	}
 	instance->module->instances--;
-	if (event_initialized(instance->timer)) {
+	if (instance->timer != NULL) {
 		event_del(instance->timer);
 		event_free(instance->timer);
 	}

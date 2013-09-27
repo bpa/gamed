@@ -89,7 +89,7 @@ territories:
   - Southern Europe
   - Western Europe
 - name: Egypt
-  border:
+  borders:
   - Middle East
   - East Africa
 - name: Congo

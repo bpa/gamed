@@ -4,12 +4,8 @@ use strict;
 use warnings;
 use YAML::Any qw/LoadFile/;
 
-open my $header, ">boards.h" or die ("Can't open boards.h for writing: $!\n");
-open my $source, ">boards.c" or die("Can't open boards.c for writing: $!\n");
-print $header "#ifndef BOARDS_DEFINITION\n";
-print $header "#define BOARDS_DEFINITION\n";
-print $source "#include \"board.h\"\n";
-print $source "#include <stdlib.h>\n";
+open my $source, ">boards.cc" or die("Can't open boards.cc for writing: $!\n");
+print $source "//Generated content, do not modify.\n//Update yml files and then run: perl build_from_yaml\n";
 opendir(my $dir, '.');
 for my $f (grep { /yml$/ } readdir $dir) {
 	my $yaml = LoadFile($f);
@@ -18,9 +14,7 @@ for my $f (grep { /yml$/ } readdir $dir) {
 	write_borders($name, $yaml);
 	write_bonuses($name, $yaml);
 	write_init($name, $yaml);
-	print $header "Board *board_init_$name();\n";
 }
-print $header "#endif\n";
 
 sub make_map {
 	my $yaml = shift;
@@ -79,7 +73,7 @@ sub write_bonuses {
 				push @territories, $yaml->{id}{$t};
 			}
 			@territories = sort { $a <=> $b } @territories;
-			print $source "char $name\_req" . scalar(@bonuses) . "[] = {" . join(',', @territories) . "};\n";
+			print $source "int $name\_req" . scalar(@bonuses) . "[] = {" . join(',', @territories) . "};\n";
 			push @bonuses, "  {" . ($region->{bonus} || 0) . ',' . scalar(@territories) . ",\&$name\_req" . scalar(@bonuses) . '[0]}';
 		}
 	}
@@ -96,6 +90,7 @@ sub write_init {
 	my $territories = scalar(@{$yaml->{territories}});
 	my $game = $yaml->{name};
 	my $version = $yaml->{version};
+	my $bonuses = scalar(keys $yaml->{regions}) + scalar(keys $yaml->{continents});
 	print $source "int $name\_starting_armies[] = {", join (',', @{$yaml->{starting_armies}}), "};\n";
 	print $source <<INIT;
 Board board_$name = {
@@ -103,10 +98,11 @@ Board board_$name = {
 	.starting_armies = &$name\_starting_armies[0],
 	.army_generation_period = $period,
 	.territories = $territories,
+	.regions = $bonuses,
 	.borders = &$name\_borders[0][0],
 	.bonuses = &$name\_bonuses[0]
 };
-void game_init_$name(GameInstance *g, const Server *s, Board *board) {
+void game_init_$name(GameInstance *g, const Server *s) {
 	game_init(g, s, &board_$name);
 }
 Game $game = { GAMED_GAME, "$game", "$version", game_init_$name, NULL, player_join, player_quit };
