@@ -330,6 +330,11 @@ territories:
   - 043
   - 033
   - 031
+- name: 035
+  borders:
+  - 010
+  - 012
+  - 192
 - name: 040
   borders:
   - 033
@@ -480,169 +485,467 @@ territories:
 - name: 093
   borders:
   - 091
+  - 095
+  - 094
+  - 092
 - name: 094
-  borders: []
+  borders:
+  - 092
+  - 093
+  - 095
 - name: 095
-  borders: []
+  borders:
+  - 093
+  - 103
+  - 094
 - name: 100
-  borders: []
+  borders:
+  - 110
+  - 102
+  - 101
+  - 091
 - name: 101
-  borders: []
+  borders:
+  - 091
+  - 100
+  - 102
+  - 103 
 - name: 102
-  borders: []
+  borders:
+  - 100
+  - 104
+  - 103
+  - 101
 - name: 103
-  borders: []
+  borders:
+  - 101
+  - 102
+  - 104
+  - 095
 - name: 104
-  borders: []
+  borders:
+  - 102
+  - 111
+  - 121
+  - 103
 - name: 110
-  borders: []
+  borders:
+  - 170
+  - 111
+  - 100
 - name: 111
-  borders: []
+  borders:
+  - 110
+  - 112
+  - 114
+  - 104
 - name: 112
-  borders: []
+  borders:
+  - 111
+  - 113
+  - 114
 - name: 113
-  borders: []
+  borders:
+  - 173
+  - 114
+  - 112
 - name: 114
-  borders: []
+  borders:
+  - 111
+  - 112
+  - 113
+  - 115
 - name: 115
-  borders: []
+  borders:
+  - 114
+  - 123
+  - 122
+  - 120
 - name: 120
-  borders: []
+  borders:
+  - 115
+  - 122
+  - 121
 - name: 121
-  borders: []
+  borders:
+  - 104
+  - 120
+  - 122
+  - 125
 - name: 122
-  borders: []
+  borders:
+  - 120
+  - 115
+  - 123
+  - 126
+  - 125
+  - 121
 - name: 123
-  borders: []
+  borders:
+  - 115
+  - 124
+  - 126
+  - 122
 - name: 124
-  borders: []
+  borders:
+  - 123
 - name: 125
-  borders: []
+  borders:
+  - 121
+  - 122
+  - 126
 - name: 126
-  borders: []
+  borders:
+  - 122
+  - 123
+  - 081
+  - 125
 - name: 130
-  borders: []
+  borders:
+  - 140
+  - 132
+  - 020
 - name: 131
-  borders: []
+  borders:
+  - 020
+  - 132
 - name: 132
-  borders: []
+  borders:
+  - 130
+  - 134
+  - 131
 - name: 133
-  borders: []
+  borders:
+  - 134
+  - 090
 - name: 134
-  borders: []
+  borders:
+  - 132
+  - 135
+  - 136
+  - 133
 - name: 135
-  borders: []
+  borders:
+  - 140
+  - 150
+  - 152
+  - 136
+  - 134
 - name: 136
-  borders: []
+  borders:
+  - 135
+  - 134
 - name: 140
-  borders: []
+  borders:
+  - 160
+  - 142
+  - 141
+  - 135
+  - 130
 - name: 141
-  borders: []
+  borders:
+  - 140
+  - 142
 - name: 142
-  borders: []
+  borders:
+  - 140
+  - 160
 - name: 150
-  borders: []
+  borders:
+  - 151
+  - 152
+  - 135
 - name: 151
-  borders: []
+  borders:
+  - 150
+  - 163
+  - 164
+  - 152
 - name: 152
-  borders: []
+  borders:
+  - 150
+  - 151
+  - 154
+  - 153
+  - 135
 - name: 153
-  borders: []
+  borders:
+  - 152
+  - 154
 - name: 154
-  borders: []
+  borders:
+  - 164
+  - 171
+  - 170
+  - 153
+  - 152
 - name: 160
-  borders: []
+  borders:
+  - 161
+  - 163
+  - 142
+  - 140
 - name: 161
-  borders: []
+  borders:
+  - 162
+  - 163
+  - 160
 - name: 162
-  borders: []
+  borders:
+  - 190
+  - 180
+  - 164
+  - 163
+  - 161
 - name: 163
-  borders: []
+  borders:
+  - 160
+  - 161
+  - 162
+  - 164
+  - 151
 - name: 164
-  borders: []
+  borders:
+  - 163
+  - 162
+  - 180
+  - 171
+  - 154
+  - 151
 - name: 170
-  borders: []
+  borders:
+  - 154
+  - 171
+  - 172
+  - 110
 - name: 171
-  borders: []
+  borders:
+  - 181
+  - 182
+  - 172
+  - 170
+  - 164
 - name: 172
-  borders: []
+  borders:
+  - 170
+  - 171
+  - 174
+  - 173
 - name: 173
-  borders: []
+  borders:
+  - 172
+  - 174
+  - 113
 - name: 174
-  borders: []
+  borders:
+  - 172
+  - 173
 - name: 180
-  borders: []
+  borders:
+  - 162
+  - 190
+  - 201
+  - 183
+  - 182
+  - 181
+  - 164
 - name: 181
-  borders: []
+  borders:
+  - 180
+  - 182
 - name: 182
-  borders: []
+  borders:
+  - 181
+  - 180
+  - 183
+  - 171
 - name: 183
-  borders: []
+  borders:
+  - 180
+  - 210
+  - 171
+  - 182
 - name: 190
-  borders: []
+  borders:
+  - 191
+  - 192
+  - 180
+  - 162
 - name: 191
-  borders: []
+  borders:
+  - 020
+  - 193
+  - 194
+  - 192
+  - 190
 - name: 192
-  borders: []
+  borders:
+  - 191
+  - 194
+  - 190
 - name: 193
-  borders: []
+  borders:
+  - 035
+  - 195
+  - 194
+  - 191
 - name: 194
-  borders: []
+  borders:
+  - 191
+  - 193
+  - 195
+  - 202
 - name: 195
-  borders: []
+  borders:
+  - 193
+  - 221
+  - 202
+  - 194
 - name: 200
-  borders: []
+  borders:
+  - 202
+  - 203
+  - 201
 - name: 201
-  borders: []
+  borders:
+  - 200
+  - 203
+  - 204
+  - 231
+  - 180
 - name: 202
-  borders: []
+  borders:
+  - 194
+  - 195
+  - 220
+  - 203
+  - 200
 - name: 203
-  borders: []
+  borders:
+  - 200
+  - 202
+  - 205
+  - 204
+  - 201
 - name: 204
-  borders: []
+  borders:
+  - 201
+  - 203
+  - 232
+  - 230
+  - 213
 - name: 205
-  borders: []
+  borders:
+  - 203
 - name: 210
-  borders: []
+  borders:
+  - 183
+  - 212
+  - 213
+  - 211
 - name: 211
-  borders: []
+  borders:
+  - 210
 - name: 212
-  borders: []
+  borders:
+  - 213
+  - 210
 - name: 213
-  borders: []
+  borders:
+  - 201
+  - 204
+  - 230
+  - 210
+  - 212
 - name: 220
-  borders: []
+  borders:
+  - 202
+  - 221
 - name: 221
-  borders: []
+  borders:
+  - 195
+  - 220
 - name: 230
-  borders: []
+  borders:
+  - 213
+  - 204
+  - 232
+  - 231
 - name: 231
-  borders: []
+  borders:
+  - 230
+  - 232
+  - 240
 - name: 232
-  borders: []
+  borders:
+  - 204
+  - 231
+  - 230
 - name: 240
-  borders: []
+  borders:
+  - 231
+  - 244
+  - 242
+  - 241
 - name: 241
-  borders: []
+  borders:
+  - 240
+  - 242
+  - 250
 - name: 242
-  borders: []
+  borders:
+  - 240
+  - 245
+  - 243
+  - 241
 - name: 243
-  borders: []
+  borders:
+  - 242
+  - 246
 - name: 244
-  borders: []
+  borders:
+  - 040
+  - 240
 - name: 245
-  borders: []
+  borders:
+  - 242
 - name: 246
-  borders: []
+  borders:
+  - 000
+  - 252
+  - 243
 - name: 250
-  borders: []
+  borders:
+  - 241
+  - 251
+  - 253
+  - 083
 - name: 251
-  borders: []
+  borders:
+  - 252
+  - 253
+  - 250
 - name: 252
-  borders: []
+  borders:
+  - 246
+  - 254
+  - 253
+  - 251
 - name: 253
-  borders: []
+  borders:
+  - 251
+  - 252
+  - 254
+  - 255
+  - 250
 - name: 254
-  borders: []
+  borders:
+  - 252
+  - 255
+  - 253
 - name: 255
-  borders: []
+  borders:
+  - 254
+  - 002
+  - 253
+
