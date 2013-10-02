@@ -3,8 +3,8 @@ from time import sleep
 import sys
 
 class myclient(SpeedRisk):
-    def __init__(self, name):
-        SpeedRisk.__init__(self, "localhost", 7483, name)
+    def __init__(self, name, port):
+        SpeedRisk.__init__(self, "localhost", port, name)
 
     def on_list_game_instances(self, message):
         print message
@@ -28,12 +28,12 @@ class myclient(SpeedRisk):
 
     def run(self):
         self.running = True
-        c.list_game_instances('SpeedRisk')
+        self.list_game_instances('SpeedRisk')
         while self.running:
             sleep(.1)
-            c.poll()
-        c.quit_game()
+            self.poll()
+        self.quit_game()
 
 if __name__ == '__main__':
-    c = myclient(sys.argv[1])
+    c = myclient(sys.argv[1], int(sys.argv[2]))
     c.run()

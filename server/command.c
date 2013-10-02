@@ -131,8 +131,7 @@ void cmd_create_game (Client *client, int len) {
         return;
 	}
 	module->instances++;
-	instance = (void*)malloc(sizeof(GameModuleInstance));
-	memset(instance, 0, sizeof(GameModuleInstance));
+	instance = (void*)calloc(sizeof(GameModuleInstance), 1);
 	strncpy(instance->instance.name, instance_name, 32);
 	/* TODO: clean up names passed in */
 	instance->instance.name[31] = '\0';
