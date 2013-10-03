@@ -3,9 +3,9 @@
  *
  * Created on July 7, 2008, 10:50 PM
  */
-
 package gamed.client.SpeedRisk;
 
+import gamed.client.risk.Country;
 import java.lang.Math;
 import java.awt.Point;
 import java.awt.Image;
@@ -16,77 +16,90 @@ import java.awt.event.ActionListener;
 import javax.swing.JCheckBox;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
-import javax.swing.JProgressBar;
-import javax.swing.Timer;
 
 /**
  *
- * @author  bruce
+ * @author bruce
  */
-public class Display extends gamed.Game
-        implements Runnable, ImageObserver, ActionListener {
-    
+public class Display extends gamed.Game implements Runnable, ImageObserver, ActionListener
+{
     private Thread thread;
     private Image bg;
     private gamed.Server server;
-    private volatile boolean running;
     private volatile int lines_seen;
     private volatile int images_downloaded;
     private static final int TOTAL_IMAGES = 44;
-    private Borders map;
+    private ClassicCountries map;
     private int selectedCountry = -1;
     private Country[] countries;
     private JCheckBox[] playerDisplays;
-    private int playerInd[] = { -1, -1, -1, -1, -1, -1 };
+    private int playerInd[] =
+    {
+        -1, -1, -1, -1, -1, -1
+    };
     private boolean playerReady[];
     private int reserve;
     private int player_id;
     private boolean atWar;
-	private ArmyGenerationTimer armyGenerationTimer;
-    
-    public Display(gamed.Server s) {
+    private ArmyGenerationTimer armyGenerationTimer;
+
+    public Display(gamed.Server s)
+    {
         server = s;
-        map = new Borders();
+        map = new ClassicCountries();
         playerDisplays = new JCheckBox[6];
         playerReady = new boolean[6];
         initComponents();
-        initCountries();
         atWar = false;
-        byte cmd[] = {PLAYER_STATUS, 0, 0, 0};
+        byte cmd[] =
+        {
+            PLAYER_STATUS, 0, 0, 0
+        };
         s.sendGameData(cmd);
     }
-    
+
     @Override
-    public void paintComponent(java.awt.Graphics g) {
-        if (images_downloaded == TOTAL_IMAGES) {
+    public void paintComponent(java.awt.Graphics g)
+    {
+        if (images_downloaded == TOTAL_IMAGES)
+        {
             g.drawImage(bg, 0, 0, null);
-            for (Country c : countries) {
+            for (Country c : countries)
+            {
                 c.paint(g);
             }
-            for (Country c : countries) {
+            for (Country c : countries)
+            {
                 c.paintIcon(g);
             }
-        } else {
+        }
+        else
+        {
             g.clearRect(0, 0, 650, 375);
         }
     }
-    
-    public void joinedGame() {
-        if (thread == null) {
-            running = true;
+
+    public void joinedGame()
+    {
+        if (thread == null)
+        {
             thread = new Thread(this);
             thread.start();
         }
     }
-    
-    public void run() {
-		armyGenerationProgress.setVisible(false);
+
+    public void run()
+    {
+        armyGenerationProgress.setVisible(false);
         initMediaDownload();
-        while(images_downloaded < TOTAL_IMAGES) {
-            try {
+        while (images_downloaded < TOTAL_IMAGES)
+        {
+            try
+            {
                 Thread.sleep(100);
             }
-            catch (java.lang.InterruptedException e) {
+            catch (java.lang.InterruptedException e)
+            {
                 return;
             }
         }
@@ -101,38 +114,45 @@ public class Display extends gamed.Game
         jButton1.setVisible(true);
         repaint();
     }
-    
-    private void initMediaDownload() {
+
+    private void initMediaDownload()
+    {
         images_downloaded = 0;
         progress.setValue(0);
         bg = getImage("images/world_map_relief.png");
-        for (int i=0; i<42; i++) {
-            countries[i].overlay = getImage("images/c"+i+".png");
+        for (int i = 0; i < 42; i++)
+        {
+            countries[i].overlay = getImage("images/c" + i + ".png");
         }
-        ((Kamchat)countries[36]).overlay2 = getImage("images/c36b.png");
+        ((Kamchat) countries[36]).overlay2 = getImage("images/c36b.png");
     }
-    
-    private Image getImage(String image) {
+
+    private Image getImage(String image)
+    {
         Image img = server.getImage(image);
         int height = img.getHeight(this);
-        if (height != -1) {
+        if (height != -1)
+        {
             images_downloaded++;
             lines_seen += height;
             progress.setValue(lines_seen);
         }
         return img;
     }
-    
-    public void stop() {
-        if ((thread != null) && thread.isAlive()) {
+
+    public void stop()
+    {
+        if ((thread != null) && thread.isAlive())
+        {
             running = false;
         }
         thread = null;
     }
-    /** This method is called from within the constructor to
-     * initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is
-     * always regenerated by the Form Editor.
+
+    /**
+     * This method is called from within the constructor to initialize the form.
+     * WARNING: Do NOT modify this code. The content of this method is always
+     * regenerated by the Form Editor.
      */
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents()
@@ -330,7 +350,7 @@ public class Display extends gamed.Game
     }// </editor-fold>//GEN-END:initComponents
 
     private void playerDisplayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_playerDisplayActionPerformed
-        javax.swing.ButtonModel model = ((JCheckBox)evt.getSource()).getModel();
+        javax.swing.ButtonModel model = ((JCheckBox) evt.getSource()).getModel();
         model.setSelected(!model.isSelected());
 }//GEN-LAST:event_playerDisplayActionPerformed
 
@@ -343,73 +363,92 @@ public class Display extends gamed.Game
     }//GEN-LAST:event_readyRadioActionPerformed
 
     private void formMousePressed(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMousePressed
-        if (evt.isPopupTrigger()) {
-            byte c = (byte)getCountryAt(evt.getPoint());
-            if (c != -1 && countries[c].owner == player_id) {
-                if (selectedCountry != -1 &&
-                        countries[selectedCountry].armies > 1 &&
-                        map.borders(selectedCountry, c)) {
+        if (evt.isPopupTrigger())
+        {
+            byte c = (byte) getCountryAt(evt.getPoint());
+            if (c != -1 && countries[c].owner == player_id)
+            {
+                if (selectedCountry != -1
+                        && countries[selectedCountry].armies > 1
+                        && map.borders(selectedCountry, c))
+                {
                     showMovePopup(evt, selectedCountry, c);
                     setSelectedCountry(-1);
                 }
-                else if (reserve > 0) {
-                        showPlacementPopup(evt, c);
+                else if (reserve > 0)
+                {
+                    showPlacementPopup(evt, c);
                 }
             }
         }
     }//GEN-LAST:event_formMousePressed
 
     private void formMouseReleased(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_formMouseReleased
-        byte c = (byte)getCountryAt(evt.getPoint());
-        if (c != -1) {
-            if (countries[c].owner == player_id) {
-                if (selectedCountry != -1 &&
-                        countries[selectedCountry].armies > 1 &&
-                        map.borders(selectedCountry, c)) {
-                    if (evt.isPopupTrigger()) {
+        byte c = (byte) getCountryAt(evt.getPoint());
+        if (c != -1)
+        {
+            if (countries[c].owner == player_id)
+            {
+                if (selectedCountry != -1
+                        && countries[selectedCountry].armies > 1
+                        && map.borders(selectedCountry, c))
+                {
+                    if (evt.isPopupTrigger())
+                    {
                         showMovePopup(evt, selectedCountry, c);
                     }
-                    else {
-                        moveArmies((byte)selectedCountry, c, (byte)(countries[selectedCountry].armies - 1));
-                        
-                    } 
+                    else
+                    {
+                        moveArmies((byte) selectedCountry, c, (byte) (countries[selectedCountry].armies - 1));
+
+                    }
                 }
-                else if (reserve > 0) {
-                    if (evt.isPopupTrigger()) {
+                else if (reserve > 0)
+                {
+                    if (evt.isPopupTrigger())
+                    {
                         showPlacementPopup(evt, c);
                     }
-                    else if (evt.getClickCount() > 1) {
+                    else if (evt.getClickCount() > 1)
+                    {
                         placeAllArmiesAt(c);
                     }
                 }
                 setSelectedCountry(c);
                 repaint();
             }
-            else if (selectedCountry != -1 &&
-                    map.borders(selectedCountry, c)) {
-                attack(c);                
+            else if (selectedCountry != -1
+                    && map.borders(selectedCountry, c))
+            {
+                attack(c);
             }
         }
     }//GEN-LAST:event_formMouseReleased
 
-    private void showPlacementPopup(java.awt.event.MouseEvent evt, int country) {
+    private void showPlacementPopup(java.awt.event.MouseEvent evt, int country)
+    {
         showPopup(evt, -1, country, reserve);
     }
-    
-    private void showMovePopup(java.awt.event.MouseEvent evt, int from, int to) {
-        if (atWar) {
+
+    private void showMovePopup(java.awt.event.MouseEvent evt, int from, int to)
+    {
+        if (atWar)
+        {
             showPopup(evt, from, to, countries[from].armies - 1);
         }
     }
-    
-    private void showPopup(java.awt.event.MouseEvent evt, int from, int to, int armies) {
+
+    private void showPopup(java.awt.event.MouseEvent evt, int from, int to, int armies)
+    {
         JPopupMenu popup = new JPopupMenu("Move");
-        float step = (float)armies / 5;
+        float step = (float) armies / 5;
         float value = armies;
         int last = 0;
         int v = armies;
-        do {
-            if (last != v) {
+        do
+        {
+            if (last != v)
+            {
                 JMenuItem i = new JMenuItem(Integer.toString(v));
                 i.setActionCommand(String.format("%d:%d:%d", from, to, v));
                 i.addActionListener(this);
@@ -417,50 +456,62 @@ public class Display extends gamed.Game
                 last = v;
             }
             value -= step;
-            v = (int)Math.ceil(value);
-        } while (value > 0);
+            v = (int) Math.ceil(value);
+        }
+        while (value > 0);
         popup.show(evt.getComponent(), evt.getX(), evt.getY());
     }
-    
-    public void actionPerformed(ActionEvent evt) {
+
+    public void actionPerformed(ActionEvent evt)
+    {
         String args[] = evt.getActionCommand().split(":");
-        byte from   = Byte.parseByte(args[0]);
-        byte to     = Byte.parseByte(args[1]);
+        byte from = Byte.parseByte(args[0]);
+        byte to = Byte.parseByte(args[1]);
         byte armies = Byte.parseByte(args[2]);
-        if (from == -1) {
+        if (from == -1)
+        {
             placeArmiesAt(to, armies);
         }
-        else {
+        else
+        {
             moveArmies(from, to, armies);
         }
     }
-    
+
     @Override
-    public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height) {
-        if ((infoflags & ImageObserver.SOMEBITS) > 0) {
+    public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height)
+    {
+        if ((infoflags & ImageObserver.SOMEBITS) > 0)
+        {
             lines_seen++;
             progress.setValue(lines_seen);
         }
-        if ((infoflags & ImageObserver.ERROR) > 0) {
+        if ((infoflags & ImageObserver.ERROR) > 0)
+        {
             images_downloaded++;
             System.err.println("Error loading image");
             return false;
         }
-        if ((infoflags & ImageObserver.ALLBITS) > 0) {
+        if ((infoflags & ImageObserver.ALLBITS) > 0)
+        {
             images_downloaded++;
             return false;
         }
         return true;
     }
-        
-    public void init() {
-        for (Country c : countries) {
+
+    public void init()
+    {
+        for (Country c : countries)
+        {
             c.init();
         }
     }
-    
-    public void handleGameData(byte[] data) {
-        switch (data[0]) {
+
+    public void handleGameData(byte[] data)
+    {
+        switch (data[0])
+        {
             case PLAYER_JOIN:
             case PLAYER_QUIT:
                 server.askForPlayerList();
@@ -471,13 +522,15 @@ public class Display extends gamed.Game
                 break;
             case READY:
                 playerReady[data[1]] = true;
-                if (playerInd[data[1]] != -1) {
+                if (playerInd[data[1]] != -1)
+                {
                     playerDisplays[playerInd[data[1]]].getModel().setSelected(true);
                 }
                 break;
             case NOTREADY:
                 playerReady[data[1]] = false;
-                if (playerInd[data[1]] != -1) {
+                if (playerInd[data[1]] != -1)
+                {
                     playerDisplays[playerInd[data[1]]].getModel().setSelected(false);
                 }
                 break;
@@ -485,7 +538,8 @@ public class Display extends gamed.Game
                 phaseLabel.setText("Placing Armies");
                 notReadyRadio.getModel().setSelected(true);
                 setSelectedCountry(-1);
-                for (int i = 0; i < 6; i++) {
+                for (int i = 0; i < 6; i++)
+                {
                     playerDisplays[i].getModel().setSelected(false);
                     playerReady[i] = false;
                 }
@@ -495,32 +549,37 @@ public class Display extends gamed.Game
                 phaseLabel.setText("At War");
                 readyRadio.setVisible(false);
                 notReadyRadio.setVisible(false);
-				armyGenerationTimer = new ArmyGenerationTimer(armyGenerationProgress);
-				armyGenerationProgress.setVisible(true);
-				break;
+                armyGenerationTimer = new ArmyGenerationTimer(armyGenerationProgress);
+                armyGenerationProgress.setVisible(true);
+                break;
             case GET_ARMIES:
                 reserve = data[3];
                 reserveLabel.setText(data[3] + " armies in reserve");
                 break;
-			case NEXT_ARMY_GENERATION:
-				armyGenerationTimer.set(data[1]);
-				break;
+            case NEXT_ARMY_GENERATION:
+                armyGenerationTimer.set(data[1]);
+                break;
             case ATTACK_RESULT:
             case MOVE_RESULT:
                 countries[data[4]].set(data[5], data[6]);
                 int old_owner = countries[data[8]].owner;
                 countries[data[8]].set(data[9], data[10]);
-                if (old_owner != data[9]) {
-                    if (data[9] == player_id) {
+                if (old_owner != data[9])
+                {
+                    if (data[9] == player_id)
+                    {
                         setSelectedCountry(data[8]);
-                    } else if (selectedCountry == data[8]) {
+                    }
+                    else if (selectedCountry == data[8])
+                    {
                         setSelectedCountry(-1);
                     }
                 }
                 break;
             case GAME_STATUS:
-                for (int i = 1; i <= 42; i++) {
-                    countries[data[i*4]].set(data[i*4+1], data[i*4+2]);
+                for (int i = 1; i <= 42; i++)
+                {
+                    countries[data[i * 4]].set(data[i * 4 + 1], data[i * 4 + 2]);
                 }
                 break;
             case PLAYER_STATUS:
@@ -534,23 +593,26 @@ public class Display extends gamed.Game
                 countries[data[4]].set(data[5], data[6]);
                 break;
             case DEFEAT:
-                if (playerInd[data[1]] != -1) {
+                if (playerInd[data[1]] != -1)
+                {
                     playerDisplays[playerInd[data[1]]].getModel().setSelected(false);
                     playerReady[data[1]] = false;
                 }
                 break;
             case VICTORY:
                 phaseLabel.setText("Game Over");
-				armyGenerationTimer.stop();
-				armyGenerationProgress.setVisible(false);
+                armyGenerationTimer.stop();
+                armyGenerationProgress.setVisible(false);
                 break;
         }
         repaint();
     }
-    
-    public void updatePlayers(gamed.Player[] players) {
-        int i=0;
-        for (; i < players.length; i++) {
+
+    public void updatePlayers(gamed.Player[] players)
+    {
+        int i = 0;
+        for (; i < players.length; i++)
+        {
             playerInd[players[i].id] = i;
             playerDisplays[i].setText(players[i].name);
             playerDisplays[i].setBackground(new Color(Country.token_colors[players[i].id]));
@@ -558,70 +620,92 @@ public class Display extends gamed.Game
             playerDisplays[i].setVisible(true);
 
         }
-        for (; i<6; i++) {
+        for (; i < 6; i++)
+        {
             playerInd[i] = -1;
             playerDisplays[i].setVisible(false);
         }
     }
-    
-    public void renamePlayer(gamed.Player player) {
+
+    public void renamePlayer(gamed.Player player)
+    {
         playerDisplays[playerInd[player.id]].setText(player.name);
     }
 
-    private void sendReady(boolean ready) {
-        byte cmd[] = { ready ? READY : NOTREADY, 0, 0, 0 };
+    private void sendReady(boolean ready)
+    {
+        byte cmd[] =
+        {
+            ready ? READY : NOTREADY, 0, 0, 0
+        };
         server.sendGameData(cmd);
     }
-    
-    private int getCountryAt(Point p) {
-        for (int i=0; i<42; i++) {
-            if (countries[i].contains(p)) {
+
+    private int getCountryAt(Point p)
+    {
+        for (int i = 0; i < 42; i++)
+        {
+            if (countries[i].contains(p))
+            {
                 return i;
             }
         }
         return -1;
     }
-    
-    private void setSelectedCountry(int c) {
-        if (selectedCountry != c) {
-            if (selectedCountry != -1) {
+
+    private void setSelectedCountry(int c)
+    {
+        if (selectedCountry != c)
+        {
+            if (selectedCountry != -1)
+            {
                 countries[selectedCountry].setSelected(false);
             }
-            if (c != -1) {
+            if (c != -1)
+            {
                 countries[c].setSelected(true);
             }
         }
         selectedCountry = c;
     }
-    
-    private void attack(byte to) {
-        if (countries[selectedCountry].armies > 1) {
-            byte cmd[] = {
-                ATTACK, 
-                (byte)selectedCountry,
+
+    private void attack(byte to)
+    {
+        if (countries[selectedCountry].armies > 1)
+        {
+            byte cmd[] =
+            {
+                ATTACK,
+                (byte) selectedCountry,
                 to,
-                (byte)(countries[selectedCountry].armies - 1) 
+                (byte) (countries[selectedCountry].armies - 1)
             };
             server.sendGameData(cmd);
         }
     }
-    
-    private void moveArmies(byte from, byte to, byte armies) {
-        if (countries[from].armies > 1) {
-            byte cmd[] = {
-                MOVE, 
+
+    private void moveArmies(byte from, byte to, byte armies)
+    {
+        if (countries[from].armies > 1)
+        {
+            byte cmd[] =
+            {
+                MOVE,
                 from,
                 to,
-                armies 
+                armies
             };
             server.sendGameData(cmd);
         }
     }
-    
-    private void placeArmiesAt(byte to, byte armies) {
-        if (reserve > 0) {
-            byte cmd[] = {
-                PLACE, 
+
+    private void placeArmiesAt(byte to, byte armies)
+    {
+        if (reserve > 0)
+        {
+            byte cmd[] =
+            {
+                PLACE,
                 0,
                 to,
                 armies
@@ -629,55 +713,10 @@ public class Display extends gamed.Game
             server.sendGameData(cmd);
         }
     }
-    
-    private void placeAllArmiesAt(byte to) {
-        placeArmiesAt(to, (byte)reserve);
-    }
-    
-    private void initCountries() {
-        countries = new Country[42];
-        countries[ 0] = new Country(133, 114, 157, 131); // EasternUS
-        countries[ 1] = new Country( 79,  52, 103,  65); // NorthwestTerritory
-        countries[ 2] = new Country(100, 112, 117, 123); // WesternUS
-        countries[ 3] = new Country(150,  84, 154,  97); // Ontario
-        countries[ 4] = new Country(114, 148, 140, 168); // CentralAmerica
-        countries[ 5] = new Country( 87,  84, 109,  92); // Alberta
-        countries[ 6] = new Country( 99,   1, 187,  38); // Greenland
-        countries[ 7] = new Country( 12,  49,  44,  62); // Alaska
-        countries[ 8] = new Country(180,  76, 191,  92); // Quebec
-        countries[ 9] = new Country(196, 198, 227, 219); // Brazil
-        countries[10] = new Country(180, 184, 194, 191); // Venezuela
-        countries[11] = new Country(189, 240, 197, 267); // Argentina
-        countries[12] = new Country(177, 199, 197, 228); // Peru
-        countries[13] = new Country(282,  65, 282,  62); // Iceland
-        countries[14] = new Country(332, 113, 348, 118); // SouthernEurope
-        countries[15] = new Country(362,  29, 388,  84); // Ukraine
-        countries[16] = new Country(333,  50, 348,  66); // Scandinavia
-        countries[17] = new Country(306,  88, 306,  92); // GreatBritan
-        countries[18] = new Country(304, 108, 310, 119); // WesternEurope
-        countries[19] = new Country(325,  90, 339,  99); // NorthernEurope
-        countries[20] = new Country(340, 143, 358, 151); // Egypt
-        countries[21] = new Country(341, 189, 353, 213); // Congo
-        countries[22] = new Country(403, 231, 400, 236); // Madagascar
-        countries[23] = new Country(349, 242, 359, 251); // SouthAfrica
-        countries[24] = new Country(362, 166, 379, 190); // EastAfrica
-        countries[25] = new Country(293, 136, 317, 167); // NorthAfrica
-        countries[26] = new Country(409,  75, 428, 109); // Afghanistan
-        countries[27] = new Country(484,  98, 517, 109); // Mongolia
-        countries[28] = new Country(432,  43, 443,  78); // Ural
-        countries[29] = new Country(560, 120, 569, 131); // Japan
-        countries[30] = new Country(482,  81, 523,  85); // Irkutsk
-        countries[31] = new Country(433, 142, 456, 156); // India
-        countries[32] = new Country(489, 157, 495, 167); // Siam
-        countries[33] = new Country(519,  42, 546,  62); // Yakutsk
-        countries[34] = new Country(455,   8, 483,  58); // Siberia
-        countries[35] = new Country(451, 124, 491, 133); // China
-        countries[36] = new Kamchat(560,  32, 601,  60); // Kamchatka
-        countries[37] = new Country(372, 127, 398, 147); // MiddleEast
-        countries[38] = new Country(562, 208, 573, 211); // NewGuinea
-        countries[39] = new Country(498, 174, 520, 199); // Indonesia
-        countries[40] = new Country(529, 228, 542, 247); // WesternAustralia
-        countries[41] = new Country(569, 227, 572, 248); // EasternAustralia
+
+    private void placeAllArmiesAt(byte to)
+    {
+        placeArmiesAt(to, (byte) reserve);
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
@@ -701,7 +740,6 @@ public class Display extends gamed.Game
     private javax.swing.JLabel reserveLabel;
     private javax.swing.JPanel statusPanel;
     // End of variables declaration//GEN-END:variables
-    
     public static final byte PLAYER_JOIN = 0;
     public static final byte MESSAGE = 1;
     public static final byte SR_ERROR = 2;
@@ -722,5 +760,4 @@ public class Display extends gamed.Game
     public static final byte VICTORY = 17;
     public static final byte PLAYER_QUIT = 18;
     public static final byte NEXT_ARMY_GENERATION = 19;
-
 }
