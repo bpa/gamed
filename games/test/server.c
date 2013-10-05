@@ -194,11 +194,9 @@ void tellf_all(GameInstance *g, const char *fmt, ...) {
 
 GameInstance *create_instance(Game *g) {
     reset_mocks();
-	GameModule *module = (GameModule *)malloc(sizeof(GameModule));
-	bzero(module, sizeof(GameModule));
+	GameModule *module = (GameModule *)calloc(sizeof(GameModule), 1);
 	memcpy(&module->game, g, sizeof(Game));
-	GameModuleInstance *game = (GameModuleInstance *)malloc(sizeof(GameModuleInstance));
-	bzero(game, sizeof(GameModuleInstance));
+	GameModuleInstance *game = (GameModuleInstance *)calloc(sizeof(GameModuleInstance), 1);
 	game->module = module;
 	module->game.create((GameInstance*)game, &server);
 	game->instance.accepting_players = true;

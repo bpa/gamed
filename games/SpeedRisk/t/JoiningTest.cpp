@@ -85,8 +85,9 @@ TEST_F(SpeedRiskJoiningTest, not_ready) {
     ASSERT_EQ(1, game->playing);
     simple_command_plr_test(&p1, SR_CMD_READY, SR_CMD_ERROR);
     player_join(game, &p2);
-    simple_command_all_test(&p1, SR_CMD_NOTREADY, SR_CMD_NOTREADY);
+    simple_command_plr_test(&p1, SR_CMD_NOTREADY, SR_CMD_ERROR);
     simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
+    simple_command_plr_test(&p2, SR_CMD_READY, SR_CMD_ERROR);
     ASSERT_EQ(&SR_WAITING_FOR_PLAYERS, game->state);
     simple_command_all_test(&p2, SR_CMD_NOTREADY, SR_CMD_NOTREADY);
     simple_command_all_test(&p1, SR_CMD_READY, SR_CMD_READY);

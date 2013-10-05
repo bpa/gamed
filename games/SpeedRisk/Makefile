@@ -1,7 +1,7 @@
 OBJS := $(patsubst %.c,%.o,$(wildcard *.c))
 CFLAGS = -Wall -fPIC
 INC = -I.. -I../../include
-CC = gcc
+CC = gcc -g
 
 run: SpeedRisk.so test
 

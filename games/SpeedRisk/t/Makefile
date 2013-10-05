@@ -2,15 +2,15 @@
 .SUFFIXES: .o .cpp
 OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
-CFLAGS = -Wall -pedantic -ansi 
+CFLAGS = -Wall -ansi 
 INC = -I../.. -I../../../include -iquote.. -I$(GTEST_HOME)/include
-LIBS = -lpthread ../SpeedRisk.so
-CPP = g++
+LIBS = -pthread 
+CPP = g++ -g
 
 test: runtests run-tests
 
 runtests: $(OBJS) ../SpeedRisk.so ../../test/server.o
-	$(CPP) -o runtests ../../test/server.o $(LIBS) $(OBJS) $(GTEST_HOME)/src/gtest_main.cc $(GTEST_HOME)/lib/.libs/libgtest.a
+	$(CPP) -o runtests ../../test/server.o $(LIBS) ../*.o $(OBJS) $(GTEST_HOME)/src/gtest_main.cc $(GTEST_HOME)/libgtest.a
 
 run-tests:
 	./runtests

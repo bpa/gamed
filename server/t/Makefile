@@ -10,7 +10,7 @@ CPP = g++
 test: runtests run-tests
 
 runtests: $(OBJS) ../gamed.so
-	$(CPP) -o runtests $(LIBS) $(OBJS) $(GTEST_HOME)/src/gtest_main.cc $(GTEST_HOME)/lib/.libs/libgtest.a
+	$(CPP) -o runtests $(LIBS) $(OBJS) $(GTEST_HOME)/src/gtest_main.cc $(GTEST_HOME)/libgtest.a
 
 run-tests:
 	./runtests

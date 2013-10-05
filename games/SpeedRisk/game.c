@@ -316,8 +316,10 @@ void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *req
 	switch (cmd->command) {
 		case SR_CMD_READY:
 			if (g->playing > 1) {
-				if (srd->players[p->in_game_id].ready)
-					return;
+				if (srd->players[p->in_game_id].ready) {
+					player_error(s, p, SR_ERR_INVALID_CMD);
+					break;
+				}
 				srd->players[p->in_game_id].ready = true;
 				all_cmd_f(g, s, SR_CMD_READY, p->in_game_id);
 				all_ready = true;
@@ -333,8 +335,10 @@ void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *req
 			}
 			break;
 		case SR_CMD_NOTREADY:
-			if (!srd->players[p->in_game_id].ready)
-				return;
+			if (!srd->players[p->in_game_id].ready) {
+				player_error(s, p, SR_ERR_INVALID_CMD);
+				break;
+			}
 			srd->players[p->in_game_id].ready = false;
 			all_cmd_f(g, s, SR_CMD_NOTREADY, p->in_game_id);
 			break;
