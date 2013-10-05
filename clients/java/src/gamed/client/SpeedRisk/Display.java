@@ -1,54 +1,33 @@
-/*
- * Display.java
- *
- * Created on July 7, 2008, 10:50 PM
- */
 package gamed.client.SpeedRisk;
 
-import gamed.client.risk.Country;
-import java.lang.Math;
+import gamed.client.MediaDownloader;
 import java.awt.Point;
-import java.awt.Image;
-import java.awt.image.ImageObserver;
 import java.awt.Color;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import javax.swing.JCheckBox;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import javax.swing.JLabel;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
 
-/**
- *
- * @author bruce
- */
-public class Display extends gamed.Game implements Runnable, ImageObserver, ActionListener
+public class Display extends gamed.Game implements PropertyChangeListener, ActionListener
 {
-    private Thread thread;
-    private Image bg;
     private gamed.Server server;
-    private volatile int lines_seen;
-    private volatile int images_downloaded;
-    private static final int TOTAL_IMAGES = 44;
-    private ClassicCountries map;
+    private RiskBoard board;
     private int selectedCountry = -1;
-    private Country[] countries;
-    private JCheckBox[] playerDisplays;
-    private int playerInd[] =
-    {
-        -1, -1, -1, -1, -1, -1
-    };
-    private boolean playerReady[];
     private int reserve;
     private int player_id;
     private boolean atWar;
     private ArmyGenerationTimer armyGenerationTimer;
+    private JLabel reserveLabel = null;
+    private JLabel phaseLabel = null;
+    private int lineHeight = 0;
 
-    public Display(gamed.Server s)
+    public Display(gamed.Server s, RiskBoard board)
     {
         server = s;
-        map = new ClassicCountries();
-        playerDisplays = new JCheckBox[6];
-        playerReady = new boolean[6];
+        this.board = board;
         initComponents();
         atWar = false;
         byte cmd[] =
@@ -61,98 +40,46 @@ public class Display extends gamed.Game implements Runnable, ImageObserver, Acti
     @Override
     public void paintComponent(java.awt.Graphics g)
     {
-        if (images_downloaded == TOTAL_IMAGES)
-        {
-            g.drawImage(bg, 0, 0, null);
-            for (Country c : countries)
-            {
-                c.paint(g);
-            }
-            for (Country c : countries)
-            {
-                c.paintIcon(g);
-            }
-        }
-        else
-        {
-            g.clearRect(0, 0, 650, 375);
-        }
+        board.paintComponent(g);
     }
 
     public void joinedGame()
     {
-        if (thread == null)
-        {
-            thread = new Thread(this);
-            thread.start();
-        }
-    }
-
-    public void run()
-    {
-        armyGenerationProgress.setVisible(false);
-        initMediaDownload();
-        while (images_downloaded < TOTAL_IMAGES)
-        {
-            try
-            {
-                Thread.sleep(100);
-            }
-            catch (java.lang.InterruptedException e)
-            {
-                return;
-            }
-        }
-        init();
-        loadingText.setVisible(false);
-        progress.setVisible(false);
-        reserveLabel.setText("0 armies in reserve");
-        phaseLabel.setText("Waiting for players");
-        statusPanel.setVisible(true);
-        readyRadio.setVisible(true);
-        notReadyRadio.setVisible(true);
-        jButton1.setVisible(true);
-        repaint();
-    }
-
-    private void initMediaDownload()
-    {
-        images_downloaded = 0;
         progress.setValue(0);
-        bg = getImage("images/world_map_relief.png");
-        for (int i = 0; i < 42; i++)
-        {
-            countries[i].overlay = getImage("images/c" + i + ".png");
-        }
-        ((Kamchat) countries[36]).overlay2 = getImage("images/c36b.png");
+        final MediaDownloader mediaDownloader = new MediaDownloader(server, null);
+        mediaDownloader.addPropertyChangeListener(this);
+        mediaDownloader.execute();
     }
 
-    private Image getImage(String image)
+    public void propertyChange(PropertyChangeEvent pce)
     {
-        Image img = server.getImage(image);
-        int height = img.getHeight(this);
-        if (height != -1)
+        String propertyName = pce.getPropertyName();
+        if (propertyName.equals("progress"))
         {
-            images_downloaded++;
-            lines_seen += height;
-            progress.setValue(lines_seen);
+            jProgressBar1.setValue((Integer) pce.getNewValue());
         }
-        return img;
-    }
-
-    public void stop()
-    {
-        if ((thread != null) && thread.isAlive())
+        else if (propertyName.equals("status") && pce.getNewValue().equals("DONE"))
         {
-            running = false;
+            int height = getGraphics().getFontMetrics().getHeight();
+            armyGenerationProgress.setVisible(false);
+            loadingText.setVisible(false);
+            progress.setVisible(false);
+            phaseLabel = new JLabel("Waiting for players");
+            add(phaseLabel);
+            phaseLabel.setBounds(10, board.height - 10, 150, height);
+            reserveLabel = new JLabel("0 armies in reserve");
+            add(reserveLabel);
+            reserveLabel.setBounds(10, board.height - 14 - height, 150, height);
+            readyRadio.setVisible(true);
+            notReadyRadio.setVisible(true);
+            jButton1.setVisible(true);
+            repaint();
         }
-        thread = null;
     }
 
     /**
-     * This method is called from within the constructor to initialize the form.
-     * WARNING: Do NOT modify this code. The content of this method is always
-     * regenerated by the Form Editor.
+     * This method is called from within the constructor to initialize the form. WARNING: Do NOT modify this
+     * code. The content of this method is always regenerated by the Form Editor.
      */
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents()
@@ -162,17 +89,6 @@ public class Display extends gamed.Game implements Runnable, ImageObserver, Acti
         jProgressBar1 = new javax.swing.JProgressBar();
         progress = new javax.swing.JProgressBar();
         loadingText = new javax.swing.JLabel();
-        statusPanel = new javax.swing.JPanel();
-        jCheckBox1 = new javax.swing.JCheckBox();
-        jCheckBox2 = new javax.swing.JCheckBox();
-        jCheckBox3 = new javax.swing.JCheckBox();
-        jCheckBox4 = new javax.swing.JCheckBox();
-        jCheckBox5 = new javax.swing.JCheckBox();
-        jCheckBox6 = new javax.swing.JCheckBox();
-        phaseBG = new javax.swing.JPanel();
-        phaseLabel = new javax.swing.JLabel();
-        reserveBG = new javax.swing.JPanel();
-        reserveLabel = new javax.swing.JLabel();
         jButton1 = new javax.swing.JButton();
         readyRadio = new javax.swing.JRadioButton();
         notReadyRadio = new javax.swing.JRadioButton();
@@ -202,102 +118,6 @@ public class Display extends gamed.Game implements Runnable, ImageObserver, Acti
         loadingText.setText("Loading Media...");
         add(loadingText);
         loadingText.setBounds(200, 150, 250, 70);
-
-        statusPanel.setLayout(new java.awt.GridLayout(0, 1, 1, 0));
-
-        jCheckBox1.setVisible(false);
-        playerDisplays[5] = jCheckBox1;
-        jCheckBox1.setFocusable(false);
-        jCheckBox1.setRequestFocusEnabled(false);
-        jCheckBox1.setRolloverEnabled(false);
-        jCheckBox1.addActionListener(new java.awt.event.ActionListener()
-        {
-            public void actionPerformed(java.awt.event.ActionEvent evt)
-            {
-                playerDisplayActionPerformed(evt);
-            }
-        });
-        statusPanel.add(jCheckBox1);
-
-        jCheckBox2.setVisible(false);
-        playerDisplays[4] = jCheckBox2;
-        jCheckBox2.addActionListener(new java.awt.event.ActionListener()
-        {
-            public void actionPerformed(java.awt.event.ActionEvent evt)
-            {
-                playerDisplayActionPerformed(evt);
-            }
-        });
-        statusPanel.add(jCheckBox2);
-
-        jCheckBox3.setVisible(false);
-        playerDisplays[3] = jCheckBox3;
-        jCheckBox3.addActionListener(new java.awt.event.ActionListener()
-        {
-            public void actionPerformed(java.awt.event.ActionEvent evt)
-            {
-                playerDisplayActionPerformed(evt);
-            }
-        });
-        statusPanel.add(jCheckBox3);
-
-        jCheckBox4.setVisible(false);
-        playerDisplays[2] = jCheckBox4;
-        jCheckBox4.addActionListener(new java.awt.event.ActionListener()
-        {
-            public void actionPerformed(java.awt.event.ActionEvent evt)
-            {
-                playerDisplayActionPerformed(evt);
-            }
-        });
-        statusPanel.add(jCheckBox4);
-
-        jCheckBox5.setVisible(false);
-        playerDisplays[1] = jCheckBox5;
-        jCheckBox5.addActionListener(new java.awt.event.ActionListener()
-        {
-            public void actionPerformed(java.awt.event.ActionEvent evt)
-            {
-                playerDisplayActionPerformed(evt);
-            }
-        });
-        statusPanel.add(jCheckBox5);
-
-        jCheckBox6.setVisible(false);
-        playerDisplays[0] = jCheckBox6;
-        jCheckBox6.setFocusable(false);
-        jCheckBox6.addActionListener(new java.awt.event.ActionListener()
-        {
-            public void actionPerformed(java.awt.event.ActionEvent evt)
-            {
-                playerDisplayActionPerformed(evt);
-            }
-        });
-        statusPanel.add(jCheckBox6);
-
-        phaseBG.setLayout(new java.awt.GridLayout(1, 0));
-
-        phaseLabel.setText("Waiting for players");
-        phaseLabel.setFocusable(false);
-        phaseLabel.setRequestFocusEnabled(false);
-        phaseBG.add(phaseLabel);
-
-        statusPanel.add(phaseBG);
-
-        reserveBG.setLayout(new java.awt.GridLayout(1, 0));
-
-        reserveLabel.setText("jLabel2");
-        reserveLabel.setFocusable(false);
-        reserveLabel.setRequestFocusEnabled(false);
-        reserveBG.add(reserveLabel);
-
-        statusPanel.add(reserveBG);
-
-        statusPanel.setVisible(false);
-
-        add(statusPanel);
-        statusPanel.setBounds(20, 210, 150, 150);
-        statusPanel.setBackground(new java.awt.Color(0,true));
 
         jButton1.setVisible(false);
         jButton1.setText("Quit Game");
@@ -349,11 +169,6 @@ public class Display extends gamed.Game implements Runnable, ImageObserver, Acti
         armyGenerationProgress.setBounds(230, 350, 200, 19);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void playerDisplayActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_playerDisplayActionPerformed
-        javax.swing.ButtonModel model = ((JCheckBox) evt.getSource()).getModel();
-        model.setSelected(!model.isSelected());
-}//GEN-LAST:event_playerDisplayActionPerformed
-
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
         server.quitGame();
     }//GEN-LAST:event_jButton1ActionPerformed
@@ -366,11 +181,11 @@ public class Display extends gamed.Game implements Runnable, ImageObserver, Acti
         if (evt.isPopupTrigger())
         {
             byte c = (byte) getCountryAt(evt.getPoint());
-            if (c != -1 && countries[c].owner == player_id)
+            if (c != -1 && board.countries.get(c).owner.id == player_id)
             {
                 if (selectedCountry != -1
-                        && countries[selectedCountry].armies > 1
-                        && map.borders(selectedCountry, c))
+                        && board.countries.get(selectedCountry).armies > 1
+                        && board.borders(selectedCountry, c))
                 {
                     showMovePopup(evt, selectedCountry, c);
                     setSelectedCountry(-1);
@@ -387,11 +202,11 @@ public class Display extends gamed.Game implements Runnable, ImageObserver, Acti
         byte c = (byte) getCountryAt(evt.getPoint());
         if (c != -1)
         {
-            if (countries[c].owner == player_id)
+            if (board.countries.get(c).owner.id == player_id)
             {
                 if (selectedCountry != -1
-                        && countries[selectedCountry].armies > 1
-                        && map.borders(selectedCountry, c))
+                        && board.countries.get(selectedCountry).armies > 1
+                        && board.borders(selectedCountry, c))
                 {
                     if (evt.isPopupTrigger())
                     {
@@ -399,7 +214,7 @@ public class Display extends gamed.Game implements Runnable, ImageObserver, Acti
                     }
                     else
                     {
-                        moveArmies((byte) selectedCountry, c, (byte) (countries[selectedCountry].armies - 1));
+                        moveArmies((byte) selectedCountry, c, (byte) (board.countries.get(selectedCountry).armies - 1));
 
                     }
                 }
@@ -418,7 +233,7 @@ public class Display extends gamed.Game implements Runnable, ImageObserver, Acti
                 repaint();
             }
             else if (selectedCountry != -1
-                    && map.borders(selectedCountry, c))
+                    && board.borders(selectedCountry, c))
             {
                 attack(c);
             }
@@ -434,7 +249,7 @@ public class Display extends gamed.Game implements Runnable, ImageObserver, Acti
     {
         if (atWar)
         {
-            showPopup(evt, from, to, countries[from].armies - 1);
+            showPopup(evt, from, to, board.countries.get(from).armies - 1);
         }
     }
 
@@ -475,36 +290,6 @@ public class Display extends gamed.Game implements Runnable, ImageObserver, Acti
         else
         {
             moveArmies(from, to, armies);
-        }
-    }
-
-    @Override
-    public boolean imageUpdate(Image img, int infoflags, int x, int y, int width, int height)
-    {
-        if ((infoflags & ImageObserver.SOMEBITS) > 0)
-        {
-            lines_seen++;
-            progress.setValue(lines_seen);
-        }
-        if ((infoflags & ImageObserver.ERROR) > 0)
-        {
-            images_downloaded++;
-            System.err.println("Error loading image");
-            return false;
-        }
-        if ((infoflags & ImageObserver.ALLBITS) > 0)
-        {
-            images_downloaded++;
-            return false;
-        }
-        return true;
-    }
-
-    public void init()
-    {
-        for (Country c : countries)
-        {
-            c.init();
         }
     }
 
@@ -718,27 +503,15 @@ public class Display extends gamed.Game implements Runnable, ImageObserver, Acti
     {
         placeArmiesAt(to, (byte) reserve);
     }
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JProgressBar armyGenerationProgress;
     private javax.swing.ButtonGroup buttonGroup1;
     private javax.swing.JButton jButton1;
-    private javax.swing.JCheckBox jCheckBox1;
-    private javax.swing.JCheckBox jCheckBox2;
-    private javax.swing.JCheckBox jCheckBox3;
-    private javax.swing.JCheckBox jCheckBox4;
-    private javax.swing.JCheckBox jCheckBox5;
-    private javax.swing.JCheckBox jCheckBox6;
     private javax.swing.JProgressBar jProgressBar1;
     private javax.swing.JLabel loadingText;
     private javax.swing.JRadioButton notReadyRadio;
-    private javax.swing.JPanel phaseBG;
-    private javax.swing.JLabel phaseLabel;
     private javax.swing.JProgressBar progress;
     private javax.swing.JRadioButton readyRadio;
-    private javax.swing.JPanel reserveBG;
-    private javax.swing.JLabel reserveLabel;
-    private javax.swing.JPanel statusPanel;
     // End of variables declaration//GEN-END:variables
     public static final byte PLAYER_JOIN = 0;
     public static final byte MESSAGE = 1;

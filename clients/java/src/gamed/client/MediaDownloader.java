@@ -1,41 +1,34 @@
 package gamed.client;
 
 import gamed.Server;
-import gamed.client.SpeedRisk.Kamchat;
-import gamed.client.risk.Country;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import javax.swing.JProgressBar;
+import java.awt.Image;
+import java.util.Collection;
+import javax.swing.SwingWorker;
 
-public class MediaDownloader extends JProgressBar
+public class MediaDownloader extends SwingWorker
 {
-    private final ExecutorService executor = Executors.newFixedThreadPool(1);
     private final Server server;
+    private final Collection<MediaRequestor> mediaRequestors;
 
-    public MediaDownloader(Server server)
+    public MediaDownloader(Server server, Collection<MediaRequestor> mediaRequestors)
     {
         this.server = server;
+        this.mediaRequestors = mediaRequestors;
     }
 
-    public void load(Country country)
+    @Override
+    protected Object doInBackground()
     {
-        executor.submit(new CountryLoader(country));
-    }
-
-    private class CountryLoader implements Runnable
-    {
-        private final Country country;
-
-        public CountryLoader(Country country)
+        int completed = 0;
+        for (MediaRequestor mediaRequestor : mediaRequestors)
         {
-            this.country = country;
+            for (String request : mediaRequestor.getMediaRequests())
+            {
+                Image image = server.getImage(request);
+                mediaRequestor.mediaCompleted(request, image);
+            }
+            setProgress(completed / mediaRequestors.size());
         }
-
-        public void run()
-        {
-            country.overlay = server.getImage(country.imageFile);
-            if (country instanceof Kamchat)
-                ((Kamchat) country).overlay2 = server.getImage("images/classic/c36b.png");
-        }
+        return null;
     }
 }

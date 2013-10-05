@@ -1,19 +1,35 @@
 package gamed.client.SpeedRisk;
 
-import gamed.client.risk.Countries;
-import gamed.client.risk.Country;
 import java.util.ArrayList;
 import java.util.List;
-import static gamed.client.SpeedRisk.ClassicCountries.Territories.*;
+import static gamed.client.SpeedRisk.ClassicBoard.Territories.*;
 
 /**
  *
  * @author bruce
  */
-public class ClassicCountries extends Countries
+public class ClassicBoard extends RiskBoard
 {
     static final boolean BORDER_TABLE[] = new boolean[42 * 42];
     static final List<Country> COUNTRIES = new ArrayList(42);
+    protected static int[] country_colors =
+    {
+        0xb22222, // Firebrick red
+        0x7cfc00, // Lawn green
+        0xffffff, // White
+        0x191970, // Dodger blue
+        0xcd950c, // Dark goldenrod 3
+        0xffbbff  // Plum 1
+    };
+    protected static int[] token_colors =
+    {
+        0xcd5c5c, // Indian red
+        0x7cfc00, // Lawn green
+        0xffffff, // White
+        0x1e90ff, // Dodger blue
+        0xcd950c, // Dark goldenrod 3
+        0xffbbff  // Plum 1
+    };
 
     enum Territories
     {
@@ -159,12 +175,18 @@ public class ClassicCountries extends Countries
         setBorder(WESTERN_AUSTRALIA, EASTERN_AUSTRALIA);
     }
 
-    protected static void setBorder(Enum a, Enum b)
+    public ClassicBoard()
+    {
+        super("images/classic/world_map_relief.png", COUNTRIES, 650, 375);
+    }
+
+    private static void setBorder(Enum a, Enum b)
     {
         BORDER_TABLE[a.ordinal() * 42 + b.ordinal()] = true;
         BORDER_TABLE[b.ordinal() * 42 + a.ordinal()] = true;
     }
 
+    @Override
     public boolean borders(int c1, int c2)
     {
         return BORDER_TABLE[c1 * 42 + c2];

@@ -1,40 +1,25 @@
-package gamed.client.risk;
+package gamed.client.SpeedRisk;
 
+import gamed.client.MediaRequestor;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
+import java.util.ArrayList;
 
 /**
  *
  * @author bruce
  */
-public class Country
+public class Country implements MediaRequestor
 {
-    protected static int[] country_colors =
-    {
-        0xb22222, // Firebrick red
-        0x7cfc00, // Lawn green
-        0xffffff, // White
-        0x191970, // Dodger blue
-        0xcd950c, // Dark goldenrod 3
-        0xffbbff  // Plum 1
-    };
-    protected static int[] token_colors =
-    {
-        0xcd5c5c, // Indian red
-        0x7cfc00, // Lawn green
-        0xffffff, // White
-        0x1e90ff, // Dodger blue
-        0xcd950c, // Dark goldenrod 3
-        0xffbbff  // Plum 1
-    };
+
     public Image overlay;
     public final int id;
     protected BufferedImage img;
-    protected int owner;
+    protected RiskPlayer owner;
     protected int armies;
     protected int x;
     protected int y;
@@ -43,7 +28,6 @@ public class Country
     protected boolean isSelected;
     protected Rectangle bounds;
     protected Rectangle iconBounds;
-    protected volatile boolean initialized = false;
     public final String imageFile;
 
     public Country(int id, String imageFile, int img_x, int img_y, int label_x, int label_y)
@@ -57,29 +41,20 @@ public class Country
         ly = label_y;
     }
 
-    public void init()
-    {
-        img = makeBufferedImage(overlay);
-        bounds = new Rectangle(x, y, img.getWidth(), img.getHeight());
-        iconBounds = new Rectangle(lx, ly, 18, 15);
-        initialized = true;
-        colorImage(img);
-    }
-
-    public void setOwner(int o)
+    public void setOwner(RiskPlayer o)
     {
         owner = o;
         setSelected(isSelected);
     }
 
-    public void set(int owner, int armies)
+    public void set(RiskPlayer owner, int armies)
     {
         this.owner = owner;
         this.armies = armies;
         setSelected(isSelected);
     }
 
-    public void set(int owner, int armies, boolean selected)
+    public void set(RiskPlayer owner, int armies, boolean selected)
     {
         this.owner = owner;
         this.armies = armies;
@@ -89,10 +64,9 @@ public class Country
     public void setSelected(boolean selected)
     {
         isSelected = selected;
-        if (!initialized)
-        {
+        if (img == null)
             return;
-        }
+
         if (isSelected)
         {
             colorSelectedImage(img);
@@ -124,13 +98,17 @@ public class Country
 
     public void paint(Graphics g)
     {
-        g.drawImage(img, x, y, null);
+        if (img != null)
+            g.drawImage(img, x, y, null);
     }
 
     public void paintIcon(Graphics g)
     {
-        g.setColor(new Color((token_colors[owner] | 0xDD000000), true));
-        g.fill3DRect(lx, ly, iconBounds.width, iconBounds.height, true);
+        if (img == null)
+            return;
+ 
+        if (owner.token != null)
+            g.drawImage(owner.token, lx, ly, null);
         g.setColor(Color.BLACK);
         g.drawString(Integer.toString(armies), lx + 2, ly + 12);
     }
@@ -145,7 +123,7 @@ public class Country
             for (int j = 0; j < h; j++)
             {
                 v = image.getRGB(i, j);
-                image.setRGB(i, j, (v & 0xff000000) | country_colors[owner]);
+                image.setRGB(i, j, (v & 0xff000000) | owner.color);
             }
         }
     }
@@ -176,5 +154,21 @@ public class Country
         Graphics2D g = i.createGraphics();
         g.drawImage(o, 0, 0, null);
         return i;
+    }
+
+    public Iterable<String> getMediaRequests()
+    {
+        ArrayList list = new ArrayList(1);
+        list.add(imageFile);
+        return list;
+    }
+
+    public void mediaCompleted(String request, Image img)
+    {
+        this.overlay = img;
+        this.img = makeBufferedImage(overlay);
+        this.bounds = new Rectangle(x, y, this.img.getWidth(), this.img.getHeight());
+        this.iconBounds = new Rectangle(lx, ly, 18, 15);
+        colorImage(this.img);
     }
 }

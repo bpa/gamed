@@ -1,10 +1,11 @@
 package gamed.client.SpeedRisk;
 
-import gamed.client.risk.Country;
+import gamed.client.SpeedRisk.Country;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
+import java.util.ArrayList;
 
 /**
  *
@@ -20,17 +21,9 @@ public class Kamchat extends Country
 
     public Kamchat(int img_x, int img_y, int label_x, int label_y)
     {
-        super(36, "images/classic/c36.png", img_x, img_y, label_x, label_y);
+        super(36, null, img_x, img_y, label_x, label_y);
         x2 = 0;
         y2 = 57;
-    }
-
-    @Override
-    public void init()
-    {
-        img2 = makeBufferedImage(overlay2);
-        bounds2 = new Rectangle(x2, y2, img2.getWidth(), img2.getHeight());
-        super.init();
     }
 
     @Override
@@ -44,10 +37,9 @@ public class Kamchat extends Country
     public void setSelected(boolean selected)
     {
         isSelected = selected;
-        if (!initialized)
-        {
+        if (img == null)
             return;
-        }
+        
         if (isSelected)
         {
             colorSelectedImage(img);
@@ -78,5 +70,30 @@ public class Kamchat extends Country
             }
         }
         return false;
+    }
+
+    @Override
+    public Iterable<String> getMediaRequests()
+    {
+        ArrayList images = new ArrayList(2);
+        images.add("images/classic/c36.png");
+        images.add("images/classic/c36b.png");
+        return images;
+    }
+
+    @Override
+    public void mediaCompleted(String request, Image img)
+    {
+        if (request.contains("c36b"))
+        {
+            overlay2 = img;
+            img2 = makeBufferedImage(overlay2);
+            bounds2 = new Rectangle(x2, y2, img2.getWidth(), img2.getHeight());
+            colorImage(img2);
+        }
+        else
+        {
+            super.mediaCompleted(request, img);
+        }
     }
 }
