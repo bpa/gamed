@@ -70,7 +70,10 @@ void game_over(GameInstance *g) {
 		next = LIST_NEXT(first, player_entry);
 		LIST_REMOVE(first, player_entry);
 		first->game = NULL;
-		if (first->player.data != NULL) free(first->player.data);
+		if (first->player.data != NULL) {
+			free(first->player.data);
+			first->player.data = NULL;
+		}
 		first = next;
 	}
 	g->playing = 0;
@@ -84,6 +87,7 @@ void game_over(GameInstance *g) {
 	if (instance->timer != NULL) {
 		event_del(instance->timer);
 		event_free(instance->timer);
+		instance->timer = NULL;
 	}
     LIST_REMOVE(instance, game_instance_entry);
 	free(g);

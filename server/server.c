@@ -222,7 +222,7 @@ void handle_timer (int sock, short event, void *args) {
         }
     }
     else {
-        if (event_initialized(g->timer)) {
+        if (g->timer != NULL) {
             event_del(g->timer);
         }
     }
