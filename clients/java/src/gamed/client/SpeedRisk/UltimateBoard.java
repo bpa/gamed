@@ -2,10 +2,13 @@ package gamed.client.SpeedRisk;
 
 public class UltimateBoard extends RiskBoard
 {
-
+    public static PlayerRenderer[] RENDERERS = new PlayerRenderer[]
+    {
+        
+    };
     public UltimateBoard()
     {
-        super("images/ultimate/world.png", null, 1200, 720);
+        super("images/ultimate/world.png", null, RENDERERS, 1200, 720);
     }
 
     @Override

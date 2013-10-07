@@ -1,27 +1,31 @@
 package gamed.client.SpeedRisk;
 
-import gamed.Player;
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.image.BufferedImage;
 import javax.swing.JCheckBox;
 
-public class RiskPlayer extends Player
+public class RiskPlayer implements Comparable<RiskPlayer>
 {
-    public final int color;
-    public boolean ready = false;
-    public Image token;
-    public JCheckBox playerDisplay;
+    public final int id;
+    public final PlayerRenderer renderer;
+    public JCheckBox playerDisplay = new JCheckBox();
 
-    public RiskPlayer(int color, int tokenColor, int id, String name)
+    public RiskPlayer(int id, PlayerRenderer renderer)
     {
-        super(id, name);
-        this.color = color;
-        
-        BufferedImage i = new BufferedImage(18, 15, BufferedImage.TYPE_4BYTE_ABGR);
-        Graphics2D g = i.createGraphics();
-        g.setColor(new Color((tokenColor | 0xDD000000), true));
-        g.fill3DRect(0, 0, 18, 15, true);
+        this.id = id;
+        this.renderer = renderer;
+    }
+
+    void setReady(boolean b)
+    {
+        playerDisplay.setSelected(b);
+    }
+
+    void setName(String name)
+    {
+        playerDisplay.setText(name);
+    }
+
+    public int compareTo(RiskPlayer t)
+    {
+        return id - t.id;
     }
 }

@@ -3,19 +3,13 @@ package gamed.client.SpeedRisk;
 import gamed.client.MediaRequestor;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
-import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.util.ArrayList;
 
-/**
- *
- * @author bruce
- */
 public class Country implements MediaRequestor
 {
-
     public Image overlay;
     public final int id;
     protected BufferedImage img;
@@ -73,7 +67,7 @@ public class Country implements MediaRequestor
         }
         else
         {
-            colorImage(img);
+            owner.renderer.renderCountry(img, x, y);
         }
     }
 
@@ -104,28 +98,7 @@ public class Country implements MediaRequestor
 
     public void paintIcon(Graphics g)
     {
-        if (img == null)
-            return;
- 
-        if (owner.token != null)
-            g.drawImage(owner.token, lx, ly, null);
-        g.setColor(Color.BLACK);
-        g.drawString(Integer.toString(armies), lx + 2, ly + 12);
-    }
-
-    protected void colorImage(BufferedImage image)
-    {
-        int w = image.getWidth();
-        int h = image.getHeight();
-        int v;
-        for (int i = 0; i < w; i++)
-        {
-            for (int j = 0; j < h; j++)
-            {
-                v = image.getRGB(i, j);
-                image.setRGB(i, j, (v & 0xff000000) | owner.color);
-            }
-        }
+        owner.renderer.renderIcon(g, lx, ly, armies);
     }
 
     protected void colorSelectedImage(BufferedImage image)
@@ -169,6 +142,6 @@ public class Country implements MediaRequestor
         this.img = makeBufferedImage(overlay);
         this.bounds = new Rectangle(x, y, this.img.getWidth(), this.img.getHeight());
         this.iconBounds = new Rectangle(lx, ly, 18, 15);
-        colorImage(this.img);
+        this.owner.renderer.renderCountry(this.img, x, y);
     }
 }

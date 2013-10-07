@@ -3,7 +3,6 @@ package gamed.client.SpeedRisk;
 import gamed.client.MediaDownloader;
 import java.awt.Point;
 import java.awt.Color;
-import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
@@ -26,7 +25,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
     {
         this.server = server;
         this.board = board;
-        this.statusPanel = new StatusPanel(board.height);
+        this.statusPanel = new StatusPanel(board);
         initComponents();
         armyGenerationProgress.setVisible(false);
         add(statusPanel);
@@ -176,10 +175,10 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
         if (evt.isPopupTrigger())
         {
             byte c = (byte) getCountryAt(evt.getPoint());
-            if (c != -1 && board.countries.get(c).owner.equals(me))
+            if (c != -1 && board.countries[c].owner.equals(me))
             {
                 if (selectedCountry != -1
-                        && board.countries.get(selectedCountry).armies > 1
+                        && board.countries[selectedCountry].armies > 1
                         && board.borders(selectedCountry, c))
                 {
                     showMovePopup(evt, selectedCountry, c);
@@ -197,10 +196,10 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
         byte c = (byte) getCountryAt(evt.getPoint());
         if (c != -1)
         {
-            if (board.countries.get(c).owner.equals(me))
+            if (board.countries[c].owner.equals(me))
             {
                 if (selectedCountry != -1
-                        && board.countries.get(selectedCountry).armies > 1
+                        && board.countries[selectedCountry].armies > 1
                         && board.borders(selectedCountry, c))
                 {
                     if (evt.isPopupTrigger())
@@ -209,7 +208,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
                     }
                     else
                     {
-                        moveArmies((byte) selectedCountry, c, (byte) (board.countries.get(selectedCountry).armies - 1));
+                        moveArmies((byte) selectedCountry, c, (byte) (board.countries[selectedCountry].armies - 1));
 
                     }
                 }
@@ -244,7 +243,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
     {
         if (atWar)
         {
-            showPopup(evt, from, to, board.countries.get(from).armies - 1);
+            showPopup(evt, from, to, board.countries[from].armies - 1);
         }
     }
 
@@ -290,6 +289,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 
     public void handleGameData(byte[] data)
     {
+        RiskPlayer player;
         switch (data[0])
         {
             case PLAYER_JOIN:
@@ -301,28 +301,20 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
                 System.err.flush();
                 break;
             case READY:
-                playerReady[data[1]] = true;
-                if (playerInd[data[1]] != -1)
-                {
-                    playerDisplays[playerInd[data[1]]].getModel().setSelected(true);
-                }
+                player = statusPanel.get(data[1]);
+                if (player != null)
+                    player.setReady(true);
                 break;
             case NOTREADY:
-                playerReady[data[1]] = false;
-                if (playerInd[data[1]] != -1)
-                {
-                    playerDisplays[playerInd[data[1]]].getModel().setSelected(false);
-                }
+                player = statusPanel.get(data[1]);
+                if (player != null)
+                    player.setReady(false);
                 break;
             case START_PLACING:
                 statusPanel.setPhase("Placing Armies");
                 notReadyRadio.getModel().setSelected(true);
                 setSelectedCountry(-1);
-                for (int i = 0; i < 6; i++)
-                {
-                    playerDisplays[i].getModel().setSelected(false);
-                    playerReady[i] = false;
-                }
+                statusPanel.resetReady();
                 break;
             case BEGIN:
                 atWar = true;
@@ -341,9 +333,9 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
                 break;
             case ATTACK_RESULT:
             case MOVE_RESULT:
-                board.countries.get(data[4]).set(data[5], data[6] & 0xFF);
-                RiskPlayer old_owner = board.countries.get(data[8]).owner;
-                board.countries[data[8]].set(data[9], data[10] & 0xFF);
+                board.countries[data[4]].set(statusPanel.get(data[5]), data[6] & 0xFF);
+                RiskPlayer old_owner = board.countries[data[8]].owner;
+                board.countries[data[8]].set(statusPanel.get(data[9]), data[10] & 0xFF);
                 if (old_owner.id != data[9])
                 {
                     if (data[9] == me.id)
@@ -359,23 +351,21 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
             case GAME_STATUS:
                 for (int i = 1; i <= 42; i++)
                 {
-                    board.countries.get(data[i * 4]).set(data[i * 4 + 1], data[i * 4 + 2] & 0xFF);
+                    board.countries[data[i * 4]].set(statusPanel.get(data[i * 4 + 1]), data[i * 4 + 2] & 0xFF);
                 }
                 break;
             case PLAYER_STATUS:
-                me = data[1];
+                me = statusPanel.get(data[1]);
                 reserve = data[3] & 0xFF;
                 statusPanel.setOwner(me);
                 break;
             case COUNTRY_STATUS:
-                board.countries.get(data[4]).set(data[5], data[6] && 0xFF);
+                board.countries[data[4]].set(statusPanel.get(data[5]), data[6] & 0xFF);
                 break;
             case DEFEAT:
-                if (playerInd[data[1]] != -1)
-                {
-                    playerDisplays[playerInd[data[1]]].getModel().setSelected(false);
-                    playerReady[data[1]] = false;
-                }
+                player = statusPanel.get(data[1]);
+                if (player != null)
+                    player.setReady(false);
                 break;
             case VICTORY:
                 statusPanel.setPhase("Game Over");
@@ -388,32 +378,12 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 
     public void updatePlayers(gamed.Player[] players)
     {
-        int height = getGraphics().getFontMetrics().getHeight();
-        int items = 2 + players.length;
-        ((GridLayout) statusPanel.getLayout()).setColumns(items);
-        int panelHeight = items * (height + 3);
-        statusPanel.setBounds(10, board.height - panelHeight - 10, 150, panelHeight);
-
-        int i = 0;
-        for (; i < players.length; i++)
-        {
-            playerInd[players[i].id] = i;
-            playerDisplays[i].setText(players[i].name);
-            playerDisplays[i].setBackground(new Color(Country.token_colors[players[i].id]));
-            playerDisplays[i].getModel().setSelected(playerReady[players[i].id]);
-            playerDisplays[i].setVisible(true);
-
-        }
-        for (; i < 6; i++)
-        {
-            playerInd[i] = -1;
-            playerDisplays[i].setVisible(false);
-        }
+        statusPanel.updatePlayers(players);
     }
 
     public void renamePlayer(gamed.Player player)
     {
-        playerDisplays[playerInd[player.id]].setText(player.name);
+        statusPanel.get(player.id).setName(player.name);
     }
 
     private void sendReady(boolean ready)
@@ -429,7 +399,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
     {
         for (int i = 0; i < 42; i++)
         {
-            if (board.countries.get(i).contains(p))
+            if (board.countries[i].contains(p))
             {
                 return i;
             }
@@ -443,11 +413,11 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
         {
             if (selectedCountry != -1)
             {
-                board.countries.get(selectedCountry).setSelected(false);
+                board.countries[selectedCountry].setSelected(false);
             }
             if (c != -1)
             {
-                board.countries.get(c).setSelected(true);
+                board.countries[c].setSelected(true);
             }
         }
         selectedCountry = c;
@@ -455,14 +425,14 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 
     private void attack(byte to)
     {
-        if (board.countries.get(selectedCountry).armies > 1)
+        if (board.countries[selectedCountry].armies > 1)
         {
             byte cmd[] =
             {
                 ATTACK,
                 (byte) selectedCountry,
                 to,
-                (byte) (board.countries.get(selectedCountry).armies - 1)
+                (byte) (board.countries[selectedCountry].armies - 1)
             };
             server.sendGameData(cmd);
         }
@@ -470,7 +440,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 
     private void moveArmies(byte from, byte to, byte armies)
     {
-        if (board.countries.get(from).armies > 1)
+        if (board.countries[from].armies > 1)
         {
             byte cmd[] =
             {

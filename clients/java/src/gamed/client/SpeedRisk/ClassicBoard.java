@@ -4,31 +4,18 @@ import java.util.ArrayList;
 import java.util.List;
 import static gamed.client.SpeedRisk.ClassicBoard.Territories.*;
 
-/**
- *
- * @author bruce
- */
 public class ClassicBoard extends RiskBoard
 {
     static final boolean BORDER_TABLE[] = new boolean[42 * 42];
     static final List<Country> COUNTRIES = new ArrayList(42);
-    protected static int[] country_colors =
+    static final PlayerRenderer[] RENDERERS = new PlayerRenderer[]
     {
-        0xb22222, // Firebrick red
-        0x7cfc00, // Lawn green
-        0xffffff, // White
-        0x191970, // Dodger blue
-        0xcd950c, // Dark goldenrod 3
-        0xffbbff  // Plum 1
-    };
-    protected static int[] token_colors =
-    {
-        0xcd5c5c, // Indian red
-        0x7cfc00, // Lawn green
-        0xffffff, // White
-        0x1e90ff, // Dodger blue
-        0xcd950c, // Dark goldenrod 3
-        0xffbbff  // Plum 1
+        new PlayerRenderer(null, 0xb22222, null, 0xcd5c5c),// Firebrick red & Indian red
+        new PlayerRenderer(null, 0x7cfc00, null, 0x7cfc00),// Lawn green
+        new PlayerRenderer(null, 0xffffff, null, 0xffffff),// White
+        new PlayerRenderer(null, 0x191970, null, 0x1e90ff),// Dodger blue & another blue
+        new PlayerRenderer(null, 0xcd950c, null, 0xcd950c),// Dark goldenrod 3
+        new PlayerRenderer(null, 0xffbbff, null, 0xffbbff) // Plum 1
     };
 
     enum Territories
@@ -177,7 +164,7 @@ public class ClassicBoard extends RiskBoard
 
     public ClassicBoard()
     {
-        super("images/classic/world_map_relief.png", COUNTRIES, 650, 375);
+        super("images/classic/world_map_relief.png", COUNTRIES.toArray(new Country[42]), RENDERERS, 650, 375);
     }
 
     private static void setBorder(Enum a, Enum b)

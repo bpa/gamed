@@ -1,24 +1,26 @@
 package gamed.client.SpeedRisk;
 
 import gamed.client.MediaRequestor;
-import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
 public abstract class RiskBoard implements MediaRequestor
 {
     final String background;
-    final List<Country> countries;
+    final Country[] countries;
+    final PlayerRenderer[] renderers;
     final int width, height;
     Image bg = null;
 
-    public RiskBoard(String background, List<Country> countries, int width, int height)
+    public RiskBoard(String background, Country[] countries, PlayerRenderer[] renderers, int width, int height)
     {
         this.background = background;
         this.countries = countries;
+        this.renderers = renderers;
         this.width = width;
         this.height = height;
     }
@@ -27,9 +29,10 @@ public abstract class RiskBoard implements MediaRequestor
     
     public Collection<MediaRequestor> getMediaRequestors()
     {
-        List<MediaRequestor> requestors = new ArrayList(countries.size() + 1);
+        List<MediaRequestor> requestors = new ArrayList(countries.length + 1);
         requestors.add(this);
-        requestors.addAll(countries);
+        requestors.addAll(Arrays.asList(countries));
+        requestors.addAll(Arrays.asList(renderers));
         return requestors;
     }
 

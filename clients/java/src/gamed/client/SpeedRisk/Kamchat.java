@@ -1,16 +1,11 @@
 package gamed.client.SpeedRisk;
 
-import gamed.client.SpeedRisk.Country;
 import java.awt.Graphics;
 import java.awt.Image;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.util.ArrayList;
 
-/**
- *
- * @author bruce
- */
 public class Kamchat extends Country
 {
     private int x2;
@@ -47,8 +42,8 @@ public class Kamchat extends Country
         }
         else
         {
-            colorImage(img);
-            colorImage(img2);
+            owner.renderer.renderCountry(img, x, y);
+            owner.renderer.renderCountry(img2, x2, y2);
         }
     }
 
@@ -89,7 +84,7 @@ public class Kamchat extends Country
             overlay2 = img;
             img2 = makeBufferedImage(overlay2);
             bounds2 = new Rectangle(x2, y2, img2.getWidth(), img2.getHeight());
-            colorImage(img2);
+            owner.renderer.renderCountry(img2, x2, y2);
         }
         else
         {
