@@ -2,7 +2,7 @@
 .SUFFIXES: .o .cpp
 OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
-CFLAGS = -Wall -pedantic -ansi
+CFLAGS = -Wall -ansi
 INC = -I../../include -iquote.. -I$(GTEST_HOME)/include
 LIBS = -lpthread ../gamed.so -L /usr/local/lib -levent -ldl 
 CPP = g++ 
