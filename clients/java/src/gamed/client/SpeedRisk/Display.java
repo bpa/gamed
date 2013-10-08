@@ -47,19 +47,21 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
     public void joinedGame()
     {
         progress.setValue(0);
-        final MediaDownloader mediaDownloader = new MediaDownloader(server, null);
+        final MediaDownloader mediaDownloader = new MediaDownloader(server, board.getMediaRequestors());
         mediaDownloader.addPropertyChangeListener(this);
         mediaDownloader.execute();
+        repaint();
     }
 
     public void propertyChange(PropertyChangeEvent pce)
     {
         String propertyName = pce.getPropertyName();
+        System.err.println(String.format("%s: %s", propertyName, pce.getNewValue()));
         if (propertyName.equals("progress"))
         {
             jProgressBar1.setValue((Integer) pce.getNewValue());
         }
-        else if (propertyName.equals("status") && pce.getNewValue().equals("DONE"))
+        else if (propertyName.equals("state") && pce.getNewValue().equals("DONE"))
         {
             loadingText.setVisible(false);
             progress.setVisible(false);

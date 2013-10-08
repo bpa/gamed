@@ -2,6 +2,8 @@ package gamed.client.SpeedRisk;
 
 import gamed.Player;
 import java.awt.BorderLayout;
+import java.awt.FontMetrics;
+import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.util.*;
 import javax.swing.JLabel;
@@ -31,7 +33,8 @@ public class StatusPanel extends JPanel
 
     private void adjustSize()
     {
-        int height = super.getGraphics().getFontMetrics().getHeight() + 3;
+        FontMetrics fontMetrics = getFontMetrics(getFont());
+        int height = fontMetrics.getHeight() + 3;
         int columns = ((GridLayout) getLayout()).getColumns();
         setBounds(10, board.height - height * columns - 10, 150, height * columns);
     }

@@ -14,13 +14,13 @@ public class Client {
     public static final byte CMD_PLAYER = 4;
     public static final byte CMD_GAME = 5;
     public static final byte CMD_ADMIN = 6;
-   
+
     public static final byte ERR_GAME_FULL = 0;
     public static final byte ERR_NO_GAME = 1;
     public static final byte ERR_IN_GAME = 2;
-    
+
     public static final byte CMD_RENAME = 0;
-    
+
     public static final byte CMD_LIST_GAMES = 0;
     public static final byte CMD_LIST_GAME_INSTANCES = 1;
     public static final byte CMD_CREATE_GAME = 2;
@@ -28,12 +28,12 @@ public class Client {
     public static final byte CMD_LIST_PLAYERS = 4;
     public static final byte CMD_QUIT_GAME = 5;
     public static final byte CMD_GAME_MESSAGE = 6;
-    
+
     public Socket socket;
     private GameListing login;
     private java.io.InputStream input;
     private java.io.OutputStream output;
-        
+
     /**
      * I suppose I shouldn't connect and rename the client, but its sort of
      * part of the nonexistant login.
@@ -56,32 +56,32 @@ public class Client {
             return;
         }
     }
-    
+
     public void askForAvailableGames() {
         sendCommand(CMD_GAME, CMD_LIST_GAMES, null);
     }
-    
+
     public void askForGameInstances(String game) {
         sendCommand(CMD_GAME, CMD_LIST_GAME_INSTANCES, game);
     }
-    
+
     public void askForPlayerList() {
         sendCommand(CMD_GAME, CMD_LIST_PLAYERS, null);
     }
-    
+
     public void createGame(String game, String name) {
         // TODO revisit serialization
         game = game.replace(":", ";");
         name = name.replace(":", ";");
         sendCommand(CMD_GAME, CMD_CREATE_GAME, game+":"+name);
     }
-    
+
     public void joinGame(String game, String name) {
         game = game.replace(":", ";");
         name = name.replace(":", ";");
         sendCommand(CMD_GAME, CMD_JOIN_GAME, game+":"+name);
     }
-       
+
     private void sendCommand(byte command, byte subcommand, String value) {
         if (socket == null) { return; }
         int len = 0;
@@ -130,14 +130,14 @@ public class Client {
            close();
        }
     }
-    
+
     /**
      * Sends a command to the server to exit the current game
      */
     public void quit() {
         sendCommand(CMD_GAME, CMD_QUIT_GAME,  null);
     }
-    
+
     private void close() {
         if (socket != null) {
             try {
@@ -152,7 +152,7 @@ public class Client {
         input = null;
         output = null;
     }
-    
+
     /**
      * Does a blocking read on the socket and deals with the result.  On error, it resets the connection
      * @param game
@@ -164,7 +164,7 @@ public class Client {
         try {
             int read = input.read(cmd);
             if (read==0) { return true; }
-            if (read==-1) { 
+            if (read==-1) {
                 close();
                 return false;
             }
@@ -225,7 +225,7 @@ public class Client {
         }
         return true;
     }
-    
+
     private byte[] getRemainingMessage(byte[] cmd) {
         int z = (((cmd[2] & 0xff) << 8) | (cmd[3] & 0xff));
         byte[] info = new byte[z];
@@ -241,7 +241,7 @@ public class Client {
         }
         return info;
     }
-    
+
     /**
      * This could use some better serialization
      * @param cmd
@@ -267,7 +267,7 @@ public class Client {
             login.updateGameInstances(instances);
         }
     }
-    
+
     private void handleGameMessage(byte[] cmd, Game game) {
         if (game == null) { return; }
         byte[] msg = getRemainingMessage(cmd);
@@ -275,7 +275,7 @@ public class Client {
             game.handleGameData(msg);
         }
     }
-    
+
     /**
      * This could use serialization help as well
      * @param cmd
@@ -294,7 +294,7 @@ public class Client {
             game.updatePlayers(players);
         }
     }
-    
+
     private void handlePlayerUpdate(byte[] cmd, Game game) {
         if (game == null) { return; }
         byte[] msg = getRemainingMessage(cmd);
