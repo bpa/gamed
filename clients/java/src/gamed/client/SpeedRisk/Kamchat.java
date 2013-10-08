@@ -34,7 +34,7 @@ public class Kamchat extends Country
         isSelected = selected;
         if (img == null)
             return;
-        
+
         if (isSelected)
         {
             colorSelectedImage(img);
@@ -51,10 +51,8 @@ public class Kamchat extends Country
     public boolean contains(java.awt.Point p)
     {
         if (super.contains(p))
-        {
             return true;
-        }
-        if (bounds2.contains(p))
+        if (bounds2 != null && bounds2.contains(p))
         {
             int ix = p.x - x2;
             int iy = p.y - y2;

@@ -26,10 +26,10 @@ public abstract class RiskBoard implements MediaRequestor
     }
 
     public abstract boolean borders(int c1, int c2);
-    
+
     public Collection<MediaRequestor> getMediaRequestors()
     {
-        List<MediaRequestor> requestors = new ArrayList(countries.length + 1);
+        List<MediaRequestor> requestors = new ArrayList(countries.length + renderers.length + 1);
         requestors.add(this);
         requestors.addAll(Arrays.asList(countries));
         requestors.addAll(Arrays.asList(renderers));
@@ -63,5 +63,5 @@ public abstract class RiskBoard implements MediaRequestor
     public void mediaCompleted(String request, Image img)
     {
         bg = img;
-    }    
+    }
 }

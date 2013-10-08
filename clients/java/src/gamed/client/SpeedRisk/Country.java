@@ -73,10 +73,12 @@ public class Country implements MediaRequestor
 
     public boolean contains(java.awt.Point p)
     {
+        if (iconBounds == null || bounds == null)
+            return false;
+
         if (iconBounds.contains(p))
-        {
             return true;
-        }
+
         if (bounds.contains(p))
         {
             int ix = p.x - x;
@@ -98,7 +100,8 @@ public class Country implements MediaRequestor
 
     public void paintIcon(Graphics g)
     {
-        owner.renderer.renderIcon(g, lx, ly, armies);
+        if (owner != null)
+            owner.renderer.renderIcon(g, lx, ly, armies);
     }
 
     protected void colorSelectedImage(BufferedImage image)
