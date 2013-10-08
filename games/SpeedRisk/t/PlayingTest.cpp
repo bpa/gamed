@@ -74,7 +74,7 @@ public:
 
     void clear_board() {
         //This is a completely invalid state, but useful
-        for(int i=0; i<SR_NUM_COUNRIES; i++) {
+        for(int i=0; i<SR_NUM_COUNTRIES; i++) {
             srd->status.countries[i].owner = 0;
             srd->status.countries[i].armies = 1;
         }
@@ -95,19 +95,6 @@ public:
     SR_Command *all_res;
     SR_Error *err;
 };
-
-TEST_F(SpeedRiskPlayingTest, borders) {
-    //positive in both directions
-    ASSERT_TRUE(borders(SR_CENTRAL_AMERICA, SR_VENEZUELA));
-    ASSERT_TRUE(borders(SR_VENEZUELA, SR_CENTRAL_AMERICA));
-
-    //negative in both directions
-    ASSERT_TRUE(!borders(SR_ICELAND, SR_MADAGASCAR));
-    ASSERT_TRUE(!borders(SR_MADAGASCAR, SR_ICELAND));
-
-    //can't border self
-    ASSERT_TRUE(!borders(SR_ARGENTINA, SR_ARGENTINA));
-}
 
 TEST_F(SpeedRiskPlayingTest, move) {
     setup_country(SR_EASTERN_AUSTRALIA, 0, 2);

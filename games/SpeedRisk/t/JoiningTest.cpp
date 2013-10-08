@@ -7,6 +7,8 @@
 #include <iostream>
 using namespace std;
 
+#define SR_MAX_PLAYERS 6
+
 class SpeedRiskJoiningTest: public ::testing::Test {
 public:
 
@@ -58,23 +60,23 @@ TEST_F(SpeedRiskJoiningTest, multi_join) {
 }
 
 TEST_F(SpeedRiskJoiningTest, join) {
-    srd->players[0].ready = true;
-    srd->players[1].ready = true;
+    srd->players[0].ready = 1;
+    srd->players[1].ready = 1;
     player_join(game, &p1);
     ASSERT_EQ(SR_CMD_PLAYER_JOIN, all_res->command);
     ASSERT_EQ(0, p1.in_game_id);
     ASSERT_EQ(1, game->playing);
-    ASSERT_EQ(false, srd->players[0].ready);
-    ASSERT_EQ(true, game->accepting_players);
+    ASSERT_EQ(0, srd->players[0].ready);
+    ASSERT_EQ(1, game->accepting_players);
     simple_command_plr_test(&p1, SR_CMD_READY, SR_CMD_ERROR);
     player_join(game, &p2);
     ASSERT_EQ(SR_CMD_PLAYER_JOIN, all_res->command);
     ASSERT_EQ(1, p2.in_game_id);
     ASSERT_EQ(2, game->playing);
-    ASSERT_EQ(false, srd->players[1].ready);
+    ASSERT_EQ(0, srd->players[1].ready);
     simple_command_all_test(&p1, SR_CMD_READY, SR_CMD_READY);
     simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
-	ASSERT_EQ(false, game->accepting_players);
+	ASSERT_EQ(0, game->accepting_players);
     all_res = (SR_Command*)&mock_all_buff[1];
     ASSERT_EQ(SR_CMD_START_PLACING, all_res->command);
     ASSERT_EQ(&SR_PLACING, game->state);
@@ -85,8 +87,9 @@ TEST_F(SpeedRiskJoiningTest, not_ready) {
     ASSERT_EQ(1, game->playing);
     simple_command_plr_test(&p1, SR_CMD_READY, SR_CMD_ERROR);
     player_join(game, &p2);
-    simple_command_all_test(&p1, SR_CMD_NOTREADY, SR_CMD_NOTREADY);
+    simple_command_plr_test(&p1, SR_CMD_NOTREADY, SR_CMD_ERROR);
     simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
+    simple_command_plr_test(&p2, SR_CMD_READY, SR_CMD_ERROR);
     ASSERT_EQ(&SR_WAITING_FOR_PLAYERS, game->state);
     simple_command_all_test(&p2, SR_CMD_NOTREADY, SR_CMD_NOTREADY);
     simple_command_all_test(&p1, SR_CMD_READY, SR_CMD_READY);
@@ -95,7 +98,7 @@ TEST_F(SpeedRiskJoiningTest, not_ready) {
     all_res = (SR_Command*)&mock_all_buff[1];
     ASSERT_EQ(SR_CMD_START_PLACING, all_res->command);
     ASSERT_EQ(&SR_PLACING, game->state);
-	ASSERT_EQ(false, game->accepting_players);
+	ASSERT_EQ(0, game->accepting_players);
 }
 
 TEST_F(SpeedRiskJoiningTest, drop_rejoin_out_of_order) {
@@ -126,7 +129,7 @@ TEST_F(SpeedRiskJoiningTest, can_start_with_dropped_player) {
     all_res = (SR_Command*)&mock_all_buff[1];
     ASSERT_EQ(SR_CMD_START_PLACING, all_res->command);
     ASSERT_EQ(&SR_PLACING, game->state);
-	ASSERT_EQ(false, game->accepting_players);
+	ASSERT_EQ(0, game->accepting_players);
 }
 
 TEST_F(SpeedRiskJoiningTest, drop_unready_player_starts_game) {
@@ -142,7 +145,7 @@ TEST_F(SpeedRiskJoiningTest, drop_unready_player_starts_game) {
     all_res = (SR_Command*)&mock_all_buff[1];
     ASSERT_EQ(SR_CMD_START_PLACING, all_res->command);
     ASSERT_EQ(&SR_PLACING, game->state);
-	ASSERT_EQ(false, game->accepting_players);
+	ASSERT_EQ(0, game->accepting_players);
 }
 
 TEST_F(SpeedRiskJoiningTest, drop_unready_player_still_requires_two) {
@@ -163,7 +166,7 @@ TEST_F(SpeedRiskJoiningTest, max_players) {
     	player_join(game, &players[i]);
         ASSERT_EQ(i+1, game->playing);
     }
-    ASSERT_EQ(false, game->accepting_players);
+    ASSERT_EQ(0, game->accepting_players);
     all_res = (SR_Command*)&mock_all_buff[1];
     ASSERT_EQ(SR_CMD_START_PLACING, all_res->command);
     ASSERT_EQ(&SR_PLACING, game->state);
@@ -174,7 +177,7 @@ TEST_F(SpeedRiskJoiningTest, quit_when_all_leave) {
     ASSERT_EQ(1, game->playing);
     player_quit(game, &p1);
     ASSERT_EQ(0, all_res->command);
-    ASSERT_EQ(true, game_quit);
+    ASSERT_EQ(1, game_quit);
     game = create_instance(&SpeedRisk);
     srd = (SpeedRiskData*)game->data;
 }
