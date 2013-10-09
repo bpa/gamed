@@ -18,7 +18,7 @@ test-run:
 	@make -C t
 
 gamed.so: $(OBJS)
-	ld -fPIC -shared -s -o gamed.so $(OBJS)
+	gcc -fPIC -shared -s -o gamed.so $(OBJS)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INC) -c $<

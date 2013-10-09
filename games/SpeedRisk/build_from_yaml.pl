@@ -3,6 +3,7 @@
 use strict;
 use warnings;
 use YAML::Any qw/LoadFile/;
+use File::Slurp;
 
 open my $source, ">boards.cc" or die("Can't open boards.cc for writing: $!\n");
 print $source "//Generated content, do not modify.\n//Update yml files and then run: perl build_from_yaml\n";
@@ -14,6 +15,7 @@ for my $f (grep { /yml$/ } readdir $dir) {
 	write_borders($name, $yaml);
 	write_bonuses($name, $yaml);
 	write_init($name, $yaml);
+	update_test_file($name, $yaml);
 }
 
 sub make_map {
@@ -107,4 +109,19 @@ void game_init_$name(GameInstance *g, const Server *s) {
 }
 Game $game = { GAMED_GAME, "$game", "$version", game_init_$name, NULL, player_join, player_quit };
 INIT
+}
+
+sub update_test_file {
+	my ($name, $yaml) = @_;
+	return unless $name eq "classic";
+	my $generated = '#define SR_MAX_PLAYERS ' . $yaml->{players} . "\n";
+	$generated .= "#define SR_NUM_COUNTRIES 42\n";
+	my $test_file = read_file("test.h");
+	for my $i (0 .. $#{$yaml->{territories}}) {
+		my $territory = uc($yaml->{territories}[$i]{name});
+		$territory =~ tr/ /_/;
+		$generated .= "#define SR_$territory $i\n";
+	}
+	$test_file =~ s#(//Start generated\n).*(//end generated)#$1$generated$2#is;
+	write_file("test.h", $test_file);
 }

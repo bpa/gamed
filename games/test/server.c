@@ -57,7 +57,7 @@ void player_quit(GameInstance *g, Player *p) {
 	((GameModuleInstance*)g)->module->game.player_quit(g, &server, p);
 }
 
-void set_random(long a, long b=-1, long c=-1, long d=-1, long e=-1) {
+void set_random(long a, long b, long c, long d, long e) {
     next_rand[0] = a;
     next_rand[1] = b;
     next_rand[2] = c;
@@ -194,11 +194,9 @@ void tellf_all(GameInstance *g, const char *fmt, ...) {
 
 GameInstance *create_instance(Game *g) {
     reset_mocks();
-	GameModule *module = (GameModule *)malloc(sizeof(GameModule));
-	bzero(module, sizeof(GameModule));
+	GameModule *module = (GameModule *)calloc(sizeof(GameModule), 1);
 	memcpy(&module->game, g, sizeof(Game));
-	GameModuleInstance *game = (GameModuleInstance *)malloc(sizeof(GameModuleInstance));
-	bzero(game, sizeof(GameModuleInstance));
+	GameModuleInstance *game = (GameModuleInstance *)calloc(sizeof(GameModuleInstance), 1);
 	game->module = module;
 	module->game.create((GameInstance*)game, &server);
 	game->instance.accepting_players = true;

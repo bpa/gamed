@@ -2,7 +2,7 @@
 .SUFFIXES: .o .cpp
 OBJS := $(patsubst %.cpp,%.o,$(wildcard *.cpp))
 
-CFLAGS = -Wall -pedantic -ansi
+CFLAGS = -Wall -ansi
 INC = -I../../include -iquote.. -I$(GTEST_HOME)/include
 LIBS = -lpthread ../gamed.so -L /usr/local/lib -levent -ldl 
 CPP = g++ 
@@ -10,7 +10,7 @@ CPP = g++
 test: runtests run-tests
 
 runtests: $(OBJS) ../gamed.so
-	$(CPP) -o runtests $(LIBS) $(OBJS) $(GTEST_HOME)/src/gtest_main.cc $(GTEST_HOME)/lib/.libs/libgtest.a
+	$(CPP) -o runtests $(LIBS) $(OBJS) $(GTEST_HOME)/src/gtest_main.cc $(GTEST_HOME)/libgtest.a
 
 run-tests:
 	./runtests

@@ -6,7 +6,7 @@ CC = gcc -g
 run: SpeedRisk.so test
 
 SpeedRisk.so: $(OBJS)
-	ld -fPIC -shared -s -o SpeedRisk.so $(OBJS)
+	gcc -fPIC -shared -s -o SpeedRisk.so $(OBJS)
 
 test: 
 	@make -C t

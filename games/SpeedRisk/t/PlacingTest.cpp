@@ -6,6 +6,8 @@
 #include <test/server.h>
 #include <iostream>
 
+#define SR_NUM_COUNRIES 42
+
 using namespace std;
 class SpeedRiskPlacingTest: public ::testing::Test {
 public:
@@ -115,7 +117,7 @@ TEST_F(SpeedRiskPlacingTest, player_armies) {
         for (j=0; j<i; j++) {
 		  ASSERT_TRUE(countries_held[j] >= 7);
           count = countries_held[j] + srd->players[j].armies;
-          ASSERT_EQ(false, srd->players[j].ready);
+          ASSERT_EQ(0, srd->players[j].ready);
           if (expected_total[i] != count) {
             ASSERT_EQ(expected_total[i]+1, count);
           }
@@ -199,7 +201,7 @@ TEST_F(SpeedRiskPlacingTest, can_start_with_dropped_player) {
     simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
     simple_command_all_test(&p3, SR_CMD_READY, SR_CMD_READY);
     ASSERT_EQ(&SR_PLACING, game->state);
-    ASSERT_EQ(false, game->accepting_players);
+    ASSERT_EQ(0, game->accepting_players);
 
     player_quit(game, &p1);
     ASSERT_EQ(SR_CMD_PLAYER_QUIT, all_res->command);
