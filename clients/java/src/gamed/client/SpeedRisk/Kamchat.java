@@ -82,7 +82,6 @@ public class Kamchat extends Country
             overlay2 = img;
             img2 = makeBufferedImage(overlay2);
             bounds2 = new Rectangle(x2, y2, img2.getWidth(), img2.getHeight());
-            owner.renderer.renderCountry(img2, x2, y2);
         }
         else
         {

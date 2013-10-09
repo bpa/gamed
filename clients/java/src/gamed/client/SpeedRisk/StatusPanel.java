@@ -22,7 +22,7 @@ public class StatusPanel extends JPanel
     public StatusPanel(RiskBoard board)
     {
         this.board = board;
-        GridLayout gridLayout = new GridLayout(2, 1, 0, 3);
+        GridLayout gridLayout = new GridLayout(2, 1);
         setLayout(gridLayout);
         phaseBG.add(phaseLabel, BorderLayout.CENTER);
         add(phaseBG);
@@ -34,8 +34,8 @@ public class StatusPanel extends JPanel
     private void adjustSize()
     {
         FontMetrics fontMetrics = getFontMetrics(getFont());
-        int height = fontMetrics.getHeight() + 3;
-        int columns = ((GridLayout) getLayout()).getColumns();
+        int height = fontMetrics.getHeight();
+        int columns = ((GridLayout) getLayout()).getRows();
         setBounds(10, board.height - height * columns - 10, 150, height * columns);
     }
 
@@ -51,6 +51,7 @@ public class StatusPanel extends JPanel
 
     public void setOwner(RiskPlayer player)
     {
+        System.err.println(String.format("I am %s (%d)", player.playerDisplay.getText(), player.id));
         this.player = player;
         int height = super.getGraphics().getFontMetrics().getHeight();
         player.renderer.renderBackground(phaseBG.getGraphics(), phaseBG.getX(), phaseBG.getY(), 150, height);
@@ -84,7 +85,7 @@ public class StatusPanel extends JPanel
         {
             seen.add(p.id);
             RiskPlayer riskPlayer = get(p.id);
-            riskPlayer.setName(p.name);
+            riskPlayer.setPlayerName(p.name);
         }
         Set<Integer> existing = this.players.keySet();
         existing.removeAll(seen);
@@ -105,13 +106,23 @@ public class StatusPanel extends JPanel
         Collections.sort(list);
         int items = 2 + list.size();
         removeAll();
-        ((GridLayout) getLayout()).setColumns(items);
+        ((GridLayout) getLayout()).setRows(items);
         for (RiskPlayer p : list)
         {
-            add(p.playerDisplay);
+            add(p);
         }
         add(phaseBG);
         add(reserveBG);
         adjustSize();
+    }
+
+    @Override
+    protected void paintComponent(Graphics g)
+    {
+        player.renderer.renderBackground(g, getX(), getY(), getWidth(), getHeight());
+        for (RiskPlayer riskPlayer : players.values())
+        {
+            riskPlayer.paintComponent(g);
+        }
     }
 }

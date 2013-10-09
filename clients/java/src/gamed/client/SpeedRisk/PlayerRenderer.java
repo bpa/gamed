@@ -75,7 +75,7 @@ public class PlayerRenderer implements MediaRequestor
             {
                 v = image.getRGB(i, j);
                 p = background.getRGB((i + x) % bgw, (j + y) % bgh);
-                image.setRGB(i, j, (v & 0xff000000) | p);
+                image.setRGB(i, j, (v & 0xff000000) | (p & 0x00FFFFFF));
             }
         }
     }
@@ -83,16 +83,19 @@ public class PlayerRenderer implements MediaRequestor
     public void renderBackground(Graphics g, int x, int y, int w, int h)
     {
         int dstX = 0;
-        int dstY = 0;
-        while (dstX < w && dstY < h)
+        while (dstX < w)
         {
+            int dstY = 0;
             int srcX = (dstX + x) % background.getWidth();
-            int srcY = (dstY + y) % background.getHeight();
             int width = Math.min(background.getWidth() - srcX, w - dstX);
-            int height = Math.min(background.getHeight()- srcY, w - dstY);
-            g.drawImage(background, dstX, dstY, width, height, srcX, srcY, width, height, null);
+            while (dstY < h)
+            {
+                int srcY = (dstY + y) % background.getHeight();
+                int height = Math.min(background.getHeight() - srcY, w - dstY);
+                g.drawImage(background, dstX, dstY, dstX + width, dstY + height, srcX, srcY, width, height, null);
+                dstY += height;
+            }
             dstX += width;
-            dstY += height;
         }
     }
 

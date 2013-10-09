@@ -35,7 +35,6 @@
   <SubComponents>
     <Component class="javax.swing.JProgressBar" name="progress">
       <Properties>
-        <Property name="maximum" type="int" value="2558"/>
         <Property name="focusable" type="boolean" value="false"/>
         <Property name="stringPainted" type="boolean" value="true"/>
       </Properties>

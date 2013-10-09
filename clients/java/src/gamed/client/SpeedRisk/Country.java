@@ -145,6 +145,5 @@ public class Country implements MediaRequestor
         this.img = makeBufferedImage(overlay);
         this.bounds = new Rectangle(x, y, this.img.getWidth(), this.img.getHeight());
         this.iconBounds = new Rectangle(lx, ly, 18, 15);
-        this.owner.renderer.renderCountry(this.img, x, y);
     }
 }

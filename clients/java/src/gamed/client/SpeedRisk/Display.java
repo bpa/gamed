@@ -9,6 +9,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
+import javax.swing.SwingWorker;
 
 public class Display extends gamed.Game implements PropertyChangeListener, ActionListener
 {
@@ -56,15 +57,15 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
     public void propertyChange(PropertyChangeEvent pce)
     {
         String propertyName = pce.getPropertyName();
-        System.err.println(String.format("%s: %s", propertyName, pce.getNewValue()));
         if (propertyName.equals("progress"))
         {
-            jProgressBar1.setValue((Integer) pce.getNewValue());
+            progress.setValue((Integer) pce.getNewValue());
         }
-        else if (propertyName.equals("state") && pce.getNewValue().equals("DONE"))
+        else if (propertyName.equals("state") && pce.getNewValue() == SwingWorker.StateValue.DONE)
         {
+            System.err.println("two");
             loadingText.setVisible(false);
-            progress.setVisible(false);
+            remove(progress);
             statusPanel.setVisible(true);
             readyRadio.setVisible(true);
             notReadyRadio.setVisible(true);
@@ -104,7 +105,6 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
         });
         setLayout(null);
 
-        progress.setMaximum(2558);
         progress.setFocusable(false);
         progress.setStringPainted(true);
         add(progress);
@@ -128,7 +128,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
             }
         });
         add(jButton1);
-        jButton1.setBounds(546, 340, 100, 27);
+        jButton1.setBounds(546, 340, 100, 23);
 
         readyRadio.setBackground(new Color(0,true));
         buttonGroup1.add(readyRadio);
@@ -142,7 +142,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
             }
         });
         add(readyRadio);
-        readyRadio.setBounds(250, 280, 60, 18);
+        readyRadio.setBounds(250, 280, 57, 23);
 
         notReadyRadio.setBackground(new Color(0, true));
         buttonGroup1.add(notReadyRadio);
@@ -157,12 +157,12 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
             }
         });
         add(notReadyRadio);
-        notReadyRadio.setBounds(250, 300, 86, 18);
+        notReadyRadio.setBounds(250, 300, 77, 23);
 
         armyGenerationProgress.setFocusable(false);
         armyGenerationProgress.setStringPainted(true);
         add(armyGenerationProgress);
-        armyGenerationProgress.setBounds(230, 350, 200, 19);
+        armyGenerationProgress.setBounds(230, 350, 200, 17);
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
@@ -177,7 +177,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
         if (evt.isPopupTrigger())
         {
             byte c = (byte) getCountryAt(evt.getPoint());
-            if (c != -1 && board.countries[c].owner.equals(me))
+            if (c != -1 && me.equals(board.countries[c].owner))
             {
                 if (selectedCountry != -1
                         && board.countries[selectedCountry].armies > 1
@@ -198,7 +198,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
         byte c = (byte) getCountryAt(evt.getPoint());
         if (c != -1)
         {
-            if (board.countries[c].owner.equals(me))
+            if (me.equals(board.countries[c].owner))
             {
                 if (selectedCountry != -1
                         && board.countries[selectedCountry].armies > 1
@@ -385,7 +385,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 
     public void renamePlayer(gamed.Player player)
     {
-        statusPanel.get(player.id).setName(player.name);
+        statusPanel.get(player.id).setPlayerName(player.name);
     }
 
     private void sendReady(boolean ready)
