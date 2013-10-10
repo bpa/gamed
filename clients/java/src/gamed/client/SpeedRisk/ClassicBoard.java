@@ -8,15 +8,6 @@ public class ClassicBoard extends RiskBoard
 {
     static final boolean BORDER_TABLE[] = new boolean[42 * 42];
     static final List<Country> COUNTRIES = new ArrayList(42);
-    static final PlayerRenderer[] RENDERERS = new PlayerRenderer[]
-    {
-        new PlayerRenderer(null, 0xb22222, null, 0xcd5c5c),// Firebrick red & Indian red
-        new PlayerRenderer(null, 0x7cfc00, null, 0x7cfc00),// Lawn green
-        new PlayerRenderer(null, 0xffffff, null, 0xffffff),// White
-        new PlayerRenderer(null, 0x191970, null, 0x1e90ff),// Dodger blue & another blue
-        new PlayerRenderer(null, 0xcd950c, null, 0xcd950c),// Dark goldenrod 3
-        new PlayerRenderer(null, 0xffbbff, null, 0xffbbff) // Plum 1
-    };
 
     enum Territories
     {
@@ -71,7 +62,7 @@ public class ClassicBoard extends RiskBoard
         private Territories(int x, int y, int lx, int ly)
         {
             int id = COUNTRIES.size();
-            COUNTRIES.add(id, new Country(id, String.format("images/classic/c%d.png", id), x, y, lx, ly));
+            COUNTRIES.add(id, new Country(id, String.format("resources/ClassicRisk/c%d.png", id), x, y, lx, ly));
         }
     }
 
@@ -164,7 +155,7 @@ public class ClassicBoard extends RiskBoard
 
     public ClassicBoard()
     {
-        super("images/classic/world_map_relief.png", COUNTRIES.toArray(new Country[42]), RENDERERS, 650, 375);
+        super("resources/ClassicRisk/world_map_relief.png", COUNTRIES.toArray(new Country[42]), 650, 375);
     }
 
     private static void setBorder(Enum a, Enum b)

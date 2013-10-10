@@ -2,18 +2,23 @@ package gamed.client.SpeedRisk;
 
 public class UltimateBoard extends RiskBoard
 {
-    public static PlayerRenderer[] RENDERERS = new PlayerRenderer[]
-    {
-        
-    };
+	public static final Country[] COUNTRIES = new Country[]
+	{
+	};
+
     public UltimateBoard()
     {
-        super("images/ultimate/world.png", null, RENDERERS, 1200, 720);
+        super("images/ultimate/world.png", null, 1200, 720);
     }
+
+	private static boolean[][] BORDERS = new boolean[][] {
+	};
 
     @Override
     public boolean borders(int c1, int c2)
     {
-        throw new UnsupportedOperationException("Not supported yet."); //To change body of generated methods, choose Tools | Templates.
+        if (c1 >= COUNTRIES.length || c2 >= COUNTRIES.length)
+			return false;
+		return BORDERS[c1][c2];
     }
 }

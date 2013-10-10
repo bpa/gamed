@@ -52,13 +52,20 @@ public class MediaDownloader extends SwingWorker implements ImageObserver
 
     public boolean imageUpdate(Image image, int infoflags, int x, int y, int width, int height)
     {
+		if ((infoflags & ImageObserver.ERROR) > 0)
+		{
+			Callback callback = callbacks.get(image);
+			System.err.println("Error: " + callback.media);
+			setProgress(completed.incrementAndGet() * 100 / total.get());
+			return false;
+		}
         if ((infoflags & ImageObserver.ALLBITS) == 0)
             return true;
 
         Callback callback = callbacks.get(image);
         setProgress(completed.incrementAndGet() * 100 / total.get());
-        if ((infoflags & ImageObserver.ERROR) == 0)
-            callback.requestor.mediaCompleted(callback.media, image);
+			if ((infoflags & ImageObserver.ERROR) == 0)
+				callback.requestor.mediaCompleted(callback.media, image);
         return false;
     }
 

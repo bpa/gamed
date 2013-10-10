@@ -12,15 +12,13 @@ public abstract class RiskBoard implements MediaRequestor
 {
     final String background;
     final Country[] countries;
-    final PlayerRenderer[] renderers;
     final int width, height;
     Image bg = null;
 
-    public RiskBoard(String background, Country[] countries, PlayerRenderer[] renderers, int width, int height)
+    public RiskBoard(String background, Country[] countries, int width, int height)
     {
         this.background = background;
         this.countries = countries;
-        this.renderers = renderers;
         this.width = width;
         this.height = height;
     }
@@ -29,10 +27,9 @@ public abstract class RiskBoard implements MediaRequestor
 
     public Collection<MediaRequestor> getMediaRequestors()
     {
-        List<MediaRequestor> requestors = new ArrayList(countries.length + renderers.length + 1);
+        List<MediaRequestor> requestors = new ArrayList(countries.length + 1);
         requestors.add(this);
         requestors.addAll(Arrays.asList(countries));
-        requestors.addAll(Arrays.asList(renderers));
         return requestors;
     }
 

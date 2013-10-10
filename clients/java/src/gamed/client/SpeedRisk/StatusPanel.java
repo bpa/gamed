@@ -1,6 +1,7 @@
 package gamed.client.SpeedRisk;
 
 import gamed.Player;
+import gamed.Server;
 import java.awt.BorderLayout;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
@@ -18,10 +19,12 @@ public class StatusPanel extends JPanel
     private Map<Integer, RiskPlayer> players = new HashMap();
     private RiskPlayer player = null;
     private final RiskBoard board;
+	private final Server server;
 
-    public StatusPanel(RiskBoard board)
+    public StatusPanel(RiskBoard board, Server server)
     {
         this.board = board;
+		this.server = server;
         GridLayout gridLayout = new GridLayout(2, 1);
         setLayout(gridLayout);
         phaseBG.add(phaseLabel, BorderLayout.CENTER);
@@ -63,7 +66,7 @@ public class StatusPanel extends JPanel
         RiskPlayer riskPlayer = players.get(playerId);
         if (riskPlayer == null)
         {
-            riskPlayer = new RiskPlayer(playerId, board.renderers[playerId]);
+            riskPlayer = new RiskPlayer(playerId, new PlayerRenderer());
             players.put(playerId, riskPlayer);
             reAddPlayers();
         }
@@ -86,6 +89,7 @@ public class StatusPanel extends JPanel
             seen.add(p.id);
             RiskPlayer riskPlayer = get(p.id);
             riskPlayer.setPlayerName(p.name);
+			riskPlayer.renderer.setTheme(server, p.theme);
         }
         Set<Integer> existing = this.players.keySet();
         existing.removeAll(seen);
@@ -102,7 +106,11 @@ public class StatusPanel extends JPanel
     private void reAddPlayers()
     {
         List<RiskPlayer> list = new ArrayList(players.size());
-        list.addAll(players.values());
+		for (RiskPlayer riskPlayer : players.values())
+		{
+			if (riskPlayer.playing)
+				list.add(riskPlayer);
+		}
         Collections.sort(list);
         int items = 2 + list.size();
         removeAll();

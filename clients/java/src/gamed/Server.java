@@ -1,6 +1,7 @@
 package gamed;
 
 import java.awt.Image;
+import java.net.URL;
 
 /**
  * The purpose of this is to define the interface a plugin can use
@@ -10,8 +11,9 @@ import java.awt.Image;
  * @author bruce
  */
 public interface Server {
-    void quitGame();
-    void sendGameData(byte[] data);
-    void askForPlayerList();
-    Image getImage(String name);
+    public void quitGame();
+    public void sendGameData(byte[] data);
+    public void askForPlayerList();
+    public Image getImage(String name);
+	public URL getDocumentBase();
 }

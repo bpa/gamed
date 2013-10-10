@@ -26,7 +26,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
     {
         this.server = server;
         this.board = board;
-        this.statusPanel = new StatusPanel(board);
+        this.statusPanel = new StatusPanel(board, server);
         initComponents();
         armyGenerationProgress.setVisible(false);
         add(statusPanel);

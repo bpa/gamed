@@ -12,6 +12,7 @@ public class RiskPlayer extends JPanel implements Comparable<RiskPlayer>, Action
     public final int id;
     public final PlayerRenderer renderer;
     public JCheckBox playerDisplay = new JCheckBox();
+	public boolean playing = false;
 
     public RiskPlayer(int id, PlayerRenderer renderer)
     {
@@ -34,6 +35,7 @@ public class RiskPlayer extends JPanel implements Comparable<RiskPlayer>, Action
     {
         System.err.println(String.format("%d: Setting name to %s", id, name));
         playerDisplay.setText(name);
+		playing = true;
     }
 
     public int compareTo(RiskPlayer t)
