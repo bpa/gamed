@@ -65,23 +65,21 @@ void change_state(GameInstance *g, State *s) {
 void game_over(GameInstance *g) {
 	Client *first, *next;
 	GameModuleInstance *instance = (GameModuleInstance *)g;
-	first = LIST_FIRST(&instance->players);
-	while (first != NULL) {
-		next = LIST_NEXT(first, player_entry);
+    LIST_FOREACH_SAFE(first, &instance->players, player_entry, next) {
 		LIST_REMOVE(first, player_entry);
 		first->game = NULL;
 		if (first->player.data != NULL) {
 			free(first->player.data);
 			first->player.data = NULL;
 		}
-		first = next;
 	}
 	g->playing = 0;
 	if (instance->module->game.destroy != NULL) {
 		instance->module->game.destroy(g, &server_funcs);
 	}
 	else {
-		if (g->data != NULL) free(g->data);
+		if (g->data != NULL)
+			free(g->data);
 	}
 	instance->module->instances--;
 	if (instance->timer != NULL) {

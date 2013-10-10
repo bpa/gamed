@@ -20,7 +20,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
     private RiskPlayer me;
     private boolean atWar;
     private ArmyGenerationTimer armyGenerationTimer;
-    private StatusPanel statusPanel;
+    private final StatusPanel statusPanel;
 
     public Display(gamed.Server server, RiskBoard board)
     {
@@ -63,7 +63,6 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
         }
         else if (propertyName.equals("state") && pce.getNewValue() == SwingWorker.StateValue.DONE)
         {
-            System.err.println("two");
             loadingText.setVisible(false);
             remove(progress);
             statusPanel.setVisible(true);

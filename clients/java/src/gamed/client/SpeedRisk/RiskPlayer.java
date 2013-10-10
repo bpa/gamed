@@ -33,7 +33,6 @@ public class RiskPlayer extends JPanel implements Comparable<RiskPlayer>, Action
 
     void setPlayerName(String name)
     {
-        System.err.println(String.format("%d: Setting name to %s", id, name));
         playerDisplay.setText(name);
 		playing = true;
     }
@@ -67,4 +66,14 @@ public class RiskPlayer extends JPanel implements Comparable<RiskPlayer>, Action
     {
         return id;
     }
+
+	@Override
+	public String toString()
+	{
+		StringBuilder sb = new StringBuilder();
+		sb.append(id).append(": ");
+		sb.append(playerDisplay.getText()).append(" (");
+		sb.append(renderer).append(")");
+		return sb.toString();
+	}
 }

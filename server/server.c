@@ -185,8 +185,9 @@ void handle_network_event(int sock, short event, void *args) {
 /******************************************************************************/
 void drop_client(Client *client, int r) {
     int sock = client->sock;
+	printf("drop client %s\n", &client->player.name[0]);
     shutdown(sock, SHUT_RDWR);
-    if (event_initialized(client->ev)) {
+    if (client->ev != NULL) {
         event_del(client->ev);
         event_free(client->ev);
     }
@@ -201,14 +202,6 @@ void drop_client(Client *client, int r) {
     LIST_REMOVE(client, chat_player);
      *****************************/
     free(client);
-    /*
-    if (r == 0) {
-        fprintf(stderr,"Socket closed\n");
-    }
-    else { */ /* r == -1 */ /*
-        perror("Closed socket - recv");
-    }
-    */
 }
 
 /******************************************************************************/
@@ -224,6 +217,8 @@ void handle_timer (int sock, short event, void *args) {
     else {
         if (g->timer != NULL) {
             event_del(g->timer);
+			event_free(g->timer);
+			g->timer = NULL;
         }
     }
 }

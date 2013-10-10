@@ -48,7 +48,8 @@ public class PlayerRenderer implements MediaRequestor
 
 	public void mediaCompleted(String request, Image img)
 	{
-		if (request.equals(properties.getProperty("background-image")))
+		String property = properties.getProperty("background-image");
+		if (property != null && request.endsWith(property))
 			background = makeBufferedImage(img);
 		else
 			icon = img;
@@ -68,9 +69,12 @@ public class PlayerRenderer implements MediaRequestor
 		{
 			for (int j = 0; j < h; j++)
 			{
-				v = image.getRGB(i, j);
-				p = background.getRGB((i + x) % bgw, (j + y) % bgh);
-				image.setRGB(i, j, (v & 0xff000000) | (p & 0x00FFFFFF));
+				v = image.getRGB(i, j) & 0xff000000;
+				if (v != 0)
+				{
+					p = background.getRGB((i + x) % bgw, (j + y) % bgh) & 0x00ffffff;
+					image.setRGB(i, j, v | p);
+				}
 			}
 		}
 	}
@@ -147,7 +151,7 @@ public class PlayerRenderer implements MediaRequestor
 					background = createImage(parseColor(properties.getProperty("background-color", "000")), false);
 				String iconImage = properties.getProperty("icon-image");
 				if (iconImage == null)
-					icon = createImage(parseColor(properties.getProperty("image-color", "000")), true);
+					icon = createImage(parseColor(properties.getProperty("icon-color", "000")), true);
 				List<MediaRequestor> list = new ArrayList();
 				list.add(ref());
 				MediaDownloader mediaDownloader = new MediaDownloader(server, list);
@@ -193,5 +197,11 @@ public class PlayerRenderer implements MediaRequestor
 			sb.append(color.charAt(2)).append(color.charAt(2));
 			return Integer.parseInt(sb.toString(), 16);
 		}
+	}
+
+	@Override
+	public String toString()
+	{
+		return name;
 	}
 }
