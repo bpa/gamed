@@ -69,8 +69,8 @@ public class Kamchat extends Country
     public Iterable<String> getMediaRequests()
     {
         ArrayList images = new ArrayList(2);
-        images.add("images/classic/c36.png");
-        images.add("images/classic/c36b.png");
+        images.add("resources/ClassicRisk/c36.png");
+        images.add("resources/ClassicRisk/c36b.png");
         return images;
     }
 

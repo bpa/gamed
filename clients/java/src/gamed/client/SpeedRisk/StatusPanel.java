@@ -128,9 +128,10 @@ public class StatusPanel extends JPanel
     protected void paintComponent(Graphics g)
     {
         player.renderer.renderBackground(g, getX(), getY(), getWidth(), getHeight());
+
         for (RiskPlayer riskPlayer : players.values())
         {
-            riskPlayer.paintComponent(g);
+            riskPlayer.repaint();
         }
     }
 }

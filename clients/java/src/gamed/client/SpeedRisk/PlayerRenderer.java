@@ -40,9 +40,9 @@ public class PlayerRenderer implements MediaRequestor
 	{
 		ArrayList images = new ArrayList(2);
 		if (background == null)
-			images.add(String.format("/themes/%s/%s", name, properties.getProperty("background-image")));
+			images.add(String.format("resources/themes/%s/%s", name, properties.getProperty("background-image")));
 		if (icon == null)
-			images.add(String.format("/themes/%s/%s", name, properties.getProperty("icon-image")));
+			images.add(String.format("resources/themes/%s/%s", name, properties.getProperty("icon-image")));
 		return images;
 	}
 
@@ -137,7 +137,7 @@ public class PlayerRenderer implements MediaRequestor
 		{
 			try
 			{
-				URL url = new URL(server.getDocumentBase(), String.format("/themes/%s/theme.properties", theme));
+				URL url = new URL(server.getDocumentBase(), String.format("resources/themes/%s/theme.properties", theme));
 				URLConnection connection = url.openConnection();
 				properties = new Properties();
 				InputStream inputStream = connection.getInputStream();
