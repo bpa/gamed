@@ -6,3 +6,5 @@ runtests
 /clients/java/dist/
 *.sw?
 *~
+core
+private.properties
