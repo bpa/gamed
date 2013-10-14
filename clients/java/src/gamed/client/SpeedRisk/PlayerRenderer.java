@@ -26,6 +26,7 @@ public class PlayerRenderer implements MediaRequestor
 	BufferedImage background = null;
 	Image icon = null;
 	int x_offset, y_offset, armies_x, armies_y;
+	boolean backgroundGenerated = true;
 
 	synchronized void setTheme(Server server, String theme)
 	{
@@ -50,9 +51,14 @@ public class PlayerRenderer implements MediaRequestor
 	{
 		String property = properties.getProperty("background-image");
 		if (property != null && request.endsWith(property))
+		{
 			background = makeBufferedImage(img);
+			backgroundGenerated = false;
+		}
 		else
+		{
 			icon = img;
+		}
 	}
 
 	public void renderCountry(BufferedImage image, int x, int y)
@@ -72,8 +78,8 @@ public class PlayerRenderer implements MediaRequestor
 				v = image.getRGB(i, j) & 0xff000000;
 				if (v != 0)
 				{
-					p = background.getRGB((i + x) % bgw, (j + y) % bgh) & 0x00ffffff;
-					image.setRGB(i, j, v | p);
+					p = background.getRGB((i + x) % bgw, (j + y) % bgh);
+					image.setRGB(i, j, backgroundGenerated ? v | ( p & 0x00ffffff ) : p);
 				}
 			}
 		}

@@ -30,10 +30,16 @@ public class MediaDownloader extends SwingWorker implements ImageObserver
         {
             for (String request : mediaRequestor.getMediaRequests())
             {
-                total.incrementAndGet();
                 Image image = server.getImage(request);
-                callbacks.put(image, new Callback(mediaRequestor, request));
-                image.getWidth(this);
+				if (image.getWidth(this) == -1)
+				{
+	                total.incrementAndGet();
+					callbacks.put(image, new Callback(mediaRequestor, request));
+				}
+				else
+				{
+					mediaRequestor.mediaCompleted(request, image);
+				}
             }
         }
         while (completed.get() < total.get())
