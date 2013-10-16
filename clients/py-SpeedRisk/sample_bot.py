@@ -4,7 +4,7 @@ import sys
 
 class myclient(SpeedRisk):
     def __init__(self, name, port):
-        SpeedRisk.__init__(self, "localhost", port, name)
+        SpeedRisk.__init__(self, "localhost", port, "ClassicRisk", name)
 
     def on_list_game_instances(self, message):
         print message

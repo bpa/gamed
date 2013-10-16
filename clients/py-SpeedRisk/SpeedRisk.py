@@ -1,5 +1,6 @@
 from Client import Client
 from struct import pack, unpack
+import yaml
 
 class Player:
     def __init__(self, id):
@@ -16,10 +17,9 @@ class Country:
         self.armies = 0
 
 class SpeedRisk(Client):
-    def __init__(self, host, port, name):
+    def __init__(self, host, port, board, name):
         Client.__init__(self, host, port, name)
-        self.init_countries()
-        self.players = map(lambda x: Player(x), range(6))
+        self.init_board(board)
         self.reserve = 0
         self.player_id = 0
 
@@ -38,20 +38,25 @@ class SpeedRisk(Client):
     def on_player_status(self, f, t, a):
         self.player_id = f
 
-    def init_countries(self):
-        self.countries = map(lambda i: Country(i[0], i[1]),
-            enumerate(('EASTERN US', 'NORTHWEST TERRITORY', 'WESTERN US',
-                'ONTARIO', 'CENTRAL AMERICA', 'ALBERTA', 'GREENLAND',
-                'ALASKA', 'QUEBEC', 'BRAZIL', 'VENEZUELA', 'ARGENTINA',
-                'PERU', 'ICELAND', 'SOUTHERN EUROPE', 'UKRAINE',
-                'SCANDINAVIA', 'GREAT BRITAIN', 'WESTERN EUROPE',
-                'NORTHERN EUROPE', 'EGYPT', 'CONGO', 'MADAGASCAR',
-                'SOUTH AFRICA', 'EAST AFRICA', 'NORTH AFRICA',
-                'AFGHANISTAN', 'MONGOLIA', 'URAL', 'JAPAN', 'IRKUTSK',
-                'INDIA', 'SIAM', 'YAKUTSK', 'SIBERIA', 'CHINA',
-                'KAMCHATKA', 'MIDDLE EAST', 'NEW GUINEA', 'INDONESIA',
-                'WESTERN AUSTRALIA', 'EASTERN AUSTRALIA')))
+    def init_board(self, board_name):
+        with open("resources/%s/board.yml" % board_name) as f:
+            self.board = yaml.load(f)
+        self.players = map(lambda x: Player(x), range(self.board['players']))
+        c = 0
+        self.countries = {}
+        for t in self.board['territories']:
+            self.countries[t['name']] = c
+            c = c + 1
+        self.borders = []
+        for t in enumerate(self.board['territories']):
+            pass
 
+    def borders(self, a, b):
+        try:
+            return self.board['territories'][a][b]
+        except:
+            return False
+        
     def on_game_message(self, msg):
         data = None
         if len(msg) > 4:
