@@ -1,6 +1,8 @@
-import client
 import socket
 from struct import pack, unpack
+
+verbose = False
+warnings = False
 
 class Client:
     _commands = {}
@@ -16,6 +18,7 @@ class Client:
             pass
 
     def poll_one(self):
+	global warnings
         cmd = None
         try:
             cmd = self.sock.recv(4)
@@ -37,7 +40,7 @@ class Client:
             h = getattr(self, handler)
             h(msg)
         except AttributeError:
-            if client.warnings:
+            if warnings:
                 print "No callback for %s" % handler
         return True
 

@@ -1,4 +1,3 @@
-import client
 from Client import Client
 from struct import pack, unpack
 
@@ -78,7 +77,7 @@ class SpeedRisk(Client):
                 else:
                     handler(f, t, a, data)
         except AttributeError:
-            if client.warnings:
+            if Client.warnings:
                 print "No handler for", name
 
 def __command(op, name):

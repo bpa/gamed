@@ -1,4 +1,4 @@
-from client.SpeedRisk import SpeedRisk
+from SpeedRisk import SpeedRisk
 from time import sleep
 import sys
 

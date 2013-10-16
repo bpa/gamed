@@ -1,2 +1,0 @@
-verbose = False
-warnings = False
