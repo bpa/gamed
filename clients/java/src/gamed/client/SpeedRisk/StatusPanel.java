@@ -91,17 +91,12 @@ public class StatusPanel extends JPanel
 			riskPlayer.setPlayerName(p.name);
 			riskPlayer.renderer.setTheme(server, p.theme);
 		}
-		boolean deleted = false;
 		for (Integer id : this.players.keySet())
 		{
 			if (!seen.contains(id))
-			{
 				this.players.remove(id);
-				deleted = true;
-			}
-			if (deleted)
-				reAddPlayers();
 		}
+		reAddPlayers();
 	}
 
 	private void reAddPlayers()
