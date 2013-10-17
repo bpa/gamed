@@ -47,13 +47,16 @@ class SpeedRisk(Client):
         for t in self.board['territories']:
             self.countries[t['name']] = c
             c = c + 1
-        self.borders = []
-        for t in enumerate(self.board['territories']):
-            pass
+        self.borders = [[False for i in range(len(self.countries))] for i in range(len(self.countries))]
+        for (c, t) in enumerate(self.board['territories']):
+            if t.has_key('borders'):
+                for b in t['borders']:
+                    self.borders[c][self.countries[b]] = True
+                    self.borders[self.countries[b]][c] = True
 
     def borders(self, a, b):
         try:
-            return self.board['territories'][a][b]
+            return self.borders[a][b]
         except:
             return False
         
