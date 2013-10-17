@@ -43,10 +43,9 @@ public abstract class RiskBoard implements MediaRequestor
         {
             g.drawImage(bg, 0, 0, null);
             for (Country c : countries)
-            {
                 c.paint(g);
+            for (Country c : countries)
                 c.paintIcon(g);
-            }
         }
     }
 

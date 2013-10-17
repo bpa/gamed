@@ -6,16 +6,17 @@ import java.awt.BorderLayout;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.beans.PropertyChangeListener;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.swing.ImageIcon;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 public class StatusPanel extends JPanel
 {
-	private JPanel phaseBG = new JPanel(new BorderLayout());
+	private PlayerPanel phaseBG = new PlayerPanel();
 	private JLabel phaseLabel = new JLabel("Waiting for players");
-	private JPanel reserveBG = new JPanel(new BorderLayout());
 	private JLabel reserveLabel = new JLabel("0 armies in reserve");
 	private final Map<Integer, RiskPlayer> players = new ConcurrentHashMap<Integer, RiskPlayer>();
 	private RiskPlayer player = null;
@@ -28,10 +29,11 @@ public class StatusPanel extends JPanel
 		this.server = server;
 		GridLayout gridLayout = new GridLayout(2, 1);
 		setLayout(gridLayout);
+		phaseLabel.setOpaque(false);
+		reserveLabel.setOpaque(false);
 		phaseBG.add(phaseLabel, BorderLayout.CENTER);
 		add(phaseBG);
-		reserveBG.add(reserveLabel, BorderLayout.CENTER);
-		add(reserveBG);
+		add(reserveLabel);
 		adjustSize();
 	}
 
@@ -56,9 +58,7 @@ public class StatusPanel extends JPanel
 	public void setOwner(RiskPlayer player)
 	{
 		this.player = player;
-		int height = super.getGraphics().getFontMetrics().getHeight();
-		player.renderer.renderBackground(phaseBG.getGraphics(), phaseBG.getX(), phaseBG.getY(), 150, height);
-		player.renderer.renderBackground(reserveBG.getGraphics(), reserveBG.getX(), reserveBG.getY(), 150, height);
+		this.phaseBG.setRenderer(player.renderer);
 	}
 
 	public RiskPlayer get(int playerId)
@@ -81,7 +81,7 @@ public class StatusPanel extends JPanel
 		}
 	}
 
-	void updatePlayers(Player[] players)
+	void updatePlayers(Player[] players, PropertyChangeListener display)
 	{
 		Set<Integer> seen = new HashSet();
 		for (Player p : players)
@@ -89,7 +89,7 @@ public class StatusPanel extends JPanel
 			seen.add(p.id);
 			RiskPlayer riskPlayer = get(p.id);
 			riskPlayer.setPlayerName(p.name);
-			riskPlayer.renderer.setTheme(server, p.theme);
+			riskPlayer.renderer.setTheme(server, p.theme, display);
 		}
 		for (Integer id : this.players.keySet())
 		{
@@ -115,19 +115,33 @@ public class StatusPanel extends JPanel
 		{
 			add(p);
 		}
-		add(phaseBG);
-		add(reserveBG);
+		phaseBG.removeAll();
+		phaseBG.add(phaseLabel, BorderLayout.CENTER);
+		if (player != null)
+		{
+			phaseLabel.setForeground(player.renderer.textColor);
+			reserveLabel.setForeground(player.renderer.textColor);
+			if (player.renderer.icon != null)
+				phaseBG.add(new JLabel(new ImageIcon(player.renderer.icon)), BorderLayout.EAST);
+		}
+		add(phaseLabel);
+		add(reserveLabel);
 		adjustSize();
 	}
 
 	@Override
 	protected void paintComponent(Graphics g)
 	{
-		player.renderer.renderBackground(g, getX(), getY(), getWidth(), getHeight());
+		super.paintComponent(g);
+		player.renderer.renderBackground(g, 0, 0, getWidth(), getHeight());
+	}
 
+	void mediaReady()
+	{
 		for (RiskPlayer riskPlayer : players.values())
 		{
-			riskPlayer.repaint();
+			riskPlayer.mediaReady();
 		}
+		reAddPlayers();
 	}
 }

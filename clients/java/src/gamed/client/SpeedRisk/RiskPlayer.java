@@ -1,16 +1,15 @@
 package gamed.client.SpeedRisk;
 
 import java.awt.BorderLayout;
-import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import javax.swing.ImageIcon;
 import javax.swing.JCheckBox;
-import javax.swing.JPanel;
+import javax.swing.JLabel;
 
-public class RiskPlayer extends JPanel implements Comparable<RiskPlayer>, ActionListener
+public class RiskPlayer extends PlayerPanel implements Comparable<RiskPlayer>, ActionListener
 {
     public final int id;
-    public final PlayerRenderer renderer;
     public JCheckBox playerDisplay = new JCheckBox();
 	public boolean playing = false;
 
@@ -22,6 +21,7 @@ public class RiskPlayer extends JPanel implements Comparable<RiskPlayer>, Action
         playerDisplay.setRequestFocusEnabled(false);
         playerDisplay.setRolloverEnabled(false);
         playerDisplay.addActionListener(this);
+		playerDisplay.setOpaque(false);
         setLayout(new BorderLayout());
         add(playerDisplay, BorderLayout.CENTER);
     }
@@ -48,12 +48,6 @@ public class RiskPlayer extends JPanel implements Comparable<RiskPlayer>, Action
     }
 
     @Override
-    protected void paintComponent(Graphics g)
-    {
-        renderer.renderBackground(g, getX(), getY(), getWidth(), getHeight());
-    }
-
-    @Override
     public boolean equals(Object that)
     {
         if (that instanceof RiskPlayer)
@@ -75,5 +69,14 @@ public class RiskPlayer extends JPanel implements Comparable<RiskPlayer>, Action
 		sb.append(playerDisplay.getText()).append(" (");
 		sb.append(renderer).append(")");
 		return sb.toString();
+	}
+
+	void mediaReady()
+	{
+		removeAll();
+		playerDisplay.setForeground(renderer.textColor);
+		add(playerDisplay, BorderLayout.CENTER);
+		if (renderer.icon != null)
+			add(new JLabel(new ImageIcon(renderer.icon)), BorderLayout.EAST);
 	}
 }

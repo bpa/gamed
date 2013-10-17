@@ -8,6 +8,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
+import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -25,16 +26,17 @@ public class PlayerRenderer implements MediaRequestor
 	Properties properties = null;
 	BufferedImage background = null;
 	Image icon = null;
+	Color textColor = Color.BLACK;
 	int x_offset, y_offset, armies_x, armies_y;
 	boolean backgroundGenerated = true;
 
-	synchronized void setTheme(Server server, String theme)
+	synchronized void setTheme(Server server, String theme, PropertyChangeListener display)
 	{
 		if (theme.equals(name))
 			return;
 
 		name = theme;
-		new Thread(new Theme(server, theme)).start();
+		new Thread(new Theme(server, display, theme)).start();
 	}
 
 	public Iterable<String> getMediaRequests()
@@ -79,7 +81,7 @@ public class PlayerRenderer implements MediaRequestor
 				if (v != 0)
 				{
 					p = background.getRGB((i + x) % bgw, (j + y) % bgh);
-					image.setRGB(i, j, backgroundGenerated ? v | ( p & 0x00ffffff ) : p);
+					image.setRGB(i, j, backgroundGenerated ? v | (p & 0x00ffffff) : p);
 				}
 			}
 		}
@@ -109,9 +111,11 @@ public class PlayerRenderer implements MediaRequestor
 
 	public void renderIcon(Graphics g, int x, int y, int armies)
 	{
+		int x2 = x + 2 + x_offset;
+		int y2 = y + 12 + y_offset;
 		g.drawImage(icon, x, y, null);
-		g.setColor(Color.BLACK);
-		g.drawString(Integer.toString(armies), x + 2, y + 12);
+		g.setColor(textColor);
+		g.drawString(Integer.toString(armies), x2, y2);
 	}
 
 	protected BufferedImage makeBufferedImage(Image o)
@@ -135,11 +139,13 @@ public class PlayerRenderer implements MediaRequestor
 	private class Theme implements Runnable
 	{
 		final Server server;
+		final PropertyChangeListener display;
 		final String theme;
 
-		public Theme(Server server, String theme)
+		public Theme(Server server, PropertyChangeListener display, String theme)
 		{
 			this.server = server;
+			this.display = display;
 			this.theme = theme;
 		}
 
@@ -158,9 +164,13 @@ public class PlayerRenderer implements MediaRequestor
 				String iconImage = properties.getProperty("icon-image");
 				if (iconImage == null)
 					icon = createImage(parseColor(properties.getProperty("icon-color", "000")), true);
+				textColor = new Color(parseColor(properties.getProperty("text-color", "000")));
+				x_offset = intProperty("text-x", 0);
+				y_offset = intProperty("text-y", 0);
 				List<MediaRequestor> list = new ArrayList();
 				list.add(ref());
 				MediaDownloader mediaDownloader = new MediaDownloader(server, list);
+				mediaDownloader.addPropertyChangeListener(display);
 				mediaDownloader.execute();
 			}
 			catch (MalformedURLException ex)
@@ -202,6 +212,18 @@ public class PlayerRenderer implements MediaRequestor
 			sb.append(color.charAt(1)).append(color.charAt(1));
 			sb.append(color.charAt(2)).append(color.charAt(2));
 			return Integer.parseInt(sb.toString(), 16);
+		}
+
+		private int intProperty(String property, int i)
+		{
+			try
+			{
+				return Integer.parseInt(properties.getProperty(property));
+			}
+			catch (NumberFormatException e)
+			{
+				return i;
+			}
 		}
 	}
 

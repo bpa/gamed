@@ -7,7 +7,7 @@ public class Player
 	public String theme;
 	private final String[] THEMES = new String[]
 	{
-		"biohazard", "chess", "radioactive", "circuitboard", "trees", "duck"
+		"starwars_empire", "starwars_rebel", "gmaps", "zach", "radioactive", "batman"
 	};
 
 	public Player(int id, String name)
