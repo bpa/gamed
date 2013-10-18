@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use YAML::Any qw/LoadFile/;
 use File::Slurp;
+use Image::Magick;
 
 my $name = $ARGV[0];
 my $dir = "../../resources/$name"."Risk";
@@ -31,7 +32,11 @@ sub countries {
 	for my $c (0 .. $#{$yaml->{territories}}) {
 		my $country = $yaml->{territories}[$c];
 		my $cname = $country->{name};
-		$countries .= "\t\tCOUNTRIES[$c] = new Country($c, \"resources/$name"."Risk/$cname.png\", 0,0,0,0);\n";
+		my $loc = "resources/$name"."Risk/$cname.png";
+		my $img = Image::Magick->new();
+		$img->Read("../../$loc");
+		my $coords = $img->Get('comment');
+		$countries .= "\t\tCOUNTRIES[$c] = new Country($c, \"$loc\", $coords);\n";
 	}
 	$countries .= "\t}\n\n\tstatic { addCountries(); }\n\n";
 	return $countries;

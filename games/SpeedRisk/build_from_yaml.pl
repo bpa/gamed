@@ -17,6 +17,7 @@ for my $f (grep { /yml$/ } readdir $dir) {
 	write_bonuses($name, $yaml);
 	write_init($name, $yaml);
 	update_test_file($name, $yaml);
+}
 
 sub make_map {
 	my $yaml = shift;
