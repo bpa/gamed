@@ -7,6 +7,7 @@ use File::Slurp;
 
 open my $source, ">boards.cc" or die("Can't open boards.cc for writing: $!\n");
 print $source "//Generated content, do not modify.\n//Update yml files and then run: perl build_from_yaml\n";
+
 opendir(my $dir, '.');
 for my $f (grep { /yml$/ } readdir $dir) {
 	my $yaml = LoadFile($f);
@@ -16,7 +17,6 @@ for my $f (grep { /yml$/ } readdir $dir) {
 	write_bonuses($name, $yaml);
 	write_init($name, $yaml);
 	update_test_file($name, $yaml);
-}
 
 sub make_map {
 	my $yaml = shift;

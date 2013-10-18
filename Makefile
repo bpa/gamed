@@ -1,4 +1,4 @@
-all: _server _games _clients _docs _Gamed
+all: _server _games _clients _docs
 
 _server:
 	@echo "----  Making all in server  ----"

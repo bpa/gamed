@@ -4,7 +4,7 @@ CFLAGS = -fPIC -Wall -pedantic
 INC = -I.. -I../../include
 CC = gcc
 
-all: HiLo.so test
+all: HiLo.so
 
 HiLo.so: HiLo.o
 	ld -fPIC -shared -s -o HiLo.so HiLo.o

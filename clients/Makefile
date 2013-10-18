@@ -1,4 +1,5 @@
-all:
+all: 
+	make -C java
 
 build:
 	@for g in `find . -maxdepth 1 -type d ! -name .`; do \

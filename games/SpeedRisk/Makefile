@@ -3,7 +3,7 @@ CFLAGS = -Wall -fPIC
 INC = -I.. -I../../include
 CC = gcc -g
 
-run: SpeedRisk.so test
+run: SpeedRisk.so
 
 SpeedRisk.so: $(OBJS)
 	gcc -fPIC -shared -s -o SpeedRisk.so $(OBJS)

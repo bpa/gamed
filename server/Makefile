@@ -7,7 +7,7 @@ INC = -I../include
 LIBS = -L/usr/local/lib -levent -ldl
 CC = gcc -g
 
-all: server test
+all: server
 
 server: $(OBJS)
 	$(CC) -o server $(OBJS) $(LIBS)
