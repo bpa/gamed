@@ -67,7 +67,8 @@ public class Country implements MediaRequestor
         }
         else
         {
-            owner.renderer.renderCountry(img, x, y);
+            if (owner != null)
+                owner.renderer.renderCountry(img, x, y);
         }
     }
 

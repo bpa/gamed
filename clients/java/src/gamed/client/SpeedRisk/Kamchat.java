@@ -42,8 +42,11 @@ public class Kamchat extends Country
         }
         else
         {
-            owner.renderer.renderCountry(img, x, y);
-            owner.renderer.renderCountry(img2, x2, y2);
+            if (owner != null)
+            {
+                owner.renderer.renderCountry(img, x, y);
+                owner.renderer.renderCountry(img2, x2, y2);
+            }
         }
     }
 
