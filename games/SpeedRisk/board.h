@@ -16,10 +16,27 @@ typedef struct {
 } SR_Player;
 
 typedef struct {
+	int bonus;
+	int territories;
+	char *required;
+} Bonus;
+
+typedef struct {
+	int max_players;
+	int territories;
+	char *borders;
+	Bonus *bonuses;
+	int army_generation_period;
+} Board;
+
+typedef struct {
     SR_Game_Status status;
-    SR_Player      players[SR_MAX_PLAYERS];
-    int            army_generation_time;
+    SR_Player      *players;
+    Board          *board;
+	int            army_generation_period;
 } SpeedRiskData;
+
+void game_init     (GameInstance *g, const Server *s);
 
 #ifdef __cplusplus
 }

@@ -1,6 +1,7 @@
 #ifndef GAMED_GAME_H
 #define GAMED_GAME_H
 
+#include <sys/types.h>
 #include <sys/cdefs.h>
 
 #ifndef __cplusplus
