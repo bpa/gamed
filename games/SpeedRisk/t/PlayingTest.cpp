@@ -17,6 +17,7 @@ public:
         plr_res = (SR_Command*)&mock_plr_buff[0];
         all_res = (SR_Command*)&mock_all_buff[0];
         err = (SR_Error*)&mock_plr_buff[0];
+		cmd.to = cmd.from = 0;
 
         player_join(game, &p1);
         ASSERT_EQ(&p1, srd->players[0].player);

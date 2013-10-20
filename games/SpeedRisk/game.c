@@ -163,18 +163,28 @@ void give_country_status(GameInstance *g, const Server *s, Player *p, int countr
 }
 
 void game_init (GameInstance *g, const Server *s, Board *board) {
-    SpeedRiskData *risk = (SpeedRiskData*) calloc(1, sizeof(SpeedRiskData));
+	int country_size;
+    SpeedRiskData *risk;
+	country_size = (board->territories - 1) * sizeof(SR_Country);
+	risk = (SpeedRiskData*) calloc(1, sizeof(SpeedRiskData) + country_size);
     g->data = risk;
 	risk->board = board;
 	risk->players = (SR_Player *) calloc(risk->board->max_players, sizeof(SR_Player));
     risk->status.command.command = SR_CMD_GAME_STATUS;
-    risk->status.command.length = sizeof(SR_Game_Status) + (risk->board->territories - 1) * sizeof(SR_Country);
+    risk->status.command.length = sizeof(SR_Game_Status) + country_size;
     risk->army_generation_period = board->army_generation_period;
     msg_error.command = SR_CMD_ERROR;
     msg_move.command.command = SR_CMD_MOVE_RESULT;
 	g->state = &SR_WAITING_FOR_PLAYERS;
 	s->log(g, "Initializing");
 	sprintf(g->status, "Waiting for players");
+}
+
+void game_destroy (GameInstance *g, const Server *s) {
+    SpeedRiskData *risk;
+	risk = (SpeedRiskData*)g->data;
+	free(risk->players);
+	free(risk);
 }
 
 void player_join (GameInstance *g, const Server *s, Player *p) {
@@ -310,7 +320,6 @@ void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *req
 	int all_ready, i;
     SR_Command *cmd = (SR_Command*)req;
     risk = (SpeedRiskData*)g->data;
-	return_if_invalid(cmd);
 	switch (cmd->command) {
 		case SR_CMD_READY:
 			if (g->playing > 1) {
@@ -354,7 +363,10 @@ void handle_placing(GameInstance *g, const Server *s, Player *p, const char *req
 	int all_ready, i;
     SR_Command *cmd = (SR_Command*)req;
     risk = (SpeedRiskData*)g->data;
-	return_if_invalid(cmd);
+    if (cmd->to >= risk->board->territories) {
+        player_error(s, p, SR_ERR_INVALID_DESTINATION);
+        return;
+    }
 	switch (cmd->command) {
 		case SR_CMD_READY:
 			if (risk->players[p->in_game_id].ready)
@@ -536,14 +548,18 @@ void handle_playing(GameInstance *g, const Server *s, Player *p, const char *req
 }
 
 void handle_done (GameInstance *g, const Server *s, Player *p, const char *req, int len) {
+    SpeedRiskData *risk;
     SR_Command *cmd = (SR_Command*)req;
-	SpeedRiskData *risk = (SpeedRiskData *) g->data;
-	return_if_invalid(cmd);
+    risk = (SpeedRiskData*)g->data;
 	switch (cmd->command) {
 		case SR_CMD_GAME_STATUS:
 			give_game_status(g, s, p);
 			break;
 		case SR_CMD_COUNTRY_STATUS:
+    		if ( cmd->from >= risk->board->territories ) {
+        		player_error(s, p, SR_ERR_INVALID_DESTINATION);
+        		return;
+			}
 			give_country_status(g, s, p, cmd->from);
 			break;
 		default:

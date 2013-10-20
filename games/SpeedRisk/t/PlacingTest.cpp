@@ -17,6 +17,7 @@ public:
         srd = (SpeedRiskData*)game->data;
         plr_res = (SR_Command*)&mock_plr_buff[0];
         all_res = (SR_Command*)&mock_all_buff[0];
+		cmd.from = cmd.to = 0;
     }
 
 	void TearDown() {

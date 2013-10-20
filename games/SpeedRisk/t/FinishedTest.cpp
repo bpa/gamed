@@ -16,6 +16,7 @@ public:
         player_join(game, &player);
         game->state = &SR_DONE;
         res = (SR_Command*)&mock_plr_buff[0];
+		cmd.from = 0;
 	}
 	void TearDown() {
         destroy_instance(game);

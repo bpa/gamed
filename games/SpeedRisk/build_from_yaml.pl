@@ -4,20 +4,21 @@ use strict;
 use warnings;
 use YAML::Any qw/LoadFile/;
 use File::Slurp;
+use File::Find;
 
 open my $source, ">boards.cc" or die("Can't open boards.cc for writing: $!\n");
 print $source "//Generated content, do not modify.\n//Update yml files and then run: perl build_from_yaml\n";
 
-opendir(my $dir, '.');
-for my $f (grep { /yml$/ } readdir $dir) {
-	my $yaml = LoadFile($f);
-	my ($name) = $f =~ /(.*)\.yml$/;
-	$yaml->{id} = make_map($yaml);
-	write_borders($name, $yaml);
-	write_bonuses($name, $yaml);
-	write_init($name, $yaml);
-	update_test_file($name, $yaml);
-}
+find sub {
+    return unless /board.yml/;
+    my $yaml = LoadFile($_);
+    my ($name) = $File::Find::dir =~ m#.*/(.*?)Risk#;
+    $yaml->{id} = make_map($yaml);
+    write_borders( $name, $yaml );
+    write_bonuses( $name, $yaml );
+    write_init( $name, $yaml );
+    update_test_file( $name, $yaml );
+}, '../../resources';
 
 sub make_map {
 	my $yaml = shift;
@@ -108,7 +109,7 @@ Board board_$name = {
 void game_init_$name(GameInstance *g, const Server *s) {
 	game_init(g, s, &board_$name);
 }
-Game $game = { GAMED_GAME, "$game", "$version", game_init_$name, NULL, player_join, player_quit };
+Game $game = { GAMED_GAME, "$game", "$version", game_init_$name, game_destroy, player_join, player_quit };
 INIT
 }
 
