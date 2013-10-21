@@ -69,7 +69,7 @@ public class UltimateBoard extends RiskBoard
 		COUNTRIES[59] = new Country(59, "resources/UltimateRisk/122.png", 599,457,629,504);
 		COUNTRIES[60] = new Country(60, "resources/UltimateRisk/123.png", 647,472,673,500);
 		COUNTRIES[61] = new Country(61, "resources/UltimateRisk/124.png", 713,481,727,512);
-		COUNTRIES[62] = new Country(62, "resources/UltimateRisk/125.png", 583,526,624,563);
+		COUNTRIES[62] = new Country(62, "resources/UltimateRisk/125.png", 560,500,584,526);
 		COUNTRIES[63] = new Country(63, "resources/UltimateRisk/126.png", 583,526,624,563);
 		COUNTRIES[64] = new Country(64, "resources/UltimateRisk/130.png", 439,49,456,60);
 		COUNTRIES[65] = new Country(65, "resources/UltimateRisk/131.png", 433,124,443,134);

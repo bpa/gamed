@@ -269,7 +269,7 @@ Bonus Ultimate_bonuses[33] = {
   {0,16,&Ultimate_req31[0]},
   {0,5,&Ultimate_req32[0]}
 };
-int Ultimate_starting_armies[] = {1,2,3,4,5,6,7,8,9,10,11,12};
+int Ultimate_starting_armies[] = {1,2,25,25,25,25,25,25,25,25,25,25};
 Board board_Ultimate = {
 	.max_players = 12,
 	.starting_armies = &Ultimate_starting_armies[0],

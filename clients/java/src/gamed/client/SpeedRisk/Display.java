@@ -140,7 +140,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
             }
         });
         add(jButton1);
-        jButton1.setBounds(546, 340, 100, 23);
+        jButton1.setBounds(0, 0, 100, 27);
 
         readyRadio.setBackground(new Color(0,true));
         buttonGroup1.add(readyRadio);
@@ -154,7 +154,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
             }
         });
         add(readyRadio);
-        readyRadio.setBounds(250, 280, 57, 23);
+        readyRadio.setBounds(250, 280, 60, 18);
 
         notReadyRadio.setBackground(new Color(0, true));
         buttonGroup1.add(notReadyRadio);
@@ -169,12 +169,12 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
             }
         });
         add(notReadyRadio);
-        notReadyRadio.setBounds(250, 300, 77, 23);
+        notReadyRadio.setBounds(250, 300, 86, 18);
 
         armyGenerationProgress.setFocusable(false);
         armyGenerationProgress.setStringPainted(true);
         add(armyGenerationProgress);
-        armyGenerationProgress.setBounds(230, 350, 200, 17);
+        armyGenerationProgress.setBounds(230, 350, 200, 19);
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
