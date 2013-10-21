@@ -49,6 +49,10 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 
 	public void joinedGame()
 	{
+		for (Country country: board.countries)
+		{
+			country.set(null, 1);
+		}
 		progress.setValue(0);
 		final MediaDownloader mediaDownloader = new MediaDownloader(server, board.getMediaRequestors());
 		mediaDownloader.addPropertyChangeListener(this);
@@ -407,11 +411,11 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 
 	private int getCountryAt(Point p)
 	{
-		for (int i = 0; i < 42; i++)
+		for (Country country : board.countries)
 		{
-			if (board.countries[i].contains(p))
+			if (country.contains(p))
 			{
-				return i;
+				return country.id;
 			}
 		}
 		return -1;

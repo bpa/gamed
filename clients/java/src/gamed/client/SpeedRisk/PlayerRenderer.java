@@ -30,6 +30,14 @@ public class PlayerRenderer implements MediaRequestor
 	int x_offset, y_offset, armies_x, armies_y;
 	boolean backgroundGenerated = true;
 
+/*
+	public PlayerRenderer()
+	{
+		background = new BufferedImage(1, 1, BufferedImage.TYPE_4BYTE_ABGR);
+		background.setRGB(0, 0, 0xff000000);
+	}
+*/
+
 	synchronized void setTheme(Server server, String theme, PropertyChangeListener display)
 	{
 		if (theme.equals(name))
@@ -63,7 +71,7 @@ public class PlayerRenderer implements MediaRequestor
 		}
 	}
 
-	public void renderCountry(BufferedImage image, int x, int y)
+	public void renderCountry(BufferedImage image, int x, int y, boolean selected)
 	{
 		if (background == null)
 			return;
@@ -73,15 +81,20 @@ public class PlayerRenderer implements MediaRequestor
 		int bgw = background.getWidth();
 		int bgh = background.getHeight();
 		int p, v;
+
 		for (int i = 0; i < w; i++)
 		{
 			for (int j = 0; j < h; j++)
 			{
-				v = image.getRGB(i, j) & 0xff000000;
-				if (v != 0)
+				if (image.getRGB(i, j) != 0)
 				{
 					p = background.getRGB((i + x) % bgw, (j + y) % bgh);
-					image.setRGB(i, j, backgroundGenerated ? v | (p & 0x00ffffff) : p);
+					if (selected)
+					{
+						p = p & 0x00FFFFFF;
+						p = p | 0x90000000;
+					}
+					image.setRGB(i, j, p);
 				}
 			}
 		}
@@ -111,9 +124,14 @@ public class PlayerRenderer implements MediaRequestor
 
 	public void renderIcon(Graphics g, int x, int y, int armies)
 	{
+		if (icon == null)
+			return;
+
+		int xCenter = x - (icon.getWidth(null) / 2);
+		int yCenter = y - (icon.getHeight(null) / 2);
 		int x2 = x + 2 + x_offset;
 		int y2 = y + 12 + y_offset;
-		g.drawImage(icon, x, y, null);
+		g.drawImage(icon, xCenter, yCenter, null);
 		g.setColor(textColor);
 		g.drawString(Integer.toString(armies), x2, y2);
 	}

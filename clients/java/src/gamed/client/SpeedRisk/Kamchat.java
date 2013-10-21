@@ -24,30 +24,22 @@ public class Kamchat extends Country
     @Override
     public void paint(Graphics g)
     {
-        g.drawImage(img, x, y, null);
-        g.drawImage(img2, x2, y2, null);
+        if (img != null && owner != null)
+		{
+			g.drawImage(img, x, y, null);
+			g.drawImage(img2, x2, y2, null);
+		}
     }
 
     @Override
     public void setSelected(boolean selected)
     {
         isSelected = selected;
-        if (img == null)
+        if (img == null || owner == null)
             return;
 
-        if (isSelected)
-        {
-            colorSelectedImage(img);
-            colorSelectedImage(img2);
-        }
-        else
-        {
-            if (owner != null)
-            {
-                owner.renderer.renderCountry(img, x, y);
-                owner.renderer.renderCountry(img2, x2, y2);
-            }
-        }
+		owner.renderer.renderCountry(img, x, y, isSelected);
+		owner.renderer.renderCountry(img2, x2, y2, isSelected);
     }
 
     @Override
@@ -60,7 +52,7 @@ public class Kamchat extends Country
             int ix = p.x - x2;
             int iy = p.y - y2;
             int color = img2.getRGB(ix, iy);
-            if ((color & 0xff000000) != 0)
+            if (color != 0)
             {
                 return true;
             }

@@ -58,18 +58,10 @@ public class Country implements MediaRequestor
     public void setSelected(boolean selected)
     {
         isSelected = selected;
-        if (img == null)
+        if (img == null || owner == null)
             return;
 
-        if (isSelected)
-        {
-            colorSelectedImage(img);
-        }
-        else
-        {
-            if (owner != null)
-                owner.renderer.renderCountry(img, x, y);
-        }
+        owner.renderer.renderCountry(img, x, y, isSelected);
     }
 
     public boolean contains(java.awt.Point p)
@@ -85,7 +77,7 @@ public class Country implements MediaRequestor
             int ix = p.x - x;
             int iy = p.y - y;
             int color = img.getRGB(ix, iy);
-            if ((color & 0xff000000) != 0)
+            if (color != 0)
             {
                 return true;
             }
@@ -95,7 +87,7 @@ public class Country implements MediaRequestor
 
     public void paint(Graphics g)
     {
-        if (img != null)
+        if (img != null && owner != null)
             g.drawImage(img, x, y, null);
     }
 
@@ -105,21 +97,6 @@ public class Country implements MediaRequestor
             owner.renderer.renderIcon(g, lx, ly, armies);
     }
 
-    protected void colorSelectedImage(BufferedImage image)
-    {
-        int w = image.getWidth();
-        int h = image.getHeight();
-        int v;
-        for (int i = 0; i < w; i++)
-        {
-            for (int j = 0; j < h; j++)
-            {
-                v = image.getRGB(i, j);
-                image.setRGB(i, j, v & 0xff000000);
-            }
-        }
-    }
-
     protected BufferedImage makeBufferedImage(Image o)
     {
         int w = o.getWidth(null);
@@ -127,10 +104,23 @@ public class Country implements MediaRequestor
         {
             return null;
         }
-        BufferedImage i = new BufferedImage(w, o.getHeight(null), BufferedImage.TYPE_4BYTE_ABGR);
-        Graphics2D g = i.createGraphics();
+        BufferedImage image = new BufferedImage(w, o.getHeight(null), BufferedImage.TYPE_4BYTE_ABGR);
+        Graphics2D g = image.createGraphics();
         g.drawImage(o, 0, 0, null);
-        return i;
+
+		//We are assuming the image is white & black, need to set alpha
+		for (int i = 0; i < image.getWidth(); i++)
+		{
+			for (int j = 0; j < image.getHeight(); j++)
+			{
+				int v = image.getRGB(i, j) & 0x00FFFFFF;
+				if (v > 0)
+					image.setRGB(i, j, v | 0xFF000000);
+				else
+					image.setRGB(i, j, 0);
+			}
+		}
+        return image;
     }
 
     public Iterable<String> getMediaRequests()

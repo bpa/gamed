@@ -265,7 +265,7 @@ void start_ending(GameInstance *g, const Server *s) {
 	for (p=0; p<risk->board->max_players; p++) {
 		if (risk->players[p].player != NULL) {
 			victor = p;
-			if (risk->players[p].countries_held == 42) {
+			if (risk->players[p].countries_held == risk->board->territories) {
 				won = true;
 				break;
 			}
@@ -495,7 +495,7 @@ void do_attack(GameInstance *g, const Server *s, Player *p, SR_Command *cmd) {
 				s->log(g, "%s defeated", risk->players[defender].player->name);
 			}
 		}
-		if (risk->players[p->in_game_id].countries_held == 42) {
+		if (risk->players[p->in_game_id].countries_held == risk->board->territories) {
 			s->change_state(g, &SR_DONE);
 		}
 	}

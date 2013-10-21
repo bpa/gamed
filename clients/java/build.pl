@@ -35,7 +35,10 @@ sub countries {
 		my $loc = "resources/$name"."Risk/$cname.png";
 		my $img = Image::Magick->new();
 		$img->Read("../../$loc");
-		my $coords = $img->Get('comment');
+		my @coords = split(/,/, $img->Get('comment'));
+		$coords[2] += $coords[0];
+		$coords[3] += $coords[1];
+		my $coords = join(',', @coords);
 		$countries .= "\t\tCOUNTRIES[$c] = new Country($c, \"$loc\", $coords);\n";
 	}
 	$countries .= "\t}\n\n\tstatic { addCountries(); }\n\n";
@@ -67,7 +70,7 @@ sub borders {
 			$func .= "\tprivate static void addBorders$count()\n\t{\n";
 		}
 		my @line;
-		for (my $j=0; $j<$#{$yaml->{territories}}; $j++) {
+		for my $j (0 .. $#{$yaml->{territories}}) {
 			push @line, $table[$i][$j] ? "true" : "false";
 		}
 		$func .= "\t\tBORDERS[$i] = new boolean[] {" . join(',', @line) . "};\n";
