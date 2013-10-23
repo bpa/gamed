@@ -22,11 +22,13 @@ public class StatusPanel extends JPanel
 	private RiskPlayer player = null;
 	private final RiskBoard board;
 	private final Server server;
+	private final PropertyChangeListener display;
 
-	public StatusPanel(RiskBoard board, Server server)
+	public StatusPanel(RiskBoard board, Server server, PropertyChangeListener display)
 	{
 		this.board = board;
 		this.server = server;
+		this.display = display;
 		GridLayout gridLayout = new GridLayout(2, 1);
 		setLayout(gridLayout);
 		phaseLabel.setOpaque(false);
@@ -67,6 +69,7 @@ public class StatusPanel extends JPanel
 		if (riskPlayer == null)
 		{
 			riskPlayer = new RiskPlayer(playerId, new PlayerRenderer());
+			riskPlayer.renderer.setTheme(server, "player" + playerId, display);
 			players.put(playerId, riskPlayer);
 			reAddPlayers();
 		}
@@ -81,7 +84,7 @@ public class StatusPanel extends JPanel
 		}
 	}
 
-	void updatePlayers(Player[] players, PropertyChangeListener display)
+	void updatePlayers(Player[] players)
 	{
 		Set<Integer> seen = new HashSet();
 		for (Player p : players)

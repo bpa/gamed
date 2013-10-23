@@ -26,7 +26,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 	{
 		this.server = server;
 		this.board = board;
-		this.statusPanel = new StatusPanel(board, server);
+		this.statusPanel = new StatusPanel(board, server, this);
 		initComponents();
 		readyRadio.setOpaque(false);
 		notReadyRadio.setOpaque(false);
@@ -392,7 +392,8 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 
 	public void updatePlayers(gamed.Player[] players)
 	{
-		statusPanel.updatePlayers(players, this);
+		statusPanel.updatePlayers(players);
+		repaint();
 	}
 
 	public void renamePlayer(gamed.Player player)
