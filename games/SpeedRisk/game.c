@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <dirent.h>
 #include <gamed/game.h>
 #include "board.h"
 
@@ -17,11 +18,14 @@ void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *, i
 void handle_placing(GameInstance *g, const Server *s, Player *p, const char *, int len);
 void handle_playing(GameInstance *g, const Server *s, Player *p, const char *, int len);
 void handle_done   (GameInstance *g, const Server *s, Player *p, const char *, int len);
+void list_themes (GameInstance *g, const Server *s, Player *p);
 
 State SR_WAITING_FOR_PLAYERS = { NULL,          handle_waiting, NULL,            NULL };
 State SR_PLACING             = { start_placing, handle_placing, NULL,            NULL };
 State SR_RUNNING             = { start_playing, handle_playing, produce_armies,  NULL };
 State SR_DONE                = { start_ending,  handle_done,    quit_game,       NULL };
+
+static char buff[2048];
 
 #define all_cmd_f(g, s, cmd, fro) \
     msg_command.command = cmd; \
@@ -352,6 +356,9 @@ void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *req
 		case SR_CMD_PLAYER_STATUS:
 			give_player_status(g, s, p, req, len);
 			break;
+		case SR_CMD_LIST_THEMES:
+			list_themes(g, s, p);
+			break;
 		default:
 			player_error(s, p, SR_ERR_INVALID_CMD);
 			break;
@@ -405,6 +412,9 @@ void handle_placing(GameInstance *g, const Server *s, Player *p, const char *req
 		case SR_CMD_PLAYER_STATUS:
 			give_player_status(g, s, p, req, len);
             break;
+		case SR_CMD_LIST_THEMES:
+			list_themes(g, s, p);
+			break;
 		default:
 			player_error(s, p, SR_ERR_INVALID_CMD);
 			break;
@@ -566,6 +576,29 @@ void handle_done (GameInstance *g, const Server *s, Player *p, const char *req, 
 			player_error(s, p, SR_ERR_INVALID_CMD);
 			break;
 	}
+}
+
+void list_themes (GameInstance *g, const Server *s, Player *p) {
+	DIR *d;
+	int buff_len = 0;
+	struct dirent *dir;
+	char *msg;
+	SR_Command *cmd = (SR_Command *)&buff[0];
+	msg = &buff[4];
+	cmd->command = SR_CMD_LIST_THEMES;
+	cmd->from = 0;
+	d = opendir("resources/themes");
+	if (d) {
+		while ((dir = readdir(d)) != NULL) {
+			if (dir->d_type == DT_DIR && 
+				strncmp(dir->d_name, "player", 6) &&
+				strncmp(dir->d_name, ".", 1)) {
+					buff_len += sprintf(&msg[buff_len], "%s:", dir->d_name);
+			}
+		}
+	}
+	closedir(d);
+    s->tell_player(p, buff, buff_len + 4);
 }
 
 #include "boards.cc"
