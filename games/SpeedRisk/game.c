@@ -443,6 +443,7 @@ void handle_placing(GameInstance *g, const Server *s, Player *p, const char *req
 }
 
 void do_move(GameInstance *g, const Server *s, Player *p, SR_Command *cmd) {
+	int armies;
 	SpeedRiskData *risk = (SpeedRiskData *)g->data;
 	SR_Game_Status *status = &risk->status;
 	if (!(holds(status, p, cmd->from) && holds(status, p, cmd->to))) {
@@ -455,6 +456,9 @@ void do_move(GameInstance *g, const Server *s, Player *p, SR_Command *cmd) {
 		player_error(s, p, SR_ERR_NOT_ENOUGH_ARMIES);
 	}
 	else {
+		armies = status->countries[cmd->to].armies + cmd->armies;
+		if (armies > 255)
+			cmd->armies = 255 - status->countries[cmd->to].armies;
 		status->countries[cmd->from].armies -= cmd->armies;
 		status->countries[cmd->to].armies   += cmd->armies;
 		tell_all_mv_at_result(g, s, SR_CMD_MOVE_RESULT,
@@ -533,6 +537,7 @@ void do_attack(GameInstance *g, const Server *s, Player *p, SR_Command *cmd) {
 }
 
 void handle_playing(GameInstance *g, const Server *s, Player *p, const char *req, int len) {
+	int armies;
     SpeedRiskData *risk;
     SR_Command *cmd = (SR_Command*)req;
     risk = (SpeedRiskData*)g->data;
@@ -552,6 +557,9 @@ void handle_playing(GameInstance *g, const Server *s, Player *p, const char *req
 				player_error(s, p, SR_ERR_NOT_ENOUGH_ARMIES);
 			}
 			else {
+				armies = risk->status.countries[cmd->to].armies + cmd->armies;
+				if (armies > 255)
+					cmd->armies = 255 - risk->status.countries[cmd->to].armies;
 				risk->status.countries[cmd->to].armies += cmd->armies;
 				risk->players[p->in_game_id].armies -= cmd->armies;
 				give_country_status(g, s, NULL, cmd->to);

@@ -155,6 +155,21 @@ TEST_F(SpeedRiskPlayingTest, move) {
     ASSERT_EQ(SR_ERR_NOT_OWNER, err->error);
 }
 
+TEST_F(SpeedRiskPlayingTest, move_too_many) {
+    setup_country(SR_EASTERN_AUSTRALIA, 0, 255);
+    setup_country(SR_WESTERN_AUSTRALIA, 0, 50);
+
+    SR_Move_Result *mv = (SR_Move_Result*)all_res;
+    send_cmd(&p1, SR_CMD_MOVE, SR_EASTERN_AUSTRALIA, SR_WESTERN_AUSTRALIA, 250);
+    ASSERT_EQ(SR_CMD_MOVE_RESULT, all_res->command);
+    ASSERT_EQ(SR_EASTERN_AUSTRALIA, (int)mv->country1.country);
+    ASSERT_EQ((unsigned int)0, mv->country1.owner);
+    ASSERT_EQ((unsigned int)50, mv->country1.armies);
+    ASSERT_EQ(SR_WESTERN_AUSTRALIA, (int)mv->country2.country);
+    ASSERT_EQ((unsigned int)0, mv->country2.owner);
+    ASSERT_EQ((unsigned int)255, mv->country2.armies);
+}
+
 TEST_F(SpeedRiskPlayingTest, single_valid_attacks) {
     SR_Move_Result *mv = (SR_Move_Result*)all_res;
     setup_country(SR_WESTERN_AUSTRALIA, 0, 5);
@@ -329,6 +344,30 @@ TEST_F(SpeedRiskPlayingTest, place) {
     send_cmd(&p1, SR_CMD_PLACE, 0, 1, 1);
     ASSERT_EQ(SR_CMD_ERROR, err->command);
     ASSERT_EQ(SR_ERR_NOT_OWNER, err->error);
+}
+
+TEST_F(SpeedRiskPlayingTest, place_too_many) {
+    SR_Country_Status *status = (SR_Country_Status*)&mock_all_buff[0];
+    
+    //Too many armies to fit in a country
+	srd->status.countries[0].armies = 15;
+    srd->players[0].armies = 255;
+    send_cmd(&p1, SR_CMD_PLACE, 0, 0, 255);
+
+    ASSERT_EQ(SR_CMD_COUNTRY_STATUS, all_res->command);
+    ASSERT_EQ((unsigned int)15, srd->players[0].armies);
+    ASSERT_EQ((unsigned int)255, status->country.armies);
+	ASSERT_EQ((unsigned int)255, srd->status.countries[0].armies);
+
+	reset_mocks();
+	srd->status.countries[0].armies = 80;
+    srd->players[0].armies = 200;
+    send_cmd(&p1, SR_CMD_PLACE, 0, 0, 200);
+
+    ASSERT_EQ(SR_CMD_COUNTRY_STATUS, all_res->command);
+	ASSERT_EQ((unsigned int)255, srd->status.countries[0].armies);
+    ASSERT_EQ((unsigned int)25, srd->players[0].armies);
+    ASSERT_EQ((unsigned int)255, status->country.armies);
 }
 
 TEST_F(SpeedRiskPlayingTest, produce_armies_country) {
