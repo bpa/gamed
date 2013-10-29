@@ -75,8 +75,10 @@ void produce_armies (GameInstance *g, const Server *s) {
     int i, t, region, armies, held;
     SR_Player *p;
     SpeedRiskData *risk = (SpeedRiskData*)g->data;
-    for (i=0; i<g->playing; i++) {
+    for (i=0; i<risk->board->max_players; i++) {
         p = &risk->players[i];
+		if (p->player == NULL)
+			continue;
         held = p->countries_held;
         if (held > 0) {
             if (held > 11) { armies = held / 3; }
@@ -167,7 +169,10 @@ void give_country_status(GameInstance *g, const Server *s, Player *p, int countr
 }
 
 void game_init (GameInstance *g, const Server *s, Board *board) {
+	DIR *d;
+	struct dirent *dir;
 	int country_size;
+	Theme *theme;
     SpeedRiskData *risk;
 	country_size = (board->territories - 1) * sizeof(SR_Country);
 	risk = (SpeedRiskData*) calloc(1, sizeof(SpeedRiskData) + country_size);
@@ -179,6 +184,22 @@ void game_init (GameInstance *g, const Server *s, Board *board) {
     risk->army_generation_period = board->army_generation_period;
     msg_error.command = SR_CMD_ERROR;
     msg_move.command.command = SR_CMD_MOVE_RESULT;
+
+	LIST_INIT(&risk->themes);
+	d = opendir("resources/themes");
+	if (d) {
+		while ((dir = readdir(d)) != NULL) {
+			if (dir->d_type == DT_DIR && 
+				strncmp(dir->d_name, "player", 6) &&
+				strncmp(dir->d_name, ".", 1)) {
+					theme = calloc(1, sizeof(Theme));
+					theme->name = strdup(dir->d_name);
+					LIST_INSERT_HEAD(&risk->themes, theme, themes);
+			}
+		}
+	}
+	closedir(d);
+
 	g->state = &SR_WAITING_FOR_PLAYERS;
 	s->log(g, "Initializing");
 	sprintf(g->status, "Waiting for players");
@@ -579,25 +600,20 @@ void handle_done (GameInstance *g, const Server *s, Player *p, const char *req, 
 }
 
 void list_themes (GameInstance *g, const Server *s, Player *p) {
-	DIR *d;
 	int buff_len = 0;
-	struct dirent *dir;
 	char *msg;
+	Theme *theme;
+    SpeedRiskData *risk;
+    risk = (SpeedRiskData*)g->data;
 	SR_Command *cmd = (SR_Command *)&buff[0];
 	msg = &buff[4];
 	cmd->command = SR_CMD_LIST_THEMES;
 	cmd->from = 0;
-	d = opendir("resources/themes");
-	if (d) {
-		while ((dir = readdir(d)) != NULL) {
-			if (dir->d_type == DT_DIR && 
-				strncmp(dir->d_name, "player", 6) &&
-				strncmp(dir->d_name, ".", 1)) {
-					buff_len += sprintf(&msg[buff_len], "%s:", dir->d_name);
-			}
+	for (theme = risk->themes.lh_first; theme != NULL; theme = theme->themes.le_next) {
+		if (!theme->claimed) {
+			buff_len += sprintf(&msg[buff_len], "%s:", theme->name);
 		}
 	}
-	closedir(d);
     s->tell_player(p, buff, buff_len + 4);
 }
 

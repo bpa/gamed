@@ -360,6 +360,27 @@ TEST_F(SpeedRiskPlayingTest, produce_armies_country) {
     ASSERT_EQ((unsigned int)10, cmd_res(2)->armies);
 }
 
+TEST_F(SpeedRiskPlayingTest, produce_armies_player_gaps) {
+    clear_board();
+	srd->players[1].player = NULL;
+	srd->players[2].player = &p2;
+	srd->players[4].player = &p3;
+	for (int i=0; i<=4; i++) {
+		srd->players[i].armies = 0;
+		srd->players[i].countries_held = 15;
+	}
+    produce_armies(game, get_server());
+	ASSERT_EQ(mock_plr_pos, 3);
+    ASSERT_LT((unsigned int)5, srd->players[0].armies);
+    ASSERT_LT((unsigned int)5, cmd_res(0)->armies);
+    ASSERT_EQ((unsigned int)0, srd->players[1].armies);
+    ASSERT_EQ((unsigned int)5, srd->players[2].armies);
+    ASSERT_EQ((unsigned int)5, cmd_res(1)->armies);
+    ASSERT_EQ((unsigned int)0, srd->players[3].armies);
+    ASSERT_EQ((unsigned int)5, srd->players[4].armies);
+    ASSERT_EQ((unsigned int)5, cmd_res(2)->armies);
+}
+
 TEST_F(SpeedRiskPlayingTest, produce_min_max_armies) {
     clear_board();
     srd->players[0].armies = 250;
