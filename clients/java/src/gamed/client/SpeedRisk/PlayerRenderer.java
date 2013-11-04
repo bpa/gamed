@@ -82,19 +82,17 @@ public class PlayerRenderer
 		if (theme.background == null)
 			return;
 
-		g.setColor(Color.BLACK);
-		g.fillRect(0, 0, w, h);
 		int dstX = 0;
 		while (dstX < w)
 		{
 			int dstY = 0;
-			int srcX = (dstX + x) % theme.background.getWidth();
-			int width = Math.min(theme.background.getWidth() - srcX, w - dstX);
+			int srcX = (dstX + x) % theme.opaqueBackground.getWidth();
+			int width = Math.min(theme.opaqueBackground.getWidth() - srcX, w - dstX);
 			while (dstY < h)
 			{
-				int srcY = (dstY + y) % theme.background.getHeight();
-				int height = Math.min(theme.background.getHeight() - srcY, w - dstY);
-				g.drawImage(theme.background, dstX, dstY, dstX + width, dstY + height, srcX, srcY, width, height, null);
+				int srcY = (dstY + y) % theme.opaqueBackground.getHeight();
+				int height = Math.min(theme.opaqueBackground.getHeight() - srcY, w - dstY);
+				g.drawImage(theme.opaqueBackground, dstX, dstY, dstX + width, dstY + height, srcX, srcY, width, height, null);
 				dstY += height;
 			}
 			dstX += width;
@@ -122,6 +120,7 @@ public class PlayerRenderer
 		final String name;
 		Properties properties = null;
 		BufferedImage background = null;
+		BufferedImage opaqueBackground = null;
 		Image icon = null;
 		Color textColor = Color.BLACK;
 		int x_offset, y_offset, armies_x, armies_y;
@@ -146,6 +145,7 @@ public class PlayerRenderer
 				if (bgImage == null)
 				{
 					background = createImage(parseColor(properties.getProperty("background-color", "000")), false);
+					opaqueBackground = opaque(background);
 				}
 				String iconImage = properties.getProperty("icon-image");
 				if (iconImage == null)
@@ -187,11 +187,25 @@ public class PlayerRenderer
 			if (property != null && request.endsWith(property))
 			{
 				background = makeBufferedImage(img);
+				opaqueBackground = opaque(background);
 			}
 			else
 			{
 				icon = img;
 			}
+		}
+
+		private BufferedImage opaque(BufferedImage image)
+		{
+			BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_4BYTE_ABGR);
+			for (int i=0; i<image.getWidth(); i++)
+			{
+				for (int j=0; j<image.getHeight(); j++)
+				{
+					copy.setRGB(i, j, image.getRGB(i, j) | 0xFF000000);
+				}
+			}
+			return copy;
 		}
 
 		private BufferedImage createImage(int color, boolean icon)
@@ -228,9 +242,7 @@ public class PlayerRenderer
 
 				if (color.length() == 8)
 				{
-					int high = Integer.parseInt(color.substring(0, 4), 16);
-					int low = Integer.parseInt(color.substring(5), 16);
-					return (high << 16) | low;
+					return (int) Long.parseLong(color.toString(), 16);
 				}
 
 				return 0xFF000000 | Integer.parseInt(color.toString(), 16);
