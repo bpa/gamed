@@ -122,10 +122,10 @@ public class StatusPanel extends JPanel
 		phaseBG.add(phaseLabel, BorderLayout.CENTER);
 		if (player != null)
 		{
-			phaseLabel.setForeground(player.renderer.textColor);
-			reserveLabel.setForeground(player.renderer.textColor);
-			if (player.renderer.icon != null)
-				phaseBG.add(new JLabel(new ImageIcon(player.renderer.icon)), BorderLayout.EAST);
+			phaseLabel.setForeground(player.renderer.theme.textColor);
+			reserveLabel.setForeground(player.renderer.theme.textColor);
+			if (player.renderer.theme.icon != null)
+				phaseBG.add(new JLabel(new ImageIcon(player.renderer.theme.icon)), BorderLayout.EAST);
 		}
 		add(phaseLabel);
 		add(reserveLabel);

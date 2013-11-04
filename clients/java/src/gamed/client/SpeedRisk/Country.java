@@ -12,6 +12,7 @@ public class Country implements MediaRequestor
 {
     public Image overlay;
     public final int id;
+    protected BufferedImage mask;
     protected BufferedImage img;
     protected RiskPlayer owner;
     protected int armies;
@@ -58,10 +59,10 @@ public class Country implements MediaRequestor
     public void setSelected(boolean selected)
     {
         isSelected = selected;
-        if (img == null || owner == null)
+        if (mask == null || owner == null)
             return;
 
-        owner.renderer.renderCountry(img, x, y, isSelected);
+        img = owner.renderer.renderCountry(mask, x, y, isSelected);
     }
 
     public boolean contains(java.awt.Point p)
@@ -76,7 +77,7 @@ public class Country implements MediaRequestor
         {
             int ix = p.x - x;
             int iy = p.y - y;
-            int color = img.getRGB(ix, iy);
+            int color = mask.getRGB(ix, iy);
             if (color != 0)
             {
                 return true;
@@ -108,18 +109,6 @@ public class Country implements MediaRequestor
         Graphics2D g = image.createGraphics();
         g.drawImage(o, 0, 0, null);
 
-		//We are assuming the image is white & black, need to set alpha
-		for (int i = 0; i < image.getWidth(); i++)
-		{
-			for (int j = 0; j < image.getHeight(); j++)
-			{
-				int v = image.getRGB(i, j) & 0x00FFFFFF;
-				if (v > 0)
-					image.setRGB(i, j, v | 0xFF000000);
-				else
-					image.setRGB(i, j, 0);
-			}
-		}
         return image;
     }
 
@@ -133,8 +122,8 @@ public class Country implements MediaRequestor
     public void mediaCompleted(String request, Image img)
     {
         this.overlay = img;
-        this.img = makeBufferedImage(overlay);
-        this.bounds = new Rectangle(x, y, this.img.getWidth(), this.img.getHeight());
+        this.mask = makeBufferedImage(overlay);
+        this.bounds = new Rectangle(x, y, this.mask.getWidth(), this.mask.getHeight());
         this.iconBounds = new Rectangle(lx, ly, 18, 15);
     }
 }
