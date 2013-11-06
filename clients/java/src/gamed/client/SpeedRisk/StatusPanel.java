@@ -6,37 +6,64 @@ import java.awt.BorderLayout;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.GridLayout;
+import java.awt.KeyEventDispatcher;
+import java.awt.KeyboardFocusManager;
+import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeListener;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 
-public class StatusPanel extends JPanel
+public class StatusPanel extends JPanel implements KeyEventDispatcher
 {
 	private PlayerPanel phaseBG = new PlayerPanel();
 	private JLabel phaseLabel = new JLabel("Waiting for players");
 	private JLabel reserveLabel = new JLabel("0 armies in reserve");
-	private final Map<Integer, RiskPlayer> players = new ConcurrentHashMap<Integer, RiskPlayer>();
+	private Phase phase = Phase.WAITING_FOR_PLAYERS;
 	private RiskPlayer player = null;
+	private ArmyGenerationTimer armyGenerationTimer;
+	private final JProgressBar armyGenerationProgress = new JProgressBar();
+	private final Map<Integer, RiskPlayer> players = new ConcurrentHashMap<Integer, RiskPlayer>();
 	private final RiskBoard board;
 	private final Server server;
 	private final PropertyChangeListener display;
-
-	public StatusPanel(RiskBoard board, Server server, PropertyChangeListener display)
+	private final JButton quitButton = new JButton("Quit Game");
+	private final JComboBox defenderPreference = new JComboBox(new String[]
 	{
+		"Leave 1", "Leave 2", "Leave 3", "Leave 4", "Leave 5", "Leave 6", "Leave 7", "Leave 8", "Leave 9", "Leave 10"
+	});
+
+	public StatusPanel(RiskBoard board, final Server server, PropertyChangeListener display)
+	{
+		quitButton.setDefaultCapable(false);
+		quitButton.setFocusable(false);
+		quitButton.setRequestFocusEnabled(false);
+		quitButton.addActionListener(new java.awt.event.ActionListener()
+		{
+			public void actionPerformed(java.awt.event.ActionEvent evt)
+			{
+				server.quitGame();
+			}
+		});
 		this.board = board;
 		this.server = server;
 		this.display = display;
-		GridLayout gridLayout = new GridLayout(2, 1);
+		GridLayout gridLayout = new GridLayout(4, 1);
 		setLayout(gridLayout);
+		add(defenderPreference);
 		phaseLabel.setOpaque(false);
 		reserveLabel.setOpaque(false);
 		phaseBG.add(phaseLabel, BorderLayout.CENTER);
 		add(phaseBG);
 		add(reserveLabel);
+		add(quitButton);
 		adjustSize();
+		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(this);
 	}
 
 	private void adjustSize()
@@ -47,9 +74,21 @@ public class StatusPanel extends JPanel
 		setBounds(10, board.height - height * columns - 10, 150, height * columns);
 	}
 
-	void setPhase(String phase)
+	void setPhase(Phase phase)
 	{
-		phaseLabel.setText(phase);
+		this.phase = phase;
+		phaseLabel.setText(phase.label);
+		switch (phase)
+		{
+			case AT_WAR:
+				reAddPlayers();
+				armyGenerationTimer = new ArmyGenerationTimer(armyGenerationProgress);
+				break;
+			case GAME_OVER:
+				reAddPlayers();
+				armyGenerationTimer.stop();
+				break;
+		}
 	}
 
 	void setReserve(int reserve)
@@ -69,7 +108,6 @@ public class StatusPanel extends JPanel
 		if (riskPlayer == null)
 		{
 			riskPlayer = new RiskPlayer(playerId, new PlayerRenderer());
-			riskPlayer.renderer.setTheme(server, "player" + playerId, display);
 			players.put(playerId, riskPlayer);
 			reAddPlayers();
 		}
@@ -104,32 +142,38 @@ public class StatusPanel extends JPanel
 
 	private void reAddPlayers()
 	{
-		List<RiskPlayer> list = new ArrayList(players.size());
-		for (RiskPlayer riskPlayer : players.values())
-		{
-			if (riskPlayer.playing)
-				list.add(riskPlayer);
-		}
-		Collections.sort(list);
-		int items = 2 + list.size();
-		removeAll();
-		((GridLayout) getLayout()).setRows(items);
-		for (RiskPlayer p : list)
-		{
-			add(p);
-		}
-		phaseBG.removeAll();
-		phaseBG.add(phaseLabel, BorderLayout.CENTER);
-		if (player != null)
-		{
-			phaseLabel.setForeground(player.renderer.theme.textColor);
-			reserveLabel.setForeground(player.renderer.theme.textColor);
-			if (player.renderer.theme.icon != null)
-				phaseBG.add(new JLabel(new ImageIcon(player.renderer.theme.icon)), BorderLayout.EAST);
-		}
-		add(phaseLabel);
-		add(reserveLabel);
-		adjustSize();
+//		List<RiskPlayer> list = new ArrayList(players.size());
+//		for (RiskPlayer riskPlayer : players.values())
+//		{
+//			if (riskPlayer.playing)
+//				list.add(riskPlayer);
+//		}
+//		Collections.sort(list);
+//		int items = 4 + list.size();
+//		if (phase == Phase.AT_WAR)
+//			items++;
+//		removeAll();
+//		((GridLayout) getLayout()).setRows(items);
+//		if (phase == Phase.AT_WAR)
+//			add(armyGenerationProgress);
+//		add(defenderPreference);
+//		for (RiskPlayer p : list)
+//		{
+//			add(p);
+//		}
+//		phaseBG.removeAll();
+//		phaseBG.add(phaseLabel, BorderLayout.CENTER);
+//		if (player != null)
+//		{
+//			phaseLabel.setForeground(player.renderer.theme.textColor);
+//			reserveLabel.setForeground(player.renderer.theme.textColor);
+//			if (player.renderer.theme.icon != null)
+//				phaseBG.add(new JLabel(new ImageIcon(player.renderer.theme.icon)), BorderLayout.EAST);
+//		}
+//		add(phaseBG);
+//		add(reserveLabel);
+//		add(quitButton);
+//		adjustSize();
 	}
 
 	@Override
@@ -146,5 +190,45 @@ public class StatusPanel extends JPanel
 			riskPlayer.mediaReady();
 		}
 		reAddPlayers();
+	}
+
+	int getDefenders()
+	{
+		return defenderPreference.getSelectedIndex() + 1;
+	}
+
+	public boolean dispatchKeyEvent(KeyEvent ke)
+	{
+		if (ke.getID() == KeyEvent.KEY_PRESSED)
+		{
+			char keyChar = ke.getKeyChar();
+			if (keyChar == '0')
+				defenderPreference.setSelectedIndex(9);
+			else if ('1' <= keyChar && keyChar <= '9')
+				defenderPreference.setSelectedIndex(keyChar - '1');
+			else
+				return false;
+			return true;
+		}
+		return false;
+	}
+
+	void setArmyGenerationTime(byte b)
+	{
+		armyGenerationTimer.set(b);
+	}
+
+	public enum Phase
+	{
+		WAITING_FOR_PLAYERS("Waiting for players"),
+		PLACING_ARMIES("Placing Armies"),
+		AT_WAR("At War"),
+		GAME_OVER("Game Over");
+		public final String label;
+
+		private Phase(String label)
+		{
+			this.label = label;
+		}
 	}
 }

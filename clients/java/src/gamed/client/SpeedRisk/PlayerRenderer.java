@@ -79,7 +79,7 @@ public class PlayerRenderer
 
 	public void renderBackground(Graphics g, int x, int y, int w, int h)
 	{
-		if (theme.background == null)
+		if (theme.opaqueBackground == null)
 			return;
 
 		int dstX = 0;
@@ -167,6 +167,11 @@ public class PlayerRenderer
 			catch (IOException ex)
 			{
 				System.err.println(ex.getMessage());
+				Logger.getLogger(PlayerRenderer.class.getName()).log(Level.SEVERE, null, ex);
+			}
+			catch (Exception ex)
+			{
+				System.err.println(ex);
 				Logger.getLogger(PlayerRenderer.class.getName()).log(Level.SEVERE, null, ex);
 			}
 		}
