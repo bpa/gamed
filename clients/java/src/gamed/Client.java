@@ -143,7 +143,6 @@ public class Client
 		System.arraycopy(data, 0, msg, 4, data.length);
 		try
 		{
-		System.err.printf("send %d %d %d %d\n", data[0], data[1], data[2], data[3]);
 			output.write(msg);
 			output.flush();
 		}
@@ -210,7 +209,6 @@ public class Client
 				return false;
 			}
 			data = getRemainingMessage(cmd);
-			System.err.printf("poll: %d %d (%d)\n", cmd[0], cmd[1], data.length);
 		}
 		catch (IOException e)
 		{

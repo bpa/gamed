@@ -1,21 +1,18 @@
 package gamed.client.SpeedRisk;
 
 import gamed.Server;
-import gamed.client.MediaDownloader;
 import gamed.client.MediaRequestor;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
-import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -24,7 +21,7 @@ public class PlayerRenderer
 {
 	public Theme theme = new Theme(null, null, null);
 
-	synchronized void setTheme(Server server, String name, PropertyChangeListener display)
+	synchronized void setTheme(Server server, String name, Display display)
 	{
 		if (name.equals(theme.name))
 			return;
@@ -116,7 +113,7 @@ public class PlayerRenderer
 	public class Theme implements Runnable, MediaRequestor
 	{
 		final Server server;
-		final PropertyChangeListener display;
+		final Display display;
 		final String name;
 		Properties properties = null;
 		BufferedImage background = null;
@@ -125,7 +122,7 @@ public class PlayerRenderer
 		Color textColor = Color.BLACK;
 		int x_offset, y_offset, armies_x, armies_y;
 
-		public Theme(Server server, PropertyChangeListener display, String theme)
+		public Theme(Server server, Display display, String theme)
 		{
 			this.server = server;
 			this.display = display;
@@ -153,11 +150,7 @@ public class PlayerRenderer
 				textColor = new Color(parseColor(properties.getProperty("text-color", "000")));
 				x_offset = intProperty("text-x", 0);
 				y_offset = intProperty("text-y", 0);
-				List<MediaRequestor> list = new ArrayList();
-				list.add(this);
-				MediaDownloader mediaDownloader = new MediaDownloader(server, list);
-				mediaDownloader.addPropertyChangeListener(display);
-				mediaDownloader.execute();
+                display.mediaDownloader.addMediaRequestor(this);
 			}
 			catch (MalformedURLException ex)
 			{

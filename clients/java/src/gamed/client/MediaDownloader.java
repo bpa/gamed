@@ -3,7 +3,6 @@ package gamed.client;
 import gamed.Server;
 import java.awt.Image;
 import java.awt.image.ImageObserver;
-import java.util.Collection;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -12,36 +11,43 @@ import javax.swing.SwingWorker;
 public class MediaDownloader extends SwingWorker implements ImageObserver
 {
     private final Server server;
-    private final Collection<MediaRequestor> mediaRequestors;
     AtomicInteger total = new AtomicInteger(0);
     AtomicInteger completed = new AtomicInteger(0);
     ConcurrentMap<Image, Callback> callbacks = new ConcurrentHashMap<Image, Callback>();
 
-    public MediaDownloader(Server server, Collection<MediaRequestor> mediaRequestors)
+    public MediaDownloader(Server server)
     {
         this.server = server;
-        this.mediaRequestors = mediaRequestors;
+    }
+
+    public void addMediaRequestor(MediaRequestor requestor)
+    {
+        for (String request : requestor.getMediaRequests())
+        {
+            Image image = server.getImage(request);
+            if (image.getWidth(this) == -1)
+            {
+                total.incrementAndGet();
+                callbacks.put(image, new Callback(requestor, request));
+            }
+            else
+            {
+                requestor.mediaCompleted(request, image);
+            }
+        }
+    }
+
+    public void addMediaRequestors(Iterable<MediaRequestor> requestors)
+    {
+        for (MediaRequestor mediaRequestor : requestors)
+        {
+            addMediaRequestor(mediaRequestor);
+        }
     }
 
     @Override
     protected Object doInBackground()
     {
-        for (MediaRequestor mediaRequestor : mediaRequestors)
-        {
-            for (String request : mediaRequestor.getMediaRequests())
-            {
-                Image image = server.getImage(request);
-				if (image.getWidth(this) == -1)
-				{
-	                total.incrementAndGet();
-					callbacks.put(image, new Callback(mediaRequestor, request));
-				}
-				else
-				{
-					mediaRequestor.mediaCompleted(request, image);
-				}
-            }
-        }
         while (completed.get() < total.get())
         {
             try
@@ -58,20 +64,20 @@ public class MediaDownloader extends SwingWorker implements ImageObserver
 
     public boolean imageUpdate(Image image, int infoflags, int x, int y, int width, int height)
     {
-		if ((infoflags & ImageObserver.ERROR) > 0)
-		{
-			Callback callback = callbacks.get(image);
-			System.err.println("Error: " + callback.media);
-			setProgress(completed.incrementAndGet() * 100 / total.get());
-			return false;
-		}
+        if ((infoflags & ImageObserver.ERROR) > 0)
+        {
+            Callback callback = callbacks.get(image);
+            System.err.println("Error: " + callback.media);
+            setProgress(completed.incrementAndGet() * 100 / total.get());
+            return false;
+        }
         if ((infoflags & ImageObserver.ALLBITS) == 0)
             return true;
 
         Callback callback = callbacks.get(image);
         setProgress(completed.incrementAndGet() * 100 / total.get());
-			if ((infoflags & ImageObserver.ERROR) == 0)
-				callback.requestor.mediaCompleted(callback.media, image);
+        if ((infoflags & ImageObserver.ERROR) == 0)
+            callback.requestor.mediaCompleted(callback.media, image);
         return false;
     }
 

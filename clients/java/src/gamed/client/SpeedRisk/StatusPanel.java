@@ -3,13 +3,13 @@ package gamed.client.SpeedRisk;
 import gamed.Player;
 import gamed.Server;
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.KeyEventDispatcher;
 import java.awt.KeyboardFocusManager;
 import java.awt.event.KeyEvent;
-import java.beans.PropertyChangeListener;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import javax.swing.ImageIcon;
@@ -31,14 +31,14 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 	private final Map<Integer, RiskPlayer> players = new ConcurrentHashMap<Integer, RiskPlayer>();
 	private final RiskBoard board;
 	private final Server server;
-	private final PropertyChangeListener display;
+	private final Display display;
 	private final JButton quitButton = new JButton("Quit Game");
 	private final JComboBox defenderPreference = new JComboBox(new String[]
 	{
 		"Leave 1", "Leave 2", "Leave 3", "Leave 4", "Leave 5", "Leave 6", "Leave 7", "Leave 8", "Leave 9", "Leave 10"
 	});
 
-	public StatusPanel(RiskBoard board, final Server server, PropertyChangeListener display)
+	public StatusPanel(RiskBoard board, final Server server, Display display)
 	{
 		quitButton.setDefaultCapable(false);
 		quitButton.setFocusable(false);
@@ -62,17 +62,19 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 		add(phaseBG);
 		add(reserveLabel);
 		add(quitButton);
-		adjustSize();
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(this);
+        adjustSize();
 	}
 
 	private void adjustSize()
-	{
-		FontMetrics fontMetrics = getFontMetrics(getFont());
-		int height = fontMetrics.getHeight();
-		int columns = ((GridLayout) getLayout()).getRows();
-		setBounds(10, board.height - height * columns - 10, 150, height * columns);
-	}
+    {
+        FontMetrics fontMetrics = getFontMetrics(getFont());
+        int height = fontMetrics.getHeight();
+        int columns = ((GridLayout) getLayout()).getRows();
+        if (columns > 9)
+            columns = 9;
+        setBounds(10, board.height - height * columns - 10, 150, height * columns);
+    }
 
 	void setPhase(Phase phase)
 	{
@@ -173,7 +175,7 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 		add(phaseBG);
 		add(reserveLabel);
 		add(quitButton);
-		adjustSize();
+        adjustSize();
 	}
 
 	@Override

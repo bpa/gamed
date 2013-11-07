@@ -21,6 +21,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 	private RiskPlayer me;
 	private boolean atWar;
 	private final StatusPanel statusPanel;
+  	public final MediaDownloader mediaDownloader;
 
 	public Display(gamed.Server server, RiskBoard board)
 	{
@@ -33,11 +34,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 		add(statusPanel);
 		statusPanel.setVisible(false);
 		atWar = false;
-		byte cmd[] =
-		{
-			PLAYER_STATUS, 0, 0, 0
-		};
-		server.sendGameData(cmd);
+        mediaDownloader = new MediaDownloader(server);
 	}
 
 	@Override
@@ -48,12 +45,18 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 
 	public void joinedGame()
 	{
+        byte cmd[] =
+        {
+            PLAYER_STATUS, 0, 0, 0
+        };
+		server.sendGameData(cmd);
+
 		for (Country country : board.countries)
 		{
 			country.set(null, 1);
 		}
 		progress.setValue(0);
-		final MediaDownloader mediaDownloader = new MediaDownloader(server, board.getMediaRequestors());
+        mediaDownloader.addMediaRequestors(board.getMediaRequestors());
 		mediaDownloader.addPropertyChangeListener(this);
 		mediaDownloader.execute();
 		repaint();
@@ -74,27 +77,27 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 		}
 		else if (propertyName.equals("state") && pce.getNewValue() == SwingWorker.StateValue.DONE)
 		{
-			SwingUtilities.invokeLater(new Runnable()
-			{
-				public void run()
-				{
-					loadingText.setVisible(false);
-					remove(progress);
-					statusPanel.setVisible(true);
-					if (!atWar)
-					{
-						readyRadio.setVisible(true);
-						notReadyRadio.setVisible(true);
-					}
-					for (Country country : board.countries)
-					{
-						country.setSelected(country.isSelected);
-					}
-					statusPanel.mediaReady();
-					repaint();
-				}
-			});
-		}
+            SwingUtilities.invokeLater(new Runnable()
+            {
+                public void run()
+                {
+                    loadingText.setVisible(false);
+                    remove(progress);
+                    statusPanel.setVisible(true);
+                    if (!atWar)
+                    {
+                        readyRadio.setVisible(true);
+                        notReadyRadio.setVisible(true);
+                    }
+                    for (Country country : board.countries)
+                    {
+                        country.setSelected(country.isSelected);
+                    }
+                    statusPanel.mediaReady();
+                    repaint();
+                }
+            });
+        }
 	}
 
 	/**
@@ -284,7 +287,6 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 	public void handleGameData(byte[] data)
 	{
 		RiskPlayer player;
-		System.err.printf("handleGameData %d %d %d %d\n", data[0], data[1], data[2], data[3]);
 		switch (data[0])
 		{
 			case PLAYER_JOIN:
