@@ -21,9 +21,9 @@ import javax.swing.JProgressBar;
 
 public class StatusPanel extends JPanel implements KeyEventDispatcher
 {
-	private PlayerPanel phaseBG = new PlayerPanel();
-	private JLabel phaseLabel = new JLabel("Waiting for players");
-	private JLabel reserveLabel = new JLabel("0 armies in reserve");
+	private final PlayerPanel phaseBG = new PlayerPanel();
+	private final JLabel phaseLabel = new JLabel("Waiting for players");
+	private final JLabel reserveLabel = new JLabel("0 armies in reserve");
 	private Phase phase = Phase.WAITING_FOR_PLAYERS;
 	private RiskPlayer player = null;
 	private ArmyGenerationTimer armyGenerationTimer;
@@ -81,12 +81,12 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 		switch (phase)
 		{
 			case AT_WAR:
-				reAddPlayers();
 				armyGenerationTimer = new ArmyGenerationTimer(armyGenerationProgress);
+				reAddPlayers();
 				break;
 			case GAME_OVER:
-				reAddPlayers();
 				armyGenerationTimer.stop();
+				reAddPlayers();
 				break;
 		}
 	}
@@ -142,45 +142,46 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 
 	private void reAddPlayers()
 	{
-//		List<RiskPlayer> list = new ArrayList(players.size());
-//		for (RiskPlayer riskPlayer : players.values())
-//		{
-//			if (riskPlayer.playing)
-//				list.add(riskPlayer);
-//		}
-//		Collections.sort(list);
-//		int items = 4 + list.size();
-//		if (phase == Phase.AT_WAR)
-//			items++;
-//		removeAll();
-//		((GridLayout) getLayout()).setRows(items);
-//		if (phase == Phase.AT_WAR)
-//			add(armyGenerationProgress);
-//		add(defenderPreference);
-//		for (RiskPlayer p : list)
-//		{
-//			add(p);
-//		}
-//		phaseBG.removeAll();
-//		phaseBG.add(phaseLabel, BorderLayout.CENTER);
-//		if (player != null)
-//		{
-//			phaseLabel.setForeground(player.renderer.theme.textColor);
-//			reserveLabel.setForeground(player.renderer.theme.textColor);
-//			if (player.renderer.theme.icon != null)
-//				phaseBG.add(new JLabel(new ImageIcon(player.renderer.theme.icon)), BorderLayout.EAST);
-//		}
-//		add(phaseBG);
-//		add(reserveLabel);
-//		add(quitButton);
-//		adjustSize();
+		List<RiskPlayer> list = new ArrayList(players.size());
+		for (RiskPlayer riskPlayer : players.values())
+		{
+			if (riskPlayer.playing)
+				list.add(riskPlayer);
+		}
+		Collections.sort(list);
+		int items = 4 + list.size();
+		if (phase == Phase.AT_WAR)
+			items++;
+		removeAll();
+		((GridLayout) getLayout()).setRows(items);
+		if (phase == Phase.AT_WAR)
+			add(armyGenerationProgress);
+		add(defenderPreference);
+		for (RiskPlayer p : list)
+		{
+			add(p);
+		}
+		phaseBG.removeAll();
+		phaseBG.add(phaseLabel, BorderLayout.CENTER);
+		if (player != null)
+		{
+			phaseLabel.setForeground(player.renderer.theme.textColor);
+			reserveLabel.setForeground(player.renderer.theme.textColor);
+			if (player.renderer.theme.icon != null)
+				phaseBG.add(new JLabel(new ImageIcon(player.renderer.theme.icon)), BorderLayout.EAST);
+		}
+		add(phaseBG);
+		add(reserveLabel);
+		add(quitButton);
+		adjustSize();
 	}
 
 	@Override
 	protected void paintComponent(Graphics g)
 	{
 		super.paintComponent(g);
-		player.renderer.renderBackground(g, 0, 0, getWidth(), getHeight());
+		if (player != null)
+			player.renderer.renderBackground(g, 0, 0, getWidth(), getHeight());
 	}
 
 	void mediaReady()

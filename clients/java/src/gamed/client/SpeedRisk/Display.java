@@ -9,12 +9,13 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 public class Display extends gamed.Game implements PropertyChangeListener, ActionListener
 {
-	private gamed.Server server;
-	private RiskBoard board;
+	private final gamed.Server server;
+	private final RiskBoard board;
 	private int selectedCountry = -1;
 	private int reserve;
 	private RiskPlayer me;
@@ -58,29 +59,41 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 		repaint();
 	}
 
-	public void propertyChange(PropertyChangeEvent pce)
+	public void propertyChange(final PropertyChangeEvent pce)
 	{
 		String propertyName = pce.getPropertyName();
 		if (propertyName.equals("progress"))
 		{
-			progress.setValue((Integer) pce.getNewValue());
+			SwingUtilities.invokeLater(new Runnable()
+			{
+				public void run()
+				{
+					progress.setValue((Integer) pce.getNewValue());
+				}
+			});
 		}
 		else if (propertyName.equals("state") && pce.getNewValue() == SwingWorker.StateValue.DONE)
 		{
-			loadingText.setVisible(false);
-			remove(progress);
-			statusPanel.setVisible(true);
-			if (!atWar)
+			SwingUtilities.invokeLater(new Runnable()
 			{
-				readyRadio.setVisible(true);
-				notReadyRadio.setVisible(true);
-			}
-			for (int i = 0; i < board.countries.length; i++)
-			{
-				board.countries[i].setSelected(board.countries[i].isSelected);
-			}
-			statusPanel.mediaReady();
-			repaint();
+				public void run()
+				{
+					loadingText.setVisible(false);
+					remove(progress);
+					statusPanel.setVisible(true);
+					if (!atWar)
+					{
+						readyRadio.setVisible(true);
+						notReadyRadio.setVisible(true);
+					}
+					for (Country country : board.countries)
+					{
+						country.setSelected(country.isSelected);
+					}
+					statusPanel.mediaReady();
+					repaint();
+				}
+			});
 		}
 	}
 
@@ -271,6 +284,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 	public void handleGameData(byte[] data)
 	{
 		RiskPlayer player;
+		System.err.printf("handleGameData %d %d %d %d\n", data[0], data[1], data[2], data[3]);
 		switch (data[0])
 		{
 			case PLAYER_JOIN:
