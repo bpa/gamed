@@ -39,6 +39,7 @@ public:
     Player p1;
     Player p2;
     Player p3;
+    Player p4;
     SpeedRiskData *srd;
     SR_Command cmd;
     SR_Command *plr_res;
@@ -151,6 +152,30 @@ TEST_F(SpeedRiskJoiningTest, drop_unready_player_starts_game) {
 TEST_F(SpeedRiskJoiningTest, drop_unready_player_still_requires_two) {
     player_join(game, &p1);
     player_join(game, &p2);
+    simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
+    ASSERT_EQ(&SR_WAITING_FOR_PLAYERS, game->state);
+
+    player_quit(game, &p1);
+    ASSERT_EQ(SR_CMD_PLAYER_QUIT, all_res->command);
+    ASSERT_EQ(&SR_WAITING_FOR_PLAYERS, game->state);
+}
+
+TEST_F(SpeedRiskJoiningTest, theme) {
+	set_random(0, 0, 5, 5);
+	ASSERT_EQ(6, srd->num_themes);
+	char *themes[6];
+	int i = 0;
+	for (Theme *t = srd->themes.lh_first; t != NULL; t = t->themes.le_next) {
+		themes[i++] = t->name;
+	}
+    player_join(game, &p1);
+	ASSERT_STREQ(themes[0], srd->players[0].theme->name);
+    player_join(game, &p2);
+	ASSERT_STREQ(themes[1], srd->players[1].theme->name);
+    player_join(game, &p3);
+	ASSERT_STREQ(themes[5], srd->players[2].theme->name);
+    player_join(game, &p4);
+	ASSERT_STREQ(themes[2], srd->players[3].theme->name);
     simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
     ASSERT_EQ(&SR_WAITING_FOR_PLAYERS, game->state);
 

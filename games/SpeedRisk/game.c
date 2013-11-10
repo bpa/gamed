@@ -186,15 +186,15 @@ void game_init (GameInstance *g, const Server *s, Board *board) {
     msg_move.command.command = SR_CMD_MOVE_RESULT;
 
 	LIST_INIT(&risk->themes);
+	risk->num_themes = 0;
 	d = opendir("resources/themes");
 	if (d) {
 		while ((dir = readdir(d)) != NULL) {
-			if (dir->d_type == DT_DIR && 
-				strncmp(dir->d_name, "player", 6) &&
-				strncmp(dir->d_name, ".", 1)) {
-					theme = calloc(1, sizeof(Theme));
-					theme->name = strdup(dir->d_name);
-					LIST_INSERT_HEAD(&risk->themes, theme, themes);
+			if (dir->d_type == DT_DIR && strncmp(dir->d_name, ".", 1)) {
+				theme = calloc(1, sizeof(Theme));
+				theme->name = strdup(dir->d_name);
+				LIST_INSERT_HEAD(&risk->themes, theme, themes);
+				risk->num_themes++;
 			}
 		}
 	}
@@ -207,13 +207,22 @@ void game_init (GameInstance *g, const Server *s, Board *board) {
 
 void game_destroy (GameInstance *g, const Server *s) {
     SpeedRiskData *risk;
+	Theme *theme;
 	risk = (SpeedRiskData*)g->data;
 	free(risk->players);
+	while (risk->themes.lh_first != NULL) {
+		theme = risk->themes.lh_first;
+		free(theme->name);
+		LIST_REMOVE(risk->themes.lh_first, themes);
+		free(theme);
+	}
 	free(risk);
 }
 
 void player_join (GameInstance *g, const Server *s, Player *p) {
-    int id;
+    int t, id;
+	char *data;
+	Theme *theme;
     SpeedRiskData *risk;
     risk = (SpeedRiskData*)g->data;
 	for(id=0; id<risk->board->max_players; id++) {
@@ -222,10 +231,28 @@ void player_join (GameInstance *g, const Server *s, Player *p) {
 			break;
 		}
 	}
+
+	int pick = s->random(risk->num_themes);
+	theme = risk->themes.lh_first;
+	t = 0;
+	while (t < pick || theme->claimed) {
+		theme = theme->themes.le_next;
+		if (theme == NULL)
+			theme = risk->themes.lh_first;
+		t++;
+	}
+	theme->claimed = 1;
+	risk->players[p->in_game_id].theme = theme;
 	risk->players[p->in_game_id].player = p;
 	risk->players[p->in_game_id].ready = false;
 	risk->players[p->in_game_id].armies = 0;
-	
+
+	data = malloc(2 + strlen(theme->name));
+	data[0] = STRING;
+	data[1] = strlen(theme->name);
+	memcpy(&data[2], theme->name, data[1]);
+	p->data = data;
+
 	all_cmd_f(g, s, SR_CMD_PLAYER_JOIN, p->in_game_id);
 	s->log(g, "Welcoming %s as player %i", p->name, p->in_game_id);
 	if (g->playing == risk->board->max_players) {
@@ -236,12 +263,17 @@ void player_join (GameInstance *g, const Server *s, Player *p) {
 void player_quit (GameInstance *g, const Server *s, Player *p) {
 	int all_ready, i;
     SpeedRiskData *risk = (SpeedRiskData*)g->data;
+
+    risk->players[p->in_game_id].player = NULL;
+    risk->players[p->in_game_id].theme->claimed = 0;
+    risk->players[p->in_game_id].theme = NULL;
+
 	if (g->playing == 0) {
 		s->game_over(g);
 		return;
 	}
+
     all_cmd_f(g, s, SR_CMD_PLAYER_QUIT, p->in_game_id);
-    risk->players[p->in_game_id].player = NULL;
 	if (g->playing == 1) {
 		if (g->state == &SR_PLACING || g->state == &SR_RUNNING) {
 			s->change_state(g, &SR_DONE);

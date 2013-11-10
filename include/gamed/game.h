@@ -12,6 +12,14 @@ typedef unsigned int bool;
 
 __BEGIN_DECLS
 
+enum SERIALIZATION_TYPE {
+	NONE, //NULL
+	STRING,
+	BYTE,
+	ARRAY,
+	HASH
+};
+
 typedef struct st_player {
 	char name[32];
     int in_game_id;

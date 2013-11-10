@@ -44,6 +44,7 @@ typedef struct {
 typedef struct {
 	Board             *board;
 	SR_Player         *players;
+	int               num_themes;
 	struct theme_list themes;
 	int               army_generation_period;
 	SR_Game_Status    status;
