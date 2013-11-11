@@ -28,7 +28,8 @@ typedef enum SR_COMMAND {
     SR_CMD_VICTORY,
     SR_CMD_PLAYER_QUIT,
     SR_CMD_NEXT_ARMY_PRODUCTION,
-	SR_CMD_LIST_THEMES
+	SR_CMD_LIST_THEMES,
+	SR_CMD_SET_THEME
 } SR_COMMAND;
 
 typedef struct {
@@ -43,7 +44,8 @@ typedef enum SR_ERROR {
     SR_ERR_NOT_ENOUGH_PLAYERS,
     SR_ERR_NOT_ENOUGH_ARMIES,
     SR_ERR_NOT_OWNER,
-    SR_ERR_INVALID_DESTINATION
+    SR_ERR_INVALID_DESTINATION,
+	SR_ERR_INVALID_THEME
 } SR_ERROR;
 
 typedef struct {
@@ -54,7 +56,7 @@ typedef struct {
 
 typedef struct {
     int command : 8;
-    int unused  : 8;
+    int player  : 8;
     int length  : 16;
 } SR_Status_Command;
 

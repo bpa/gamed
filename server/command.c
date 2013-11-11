@@ -201,14 +201,24 @@ void cmd_join_game (Client *client, int len) {
 void cmd_list_players (Client *client, int len) {
 	Client *plr;
 	int buff_len = 4;
+	int length;
 	GamedCommand *cmd = (GamedCommand *)&buff[0];
 	if (client->game != NULL) {
-		buff_len += sprintf(&buff[buff_len], "%i", client->game->instance.playing);
+		buff[buff_len++] = T_ARRAY;
+		buff[buff_len++] = client->game->instance.playing;
 	    LIST_FOREACH(plr, &client->game->players, player_entry) {
-	        buff_len += sprintf(&buff[buff_len], ":%i:%s",
-	             plr->player.in_game_id, &plr->player.name[0]);
+			buff[buff_len++] = T_ARRAY;
+			buff[buff_len++] = 3;
+			buff[buff_len++] = T_BYTE;
+			buff[buff_len++] = plr->player.in_game_id;
+			length = strlen(plr->player.name);
+			buff[buff_len++] = T_STRING;
+			buff[buff_len++] = length;
+	        memcpy(&buff[buff_len], plr->player.name, length-1);
+			buff_len += length;
+			memcpy(&buff[buff_len], plr->player.data, plr->player.data_len);
+			buff_len += plr->player.data_len;
 	    }
-		buff[buff_len] = '\0';
 	    cmd->length = htons(buff_len-4);
         SEND_BUFF_TO_CLIENT(buff_len);
 	}

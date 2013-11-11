@@ -4,6 +4,26 @@ from struct import pack, unpack
 verbose = False
 warnings = False
 
+def _deserialize(data):
+    t = ord(data[0])
+    if t == 0: #NULL
+        return (None, 1)
+    if t == 1: #String
+        l = ord(data[1])
+        return (data[2:2+l], l+2)
+    if t == 2: #Byte
+        return (ord(data[1]), 2)
+    if t == 3: #Array
+        ind = 2
+        l = ord(data[1])
+        arr = []
+        for i in range(l):
+            (obj, used) = _deserialize(data[ind:])
+            arr.append(obj)
+            ind = ind + used
+        return (arr, ind)
+    raise BaseException("Unknown serialization type %i" % t)
+
 class Client:
     _commands = {}
 
@@ -18,7 +38,7 @@ class Client:
             pass
 
     def poll_one(self):
-	global warnings
+        global warnings
         cmd = None
         try:
             cmd = self.sock.recv(4)
@@ -43,6 +63,15 @@ class Client:
             if warnings:
                 print "No callback for %s" % handler
         return True
+
+    def deserialize(self, data):
+        (obj, size) = _deserialize(data)
+        if size < len(data):
+            #with open("x.bin", "w") as f:
+            #    f.write(data)
+            #print obj, size, len(data)
+            raise BaseException("Bad message")
+        return obj
 
 def __command(major, minor, name):
     def wrapped(self, *msg):

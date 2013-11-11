@@ -18,6 +18,7 @@ void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *, i
 void handle_placing(GameInstance *g, const Server *s, Player *p, const char *, int len);
 void handle_playing(GameInstance *g, const Server *s, Player *p, const char *, int len);
 void handle_done   (GameInstance *g, const Server *s, Player *p, const char *, int len);
+void handle_set_theme(GameInstance *g, const Server *s, Player *p, const char *req, int len);
 void list_themes (GameInstance *g, const Server *s, Player *p);
 
 State SR_WAITING_FOR_PLAYERS = { NULL,          handle_waiting, NULL,            NULL };
@@ -247,8 +248,9 @@ void player_join (GameInstance *g, const Server *s, Player *p) {
 	risk->players[p->in_game_id].ready = false;
 	risk->players[p->in_game_id].armies = 0;
 
-	data = malloc(2 + strlen(theme->name));
-	data[0] = STRING;
+	p->data_len = strlen(theme->name) + 2;
+	data = malloc(p->data_len);
+	data[0] = T_STRING;
 	data[1] = strlen(theme->name);
 	memcpy(&data[2], theme->name, data[1]);
 	p->data = data;
@@ -412,6 +414,9 @@ void handle_waiting(GameInstance *g, const Server *s, Player *p, const char *req
 		case SR_CMD_LIST_THEMES:
 			list_themes(g, s, p);
 			break;
+		case SR_CMD_SET_THEME:
+			handle_set_theme(g, s, p, req, len);
+			break;
 		default:
 			player_error(s, p, SR_ERR_INVALID_CMD);
 			break;
@@ -468,10 +473,41 @@ void handle_placing(GameInstance *g, const Server *s, Player *p, const char *req
 		case SR_CMD_LIST_THEMES:
 			list_themes(g, s, p);
 			break;
+		case SR_CMD_SET_THEME:
+			handle_set_theme(g, s, p, req, len);
+			break;
 		default:
 			player_error(s, p, SR_ERR_INVALID_CMD);
 			break;
 	}
+}
+
+void handle_set_theme(GameInstance *g, const Server *s, Player *p, const char *req, int len) {
+	Theme *theme;
+	SR_Player *player;
+	SpeedRiskData *risk = (SpeedRiskData *)g->data;
+	SR_Status_Command *cmd = (SR_Status_Command*) req;
+	printf("set_theme %i, %s\n", p->in_game_id, &req[4]);
+	if (len < 5) {
+		player_error(s, p, SR_ERR_INVALID_THEME);
+		return;
+	}
+		
+	for (theme = risk->themes.lh_first; theme != NULL; theme = theme->themes.le_next) {
+		if (!strncmp(theme->name, &req[4], len - 4)) {
+			if (!theme->claimed) {
+				theme->claimed = 1;
+				player = &risk->players[p->in_game_id];
+				player->theme = theme;
+				cmd->player = p->in_game_id;
+				s->tell_all(g, req, len);
+				return;
+			}
+			break;
+		}
+	}
+
+	player_error(s, p, SR_ERR_INVALID_THEME);
 }
 
 void do_move(GameInstance *g, const Server *s, Player *p, SR_Command *cmd) {

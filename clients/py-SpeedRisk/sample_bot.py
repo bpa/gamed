@@ -1,6 +1,7 @@
 from SpeedRisk import SpeedRisk
 from time import sleep
 import sys
+import Client
 
 class myclient(SpeedRisk):
     def __init__(self, name, port):
@@ -14,7 +15,8 @@ class myclient(SpeedRisk):
             self.join_game("SpeedRisk:"+message.split(':')[1])
 
     def on_list_players(self, message):
-        print "Players:", message
+        print "Players:", self.deserialize(message)
+        self.list_themes()
 
     def on_get_armies(self):
         self.ready()
@@ -25,6 +27,9 @@ class myclient(SpeedRisk):
 
     def on_player_quit(self):
         self.running = False
+
+    def on_list_themes(self, message):
+        print message
 
     def run(self):
         self.running = True

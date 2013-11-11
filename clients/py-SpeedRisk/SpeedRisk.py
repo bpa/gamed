@@ -71,7 +71,8 @@ class SpeedRisk(Client):
         except AttributeError:
             print "No command known for op", op
             return
-        print name, f, t, a
+        print name, f, t, a, data
+
         try:
             handler = getattr(self, name)
             args = handler.func_code.co_argcount
@@ -115,3 +116,4 @@ __command(16, 'defeat')
 __command(17, 'victory')
 __command(18, 'player_quit')
 __command(19, 'next_army_generation')
+__command(20, 'list_themes')

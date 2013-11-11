@@ -12,17 +12,15 @@ typedef unsigned int bool;
 
 __BEGIN_DECLS
 
-enum SERIALIZATION_TYPE {
-	NONE, //NULL
-	STRING,
-	BYTE,
-	ARRAY,
-	HASH
-};
+#define T_STRING 1
+#define T_BYTE   2
+#define T_ARRAY  3
+#define T_HASH   4
 
 typedef struct st_player {
 	char name[32];
     int in_game_id;
+	int data_len;
 	void *data;
 } Player;
 

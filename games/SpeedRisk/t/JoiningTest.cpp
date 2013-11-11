@@ -35,6 +35,42 @@ public:
         ASSERT_EQ(exp, plr_res->command);
     }
 
+	void set_theme(Player p, const char *name, int exp) {
+		reset_mocks();
+		SR_Status_Command *command = (SR_Status_Command*)&buff[0];
+		command->command = SR_CMD_SET_THEME;
+		command->player = 200;
+		if (name == NULL) {
+			command->length = 0;
+		}
+		else {
+			command->length = strlen(name);
+			strcpy(&buff[4], name);
+		}
+		player_event(game, &p, (char*)command, 4 + command->length);
+		printf("%s: %i\n", name, exp);
+		if (exp == SR_CMD_SET_THEME) {
+			SR_Status_Command *c = (SR_Status_Command*)&mock_plr_buff[0];
+			ASSERT_EQ(exp, c->command);
+			ASSERT_EQ(p.in_game_id, c->player);
+			ASSERT_EQ(command->length, c->length);
+			if (name == NULL) {
+				strcpy(buff, "player");
+				buff[6] = p.in_game_id + 48;
+				buff[7] = '\0';
+				ASSERT_EQ(0, c->length);
+				ASSERT_STREQ(buff, srd->players[p.in_game_id].theme->name);
+			}
+			else {
+				ASSERT_EQ(command->length, c->length);
+				ASSERT_STREQ(name, srd->players[p.in_game_id].theme->name);
+			}
+		}
+		else {
+			ASSERT_EQ(exp, plr_res->command);
+		}
+	}
+
     GameInstance *game;
     Player p1;
     Player p2;
@@ -44,6 +80,7 @@ public:
     SR_Command cmd;
     SR_Command *plr_res;
     SR_Command *all_res;
+	char buff[128];
 };
 
 TEST_F(SpeedRiskJoiningTest, multi_join) {
@@ -176,12 +213,17 @@ TEST_F(SpeedRiskJoiningTest, theme) {
 	ASSERT_STREQ(themes[5], srd->players[2].theme->name);
     player_join(game, &p4);
 	ASSERT_STREQ(themes[2], srd->players[3].theme->name);
-    simple_command_all_test(&p2, SR_CMD_READY, SR_CMD_READY);
-    ASSERT_EQ(&SR_WAITING_FOR_PLAYERS, game->state);
+}
 
-    player_quit(game, &p1);
-    ASSERT_EQ(SR_CMD_PLAYER_QUIT, all_res->command);
-    ASSERT_EQ(&SR_WAITING_FOR_PLAYERS, game->state);
+TEST_F(SpeedRiskJoiningTest, set_theme) {
+    player_join(game, &p1);
+    player_join(game, &p2);
+
+	set_theme(p1, NULL, SR_ERR_INVALID_THEME);
+	set_theme(p1, "|", SR_ERR_INVALID_THEME);
+	set_theme(p1, "test", SR_CMD_SET_THEME);
+	set_theme(p2, "test", SR_ERR_INVALID_THEME);
+	ASSERT_STREQ("\5\4test", p1.game_data_str);
 }
 
 TEST_F(SpeedRiskJoiningTest, max_players) {
