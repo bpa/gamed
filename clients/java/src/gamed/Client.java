@@ -350,11 +350,13 @@ public class Client
 		Object playerArray = deserialize(msg);
 		if (playerArray instanceof Object[])
 		{
-			Object[][] playerData = (Object[][]) playerArray;
+			Object[] playerData = (Object[]) playerArray;
 			Player[] players = new Player[((Object[]) playerArray).length];
 			for (int i = 0; i < players.length; i++)
 			{
-				players[i] = new Player((Integer) playerData[i][0], (String) playerData[i][1], (String) playerData[i][2]);
+				System.out.println(playerData[i].getClass().getName());
+				Object[] p = (Object[]) playerData[i];
+				players[i] = new Player(((Byte) p[0]) & 0xFF, (String) p[1], (String) p[2]);
 			}
 			game.updatePlayers(players);
 		}
@@ -370,7 +372,7 @@ public class Client
 		if (msg != null)
 		{
 			String[] instances = msg.toString().trim().split(":");
-			Player player = new Player(Integer.parseInt(instances[0]), instances[1]);
+			Player player = new Player(Integer.parseInt(instances[0]), instances[1], null);
 			game.renamePlayer(player);
 		}
 	}
