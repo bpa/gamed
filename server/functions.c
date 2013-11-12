@@ -165,8 +165,8 @@ void log_message (GameInstance *g, const char *fmt, ...) {
     va_list ap;
 	snprintf(&buff[0], 1024, "[%s] %s\n", g->name, fmt);
     va_start(ap, fmt);
-    vsyslog(LOG_INFO, &buff[0], ap);
-    /* vprintf(&buff[0], ap); */
+    /* vsyslog(LOG_INFO, &buff[0], ap); */
+    vprintf(&buff[0], ap);
     va_end(ap);
 }
 /******************************************************************************/

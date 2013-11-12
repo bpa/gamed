@@ -48,9 +48,8 @@ void cmd_rename_player (Client *client, int len) {
 	int buff_len = 4;
 	char *data = &buff[4];
 	GamedCommand *cmd = (GamedCommand *)&buff[0];
-	strncpy(client->player.name, data, 16);
-	client->player.name[15] = '\0';
-	if (len < 20) client->player.name[len-4] = '\0';
+	strncpy(client->player.name, data, 32);
+	client->player.name[31] = '\0';
 	if (client->game != NULL) {
 		buff_len += sprintf(data, "%i:%s", client->player.in_game_id, &client->player.name[0]);
 		CMD_ALL_LEN(CMD_RENAME, 0, buff_len);
@@ -147,7 +146,7 @@ void cmd_create_game (Client *client, int len) {
 	cmd->subcmd = CMD_CREATE_GAME;
 	cmd->length = 0;
     SEND_BUFF_TO_CLIENT(4);
-	server_funcs.log((GameInstance*)instance, "%s joined", &client->player.name[0]);
+	server_funcs.log((GameInstance*)instance, "%s joined", client->player.name);
 	module->game.player_join((GameInstance*)instance, &server_funcs, &client->player);
 }
 
@@ -214,7 +213,7 @@ void cmd_list_players (Client *client, int len) {
 			length = strlen(plr->player.name);
 			buff[buff_len++] = T_STRING;
 			buff[buff_len++] = length;
-	        memcpy(&buff[buff_len], plr->player.name, length-1);
+	        memcpy(&buff[buff_len], plr->player.name, length);
 			buff_len += length;
 			memcpy(&buff[buff_len], plr->player.data, plr->player.data_len);
 			buff_len += plr->player.data_len;
