@@ -2,6 +2,7 @@ package gamed;
 
 import java.io.IOException;
 import java.net.*;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -16,10 +17,13 @@ public class Client
 	public static final byte CMD_PLAYER = 4;
 	public static final byte CMD_GAME = 5;
 	public static final byte CMD_ADMIN = 6;
+
 	public static final byte ERR_GAME_FULL = 0;
 	public static final byte ERR_NO_GAME = 1;
 	public static final byte ERR_IN_GAME = 2;
+
 	public static final byte CMD_RENAME = 0;
+
 	public static final byte CMD_LIST_GAMES = 0;
 	public static final byte CMD_LIST_GAME_INSTANCES = 1;
 	public static final byte CMD_CREATE_GAME = 2;
@@ -27,6 +31,7 @@ public class Client
 	public static final byte CMD_LIST_PLAYERS = 4;
 	public static final byte CMD_QUIT_GAME = 5;
 	public static final byte CMD_GAME_MESSAGE = 6;
+
 	public Socket socket;
 	private GameListing login;
 	private java.io.InputStream input;
@@ -37,8 +42,6 @@ public class Client
 	 *
 	 * @todo Implement a real login function and have that called instead
 	 * @todo Bug #11, update CMD_RENAME
-	 * @param host
-	 * @param user
 	 */
 	public Client(String host, String user, GameListing login)
 	{
@@ -55,7 +58,6 @@ public class Client
 		{
 			System.err.println("Couldn't create new Socket");
 			close();
-			return;
 		}
 	}
 
@@ -95,7 +97,6 @@ public class Client
 		{
 			return;
 		}
-		int len = 0;
 		byte valueBytes[];
 		if (value == null)
 		{
@@ -105,16 +106,13 @@ public class Client
 		{
 			valueBytes = value.getBytes();
 		}
-		len = valueBytes.length;
+		int len = valueBytes.length;
 		byte cmd[] = new byte[len + 4];
 		cmd[0] = command;
 		cmd[1] = subcommand;
 		cmd[2] = (byte) (0xff & (len >> 8));
 		cmd[3] = (byte) (0xff & len);
-		for (int i = 0; i < len; i++)
-		{
-			cmd[i + 4] = valueBytes[i];
-		}
+		System.arraycopy(valueBytes, 0, cmd, 4, len);
 		try
 		{
 			output.write(cmd);
@@ -142,10 +140,7 @@ public class Client
 		msg[1] = CMD_GAME_MESSAGE;
 		msg[2] = (byte) (0xff & (data.length >> 8));
 		msg[3] = (byte) (0xff & data.length);
-		for (int i = 0; i < data.length; i++)
-		{
-			msg[i + 4] = data[i];
-		}
+		System.arraycopy(data, 0, msg, 4, data.length);
 		try
 		{
 			output.write(msg);
@@ -200,6 +195,7 @@ public class Client
 			return false;
 		}
 		byte[] cmd = new byte[4];
+		byte[] data;
 		try
 		{
 			int read = input.read(cmd);
@@ -212,70 +208,90 @@ public class Client
 				close();
 				return false;
 			}
+			data = getRemainingMessage(cmd);
 		}
 		catch (IOException e)
 		{
 			close();
 			return false;
 		}
-		switch (cmd[0])
-		{
-			case CMD_NOP:
-			case CMD_INVALID:
-				break;
-			case CMD_ERROR:
-				switch (cmd[1])
-				{
-					case ERR_GAME_FULL:
-						login.handleErrorMessage("Game is Full");
-						break;
-					case ERR_NO_GAME:
-						login.handleErrorMessage("No game by that name exists");
-						break;
-					case ERR_IN_GAME:
-						break;
-				}
-				break;
-			case CMD_CHAT:
-				break;
-			case CMD_PLAYER:
-				switch (cmd[1])
-				{
-					case CMD_RENAME:
-						handlePlayerUpdate(cmd, game);
-						break;
-				}
-				break;
-			case CMD_GAME:
-				switch (cmd[1])
-				{
-					case CMD_LIST_GAMES:
-						handleListGames(cmd);
-						break;
-					case CMD_LIST_GAME_INSTANCES:
-						handleListInstances(cmd);
-						break;
-					case CMD_CREATE_GAME:
-					case CMD_JOIN_GAME:
-						login.handleStartGame();
-						sendCommand(CMD_GAME, CMD_LIST_PLAYERS, null);
-						break;
-					case CMD_LIST_PLAYERS:
-						handleListPlayers(cmd, game);
-						break;
-					case CMD_QUIT_GAME:
-						login.handleGameOver();
-						break;
-					case CMD_GAME_MESSAGE:
-						handleGameMessage(cmd, game);
-						break;
-				}
-				break;
-		}
+		SwingUtilities.invokeLater(new Handle(game, cmd, data));
 		return true;
 	}
 
-	private byte[] getRemainingMessage(byte[] cmd)
+	class Handle implements Runnable
+	{
+		private final Game game;
+		private final byte[] cmd;
+		private final byte[] data;
+
+		public Handle(Game game, byte[] cmd, byte[] data)
+		{
+			this.game = game;
+			this.cmd = cmd;
+			this.data = data;
+		}
+
+		public void run()
+		{
+			switch (cmd[0])
+			{
+				case CMD_NOP:
+				case CMD_INVALID:
+					break;
+				case CMD_ERROR:
+					switch (cmd[1])
+					{
+						case ERR_GAME_FULL:
+							login.handleErrorMessage("Game is Full");
+							break;
+						case ERR_NO_GAME:
+							login.handleErrorMessage("No game by that name exists");
+							break;
+						case ERR_IN_GAME:
+							break;
+					}
+					break;
+				case CMD_CHAT:
+					break;
+				case CMD_PLAYER:
+					switch (cmd[1])
+					{
+						case CMD_RENAME:
+							handlePlayerUpdate(data, game);
+							break;
+					}
+					break;
+				case CMD_GAME:
+					switch (cmd[1])
+					{
+						case CMD_LIST_GAMES:
+							handleListGames(data);
+							break;
+						case CMD_LIST_GAME_INSTANCES:
+							handleListInstances(data);
+							break;
+						case CMD_CREATE_GAME:
+						case CMD_JOIN_GAME:
+							login.handleStartGame();
+							sendCommand(CMD_GAME, CMD_LIST_PLAYERS, null);
+							break;
+						case CMD_LIST_PLAYERS:
+							handleListPlayers(game, data);
+							break;
+						case CMD_QUIT_GAME:
+							login.handleGameOver();
+							break;
+						case CMD_GAME_MESSAGE:
+							game.handleGameData(data);
+							break;
+					}
+					break;
+			}
+		}
+	}
+
+	private byte[] getRemainingMessage(byte[] cmd) throws IOException
 	{
 		int z = (((cmd[2] & 0xff) << 8) | (cmd[3] & 0xff));
 		byte[] info = new byte[z];
@@ -283,15 +299,7 @@ public class Client
 		{
 			return info;
 		}
-		try
-		{
-			input.read(info);
-		}
-		catch (IOException e)
-		{
-			close();
-			return null;
-		}
+		input.read(info);
 		return info;
 	}
 
@@ -300,9 +308,8 @@ public class Client
 	 *
 	 * @param cmd
 	 */
-	private void handleListGames(byte[] cmd)
+	private void handleListGames(byte[] info)
 	{
-		byte[] info = getRemainingMessage(cmd);
 		if (info != null)
 		{
 			String parse = new String(info);
@@ -316,9 +323,8 @@ public class Client
 		}
 	}
 
-	private void handleListInstances(byte[] cmd)
+	private void handleListInstances(byte[] info)
 	{
-		byte[] info = getRemainingMessage(cmd);
 		if (info != null)
 		{
 			String parse = new String(info);
@@ -327,26 +333,9 @@ public class Client
 		}
 	}
 
-	private void handleGameMessage(byte[] cmd, Game game)
-	{
-		if (game == null)
-		{
-			return;
-		}
-		byte[] msg = getRemainingMessage(cmd);
-		if (msg != null && msg.length > 0)
-		{
-			game.handleGameData(msg);
-		}
-	}
 
-	private void handleListPlayers(byte[] cmd, Game game)
+	private void handleListPlayers(Game game, byte[] msg)
 	{
-		if (game == null)
-		{
-			return;
-		}
-		byte[] msg = getRemainingMessage(cmd);
 		Object playerArray = deserialize(msg);
 		if (playerArray instanceof Object[])
 		{
@@ -362,13 +351,12 @@ public class Client
 		}
 	}
 
-	private void handlePlayerUpdate(byte[] cmd, Game game)
+	private void handlePlayerUpdate(byte[] msg, Game game)
 	{
 		if (game == null)
 		{
 			return;
 		}
-		byte[] msg = getRemainingMessage(cmd);
 		if (msg != null)
 		{
 			String[] instances = msg.toString().trim().split(":");

@@ -81,6 +81,6 @@ sub set_pixel {
     write_pixels( $im, $sx, $sy, $x, $y, $w, $h );
 }
 
-for my $f ( glob "c[0-9]*.png" ) {
+for my $f ( glob "[0-9][0-9][0-9].png" ) {
     fix($f);
 }

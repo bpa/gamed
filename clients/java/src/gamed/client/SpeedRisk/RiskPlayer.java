@@ -74,9 +74,9 @@ public class RiskPlayer extends PlayerPanel implements Comparable<RiskPlayer>, A
 	void mediaReady()
 	{
 		removeAll();
-		playerDisplay.setForeground(renderer.textColor);
+		playerDisplay.setForeground(renderer.theme.textColor);
 		add(playerDisplay, BorderLayout.CENTER);
-		if (renderer.icon != null)
-			add(new JLabel(new ImageIcon(renderer.icon)), BorderLayout.EAST);
+		if (renderer.theme.icon != null)
+			add(new JLabel(new ImageIcon(renderer.theme.icon)), BorderLayout.EAST);
 	}
 }

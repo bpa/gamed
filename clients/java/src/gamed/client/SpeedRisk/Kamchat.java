@@ -11,6 +11,7 @@ public class Kamchat extends Country
     private int x2;
     private int y2;
     public Image overlay2;
+    private BufferedImage mask2;
     private BufferedImage img2;
     private Rectangle bounds2;
 
@@ -35,11 +36,11 @@ public class Kamchat extends Country
     public void setSelected(boolean selected)
     {
         isSelected = selected;
-        if (img == null || owner == null)
+        if (mask == null || owner == null)
             return;
 
-		owner.renderer.renderCountry(img, x, y, isSelected);
-		owner.renderer.renderCountry(img2, x2, y2, isSelected);
+		img = owner.renderer.renderCountry(mask, x, y, isSelected);
+		img2 = owner.renderer.renderCountry(mask2, x2, y2, isSelected);
     }
 
     @Override
@@ -51,7 +52,7 @@ public class Kamchat extends Country
         {
             int ix = p.x - x2;
             int iy = p.y - y2;
-            int color = img2.getRGB(ix, iy);
+            int color = mask2.getRGB(ix, iy);
             if (color != 0)
             {
                 return true;
@@ -75,8 +76,8 @@ public class Kamchat extends Country
         if (request.contains("c36b"))
         {
             overlay2 = img;
-            img2 = makeBufferedImage(overlay2);
-            bounds2 = new Rectangle(x2, y2, img2.getWidth(), img2.getHeight());
+            mask2 = makeBufferedImage(overlay2);
+            bounds2 = new Rectangle(x2, y2, mask2.getWidth(), mask2.getHeight());
         }
         else
         {

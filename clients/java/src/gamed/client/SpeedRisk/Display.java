@@ -9,18 +9,19 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
 public class Display extends gamed.Game implements PropertyChangeListener, ActionListener
 {
-	private gamed.Server server;
-	private RiskBoard board;
+	private final gamed.Server server;
+	private final RiskBoard board;
 	private int selectedCountry = -1;
 	private int reserve;
 	private RiskPlayer me;
 	private boolean atWar;
-	private ArmyGenerationTimer armyGenerationTimer;
 	private final StatusPanel statusPanel;
+  	public final MediaDownloader mediaDownloader;
 
 	public Display(gamed.Server server, RiskBoard board)
 	{
@@ -30,15 +31,10 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 		initComponents();
 		readyRadio.setOpaque(false);
 		notReadyRadio.setOpaque(false);
-		armyGenerationProgress.setVisible(false);
 		add(statusPanel);
 		statusPanel.setVisible(false);
 		atWar = false;
-		byte cmd[] =
-		{
-			PLAYER_STATUS, 0, 0, 0
-		};
-		server.sendGameData(cmd);
+        mediaDownloader = new MediaDownloader(server);
 	}
 
 	@Override
@@ -49,42 +45,59 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 
 	public void joinedGame()
 	{
-		for (Country country: board.countries)
+        byte cmd[] =
+        {
+            PLAYER_STATUS, 0, 0, 0
+        };
+		server.sendGameData(cmd);
+
+		for (Country country : board.countries)
 		{
 			country.set(null, 1);
 		}
 		progress.setValue(0);
-		final MediaDownloader mediaDownloader = new MediaDownloader(server, board.getMediaRequestors());
+        mediaDownloader.addMediaRequestors(board.getMediaRequestors());
 		mediaDownloader.addPropertyChangeListener(this);
 		mediaDownloader.execute();
 		repaint();
 	}
 
-	public void propertyChange(PropertyChangeEvent pce)
+	public void propertyChange(final PropertyChangeEvent pce)
 	{
 		String propertyName = pce.getPropertyName();
 		if (propertyName.equals("progress"))
 		{
-			progress.setValue((Integer) pce.getNewValue());
+			SwingUtilities.invokeLater(new Runnable()
+			{
+				public void run()
+				{
+					progress.setValue((Integer) pce.getNewValue());
+				}
+			});
 		}
 		else if (propertyName.equals("state") && pce.getNewValue() == SwingWorker.StateValue.DONE)
 		{
-			loadingText.setVisible(false);
-			remove(progress);
-			statusPanel.setVisible(true);
-			jButton1.setVisible(true);
-			if (!atWar)
-			{
-				readyRadio.setVisible(true);
-				notReadyRadio.setVisible(true);
-			}
-			for (int i = 0; i < board.countries.length; i++)
-			{
-				board.countries[i].setSelected(board.countries[i].isSelected);
-			}
-			statusPanel.mediaReady();
-			repaint();
-		}
+            SwingUtilities.invokeLater(new Runnable()
+            {
+                public void run()
+                {
+                    loadingText.setVisible(false);
+                    remove(progress);
+                    statusPanel.setVisible(true);
+                    if (!atWar)
+                    {
+                        readyRadio.setVisible(true);
+                        notReadyRadio.setVisible(true);
+                    }
+                    for (Country country : board.countries)
+                    {
+                        country.setSelected(country.isSelected);
+                    }
+                    statusPanel.mediaReady();
+                    repaint();
+                }
+            });
+        }
 	}
 
 	/**
@@ -98,10 +111,8 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
         jProgressBar1 = new javax.swing.JProgressBar();
         progress = new javax.swing.JProgressBar();
         loadingText = new javax.swing.JLabel();
-        jButton1 = new javax.swing.JButton();
         readyRadio = new javax.swing.JRadioButton();
         notReadyRadio = new javax.swing.JRadioButton();
-        armyGenerationProgress = new javax.swing.JProgressBar();
 
         setPreferredSize(new java.awt.Dimension(650, 375));
         addMouseListener(new java.awt.event.MouseAdapter()
@@ -126,21 +137,6 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
         loadingText.setText("Loading Media...");
         add(loadingText);
         loadingText.setBounds(200, 150, 250, 70);
-
-        jButton1.setVisible(false);
-        jButton1.setText("Quit Game");
-        jButton1.setDefaultCapable(false);
-        jButton1.setFocusable(false);
-        jButton1.setRequestFocusEnabled(false);
-        jButton1.addActionListener(new java.awt.event.ActionListener()
-        {
-            public void actionPerformed(java.awt.event.ActionEvent evt)
-            {
-                jButton1ActionPerformed(evt);
-            }
-        });
-        add(jButton1);
-        jButton1.setBounds(0, 0, 100, 27);
 
         readyRadio.setBackground(new Color(0,true));
         buttonGroup1.add(readyRadio);
@@ -170,16 +166,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
         });
         add(notReadyRadio);
         notReadyRadio.setBounds(250, 300, 86, 18);
-
-        armyGenerationProgress.setFocusable(false);
-        armyGenerationProgress.setStringPainted(true);
-        add(armyGenerationProgress);
-        armyGenerationProgress.setBounds(230, 350, 200, 19);
     }// </editor-fold>//GEN-END:initComponents
-
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
-		server.quitGame();
-    }//GEN-LAST:event_jButton1ActionPerformed
 
     private void readyRadioActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_readyRadioActionPerformed
 		sendReady(readyRadio.getModel().isSelected());
@@ -222,26 +209,22 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 					}
 					else
 					{
-						moveArmies((byte) selectedCountry, c, (byte) (board.countries[selectedCountry].armies - 1));
-
+						moveArmies((byte) selectedCountry, c, (byte) (board.countries[selectedCountry].armies - statusPanel.getDefenders()));
 					}
 				}
 				else if (reserve > 0)
 				{
 					if (evt.isPopupTrigger())
-					{
 						showPlacementPopup(evt, c);
-					}
+					else if (evt.isControlDown())
+						placeArmiesAt(c, (byte) 1);
 					else if (evt.getClickCount() > 1)
-					{
 						placeAllArmiesAt(c);
-					}
 				}
 				setSelectedCountry(c);
 				repaint();
 			}
-			else if (selectedCountry != -1
-					 && board.borders(selectedCountry, c))
+			else if (selectedCountry != -1 && board.borders(selectedCountry, c))
 			{
 				attack(c);
 			}
@@ -325,25 +308,23 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 					player.setReady(false);
 				break;
 			case START_PLACING:
-				statusPanel.setPhase("Placing Armies");
+				statusPanel.setPhase(StatusPanel.Phase.PLACING_ARMIES);
 				notReadyRadio.getModel().setSelected(true);
 				setSelectedCountry(-1);
 				statusPanel.resetReady();
 				break;
 			case BEGIN:
 				atWar = true;
-				statusPanel.setPhase("At War");
+				statusPanel.setPhase(StatusPanel.Phase.AT_WAR);
 				readyRadio.setVisible(false);
 				notReadyRadio.setVisible(false);
-				armyGenerationTimer = new ArmyGenerationTimer(armyGenerationProgress);
-				armyGenerationProgress.setVisible(true);
 				break;
 			case GET_ARMIES:
 				reserve = data[3] & 0xFF;
 				statusPanel.setReserve(reserve);
 				break;
 			case NEXT_ARMY_GENERATION:
-				armyGenerationTimer.set(data[1]);
+				statusPanel.setArmyGenerationTime(data[1]);
 				break;
 			case ATTACK_RESULT:
 			case MOVE_RESULT:
@@ -382,9 +363,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 					player.setReady(false);
 				break;
 			case VICTORY:
-				statusPanel.setPhase("Game Over");
-				armyGenerationTimer.stop();
-				armyGenerationProgress.setVisible(false);
+				statusPanel.setPhase(StatusPanel.Phase.GAME_OVER);
 				break;
 		}
 		repaint();
@@ -440,14 +419,14 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 
 	private void attack(byte to)
 	{
-		if (board.countries[selectedCountry].armies > 1)
+		if (board.countries[selectedCountry].armies > statusPanel.getDefenders())
 		{
 			byte cmd[] =
 			{
 				ATTACK,
 				(byte) selectedCountry,
 				to,
-				(byte) (board.countries[selectedCountry].armies - 1)
+				(byte) (board.countries[selectedCountry].armies - statusPanel.getDefenders())
 			};
 			server.sendGameData(cmd);
 		}
@@ -488,9 +467,7 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 		placeArmiesAt(to, (byte) reserve);
 	}
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JProgressBar armyGenerationProgress;
     private javax.swing.ButtonGroup buttonGroup1;
-    private javax.swing.JButton jButton1;
     private javax.swing.JProgressBar jProgressBar1;
     private javax.swing.JLabel loadingText;
     private javax.swing.JRadioButton notReadyRadio;

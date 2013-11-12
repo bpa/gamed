@@ -1,183 +1,95 @@
 package gamed.client.SpeedRisk;
 
 import gamed.Server;
-import gamed.client.MediaDownloader;
 import gamed.client.MediaRequestor;
 import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
-import java.beans.PropertyChangeListener;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLConnection;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-public class PlayerRenderer implements MediaRequestor
+public class PlayerRenderer
 {
-	String name = null;
-	Properties properties = null;
-	BufferedImage background = null;
-	Image icon = null;
-	Color textColor = Color.BLACK;
-	int x_offset, y_offset, armies_x, armies_y;
-	boolean backgroundGenerated = true;
+	public Theme theme = new Theme(null, null, null);
 
-	synchronized void setTheme(Server server, String theme, PropertyChangeListener display)
+	synchronized void setTheme(Server server, String name, Display display)
 	{
-		if (theme.equals(name))
+		if (name.equals(theme.name))
 			return;
 
-		System.out.println("Setting theme to " + theme);
-		name = theme;
-		new Thread(new Theme(server, display, theme)).start();
+		theme = new Theme(server, display, name);
+		new Thread(theme).start();
 	}
 
-	public Iterable<String> getMediaRequests()
+	public BufferedImage renderCountry(BufferedImage mask, int x, int y, boolean selected)
 	{
-		ArrayList images = new ArrayList(2);
-		if (background == null)
-			images.add(String.format("resources/themes/%s/%s", name, properties.getProperty("background-image")));
-		if (icon == null)
-			images.add(String.format("resources/themes/%s/%s", name, properties.getProperty("icon-image")));
-		return images;
-	}
+		if (theme.background == null)
+			return null;
 
-	public void mediaCompleted(String request, Image img)
-	{
-		String property = properties.getProperty("background-image");
-		if (property != null && request.endsWith(property))
+		int w = mask.getWidth();
+		int h = mask.getHeight();
+		int bgw = theme.background.getWidth();
+		int bgh = theme.background.getHeight();
+		BufferedImage image = new BufferedImage(w, h, BufferedImage.TYPE_4BYTE_ABGR);
+
+		long pre = 0;
+		long post = 0;
+		long a = theme.background.getRGB(0,0) & 0xFFFFFFFFL;
+		if (selected)
 		{
-			background = makeBufferedImage(img);
-			backgroundGenerated = false;
+			pre = 0x80000000L;
+			a = a ^ pre;
 		}
-		else
+
+		if (a < 0xC0000000L)
 		{
-			icon = img;
+			pre = pre ^ 0xFF000000L;
+			post = 0xFF000000L;
 		}
-	}
-
-	public void renderCountry(BufferedImage image, int x, int y, boolean selected)
-	{
-		if (background == null)
-			return;
-
-		int w = image.getWidth();
-		int h = image.getHeight();
-		int bgw = background.getWidth();
-		int bgh = background.getHeight();
-		int p, v;
 
 		for (int i = 0; i < w; i++)
 		{
 			for (int j = 0; j < h; j++)
 			{
-				if (image.getRGB(i, j) != 0)
-				{
-					p = background.getRGB((i + x) % bgw, (j + y) % bgh);
-					if (selected)
-					{
-						byte o = (byte) (p >> 24);
-						o += 128;
-						p = (o << 24) | (p & 0x00FFFFFF);
-					}
-					image.setRGB(i, j, p);
-				}
+				a = mask.getRGB(i, j) & 0xFFFFFFFFL;
+				if (a == 0)
+					continue;
+
+				long p = theme.background.getRGB((i + x) % bgw, (j + y) % bgh) & 0xFFFFFFFFL;
+				int color = (int) p & 0xFFFFFF;
+				p = ((p ^ pre) * ((a >> 24) & 0xFF)) / 0xFF;
+				image.setRGB(i, j, (int) ((p ^ post) & 0xFF000000) | color);
 			}
 		}
 
-		if ((background.getRGB(0, 0) >> 24) < 192)
-			addBorderEffect(image, w, h, 0xFF000000, -1);
-		else
-			addBorderEffect(image, w, h, 0x01000000, 1);
-	}
-
-	private void addBorderEffect(BufferedImage image, int w, int h, int start, int step)
-	{
-		int i = 0;
-		int[] stack = new int[4096];
-		for (int x = 0; x < w; x++)
-		{
-			for (int y = 0; y < h; y++)
-			{
-				if (x == 0 || y == 0 || x == (w - 1) || y == (h - 1) || image.getRGB(x, y) == 0)
-				{
-					i = addAdjacentPixels(stack, i, x, y, w, h, image, start, step);
-				}
-				while (i > 0)
-				{
-					i -= 3;
-					i = addAdjacentPixels(stack, i, stack[i], stack[i + 1], w, h, image, stack[i + 2], step);
-				}
-			}
-		}
-	}
-
-	private int addAdjacentPixels(int[] stack, int i, int x, int y, int w, int h, BufferedImage image, int start, int step)
-	{
-		int next;
-		if (step > 0)
-			next = start << 1;
-		else
-			next = start >> 1;
-
-		if (next < 0x01000000)
-			return i;
-			
-		i = addPixel(stack, i, x, y - 1, w, h, image, next, step);
-		i = addPixel(stack, i, x - 1, y, w, h, image, next, step);
-		i = addPixel(stack, i, x, y + 1, w, h, image, next, step);
-		i = addPixel(stack, i, x + 1, y, w, h, image, next, step);
-		return i;
-	}
-
-	private int addPixel(int[] stack, int i, int x, int y, int w, int h, BufferedImage image, int start, int step)
-	{
-		if (x < 0 || y < 0 || x == w || y == h)
-			return i;
-
-		int v = image.getRGB(x, y);
-		if (v == 0)
-			return i;
-
-		int opacity = v & 0xFF000000;
-		if (step > 0)
-			if (opacity >= start)
-				return i;
-		else
-			if (opacity <= start)
-				return i;
-		
-		image.setRGB(x, y, (v & 0x00FFFFFF) | start);
-		stack[i] = x;
-		stack[i + 1] = y;
-		stack[i + 2] = start;
-		return i + 3;
+		return image;
 	}
 
 	public void renderBackground(Graphics g, int x, int y, int w, int h)
 	{
-		if (background == null)
+		if (theme.opaqueBackground == null)
 			return;
 
 		int dstX = 0;
 		while (dstX < w)
 		{
 			int dstY = 0;
-			int srcX = (dstX + x) % background.getWidth();
-			int width = Math.min(background.getWidth() - srcX, w - dstX);
+			int srcX = (dstX + x) % theme.opaqueBackground.getWidth();
+			int width = Math.min(theme.opaqueBackground.getWidth() - srcX, w - dstX);
 			while (dstY < h)
 			{
-				int srcY = (dstY + y) % background.getHeight();
-				int height = Math.min(background.getHeight() - srcY, w - dstY);
-				g.drawImage(background, dstX, dstY, dstX + width, dstY + height, srcX, srcY, width, height, null);
+				int srcY = (dstY + y) % theme.opaqueBackground.getHeight();
+				int height = Math.min(theme.opaqueBackground.getHeight() - srcY, w - dstY);
+				g.drawImage(theme.opaqueBackground, dstX, dstY, dstX + width, dstY + height, srcX, srcY, width, height, null);
 				dstY += height;
 			}
 			dstX += width;
@@ -186,54 +98,42 @@ public class PlayerRenderer implements MediaRequestor
 
 	public void renderIcon(Graphics g, int x, int y, int armies)
 	{
-		if (icon == null)
+		if (theme.icon == null)
 			return;
 
-		int xCenter = x - (icon.getWidth(null) / 2);
-		int yCenter = y - (icon.getHeight(null) / 2);
-		int x2 = x + 2 + x_offset;
-		int y2 = y + 12 + y_offset;
-		g.drawImage(icon, xCenter, yCenter, null);
-		g.setColor(textColor);
+		int xCenter = x - (theme.icon.getWidth(null) / 2);
+		int yCenter = y - (theme.icon.getHeight(null) / 2);
+		int x2 = x + 2 + theme.x_offset;
+		int y2 = y + 12 + theme.y_offset;
+		g.drawImage(theme.icon, xCenter, yCenter, null);
+		g.setColor(theme.textColor);
 		g.drawString(Integer.toString(armies), x2, y2);
 	}
 
-	protected BufferedImage makeBufferedImage(Image o)
-	{
-		int w = o.getWidth(null);
-		if (w == -1)
-		{
-			return null;
-		}
-		BufferedImage i = new BufferedImage(w, o.getHeight(null), BufferedImage.TYPE_4BYTE_ABGR);
-		Graphics2D g = i.createGraphics();
-		g.drawImage(o, 0, 0, null);
-		return i;
-	}
-
-	private PlayerRenderer ref()
-	{
-		return this;
-	}
-
-	private class Theme implements Runnable
+	public class Theme implements Runnable, MediaRequestor
 	{
 		final Server server;
-		final PropertyChangeListener display;
-		final String theme;
+		final Display display;
+		final String name;
+		Properties properties = null;
+		BufferedImage background = null;
+		BufferedImage opaqueBackground = null;
+		Image icon = null;
+		Color textColor = Color.BLACK;
+		int x_offset, y_offset, armies_x, armies_y;
 
-		public Theme(Server server, PropertyChangeListener display, String theme)
+		public Theme(Server server, Display display, String theme)
 		{
 			this.server = server;
 			this.display = display;
-			this.theme = theme;
+			this.name = theme;
 		}
 
 		public void run()
 		{
 			try
 			{
-				URL url = new URL(server.getDocumentBase(), String.format("resources/themes/%s/theme.properties", theme));
+				URL url = new URL(server.getDocumentBase(), String.format("resources/themes/%s/theme.properties", name));
 				URLConnection connection = url.openConnection();
 				properties = new Properties();
 				InputStream inputStream = connection.getInputStream();
@@ -242,6 +142,7 @@ public class PlayerRenderer implements MediaRequestor
 				if (bgImage == null)
 				{
 					background = createImage(parseColor(properties.getProperty("background-color", "000")), false);
+					opaqueBackground = opaque(background);
 				}
 				String iconImage = properties.getProperty("icon-image");
 				if (iconImage == null)
@@ -249,20 +150,60 @@ public class PlayerRenderer implements MediaRequestor
 				textColor = new Color(parseColor(properties.getProperty("text-color", "000")));
 				x_offset = intProperty("text-x", 0);
 				y_offset = intProperty("text-y", 0);
-				List<MediaRequestor> list = new ArrayList();
-				list.add(ref());
-				MediaDownloader mediaDownloader = new MediaDownloader(server, list);
-				mediaDownloader.addPropertyChangeListener(display);
-				mediaDownloader.execute();
+                display.mediaDownloader.addMediaRequestor(this);
 			}
 			catch (MalformedURLException ex)
 			{
+				System.err.println(ex.getMessage());
 				Logger.getLogger(PlayerRenderer.class.getName()).log(Level.SEVERE, null, ex);
 			}
 			catch (IOException ex)
 			{
+				System.err.println(ex.getMessage());
 				Logger.getLogger(PlayerRenderer.class.getName()).log(Level.SEVERE, null, ex);
 			}
+			catch (Exception ex)
+			{
+				System.err.println(ex);
+				Logger.getLogger(PlayerRenderer.class.getName()).log(Level.SEVERE, null, ex);
+			}
+		}
+
+		public Iterable<String> getMediaRequests()
+		{
+			ArrayList images = new ArrayList(2);
+			if (background == null)
+				images.add(String.format("resources/themes/%s/%s", name, properties.getProperty("background-image")));
+			if (icon == null)
+				images.add(String.format("resources/themes/%s/%s", name, properties.getProperty("icon-image")));
+			return images;
+		}
+
+		public void mediaCompleted(String request, Image img)
+		{
+			String property = properties.getProperty("background-image");
+			if (property != null && request.endsWith(property))
+			{
+				background = makeBufferedImage(img);
+				opaqueBackground = opaque(background);
+			}
+			else
+			{
+				icon = img;
+			}
+		}
+
+		private BufferedImage opaque(BufferedImage image)
+		{
+			BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_4BYTE_ABGR);
+			for (int i=0; i<image.getWidth(); i++)
+			{
+				for (int j=0; j<image.getHeight(); j++)
+				{
+					copy.setRGB(i, j, image.getRGB(i, j) | 0xFF000000);
+				}
+			}
+			return copy;
 		}
 
 		private BufferedImage createImage(int color, boolean icon)
@@ -299,9 +240,7 @@ public class PlayerRenderer implements MediaRequestor
 
 				if (color.length() == 8)
 				{
-					int high = Integer.parseInt(color.substring(0, 4), 16);
-					int low = Integer.parseInt(color.substring(5), 16);
-					return (high << 16) | low;
+					return (int) Long.parseLong(color.toString(), 16);
 				}
 
 				return 0xFF000000 | Integer.parseInt(color.toString(), 16);
@@ -323,25 +262,24 @@ public class PlayerRenderer implements MediaRequestor
 				return i;
 			}
 		}
+
+		protected BufferedImage makeBufferedImage(Image o)
+		{
+			int w = o.getWidth(null);
+			if (w == -1)
+			{
+				return null;
+			}
+			BufferedImage i = new BufferedImage(w, o.getHeight(null), BufferedImage.TYPE_4BYTE_ABGR);
+			Graphics2D g = i.createGraphics();
+			g.drawImage(o, 0, 0, null);
+			return i;
+		}
 	}
 
 	@Override
 	public String toString()
 	{
-		return name;
-	}
-
-	private static class T
-	{
-		private final int x;
-		private final int y;
-		private final int opacity;
-
-		public T(int x, int y, int opacity)
-		{
-			this.x = x;
-			this.y = y;
-			this.opacity = opacity;
-		}
+		return theme.name;
 	}
 }
