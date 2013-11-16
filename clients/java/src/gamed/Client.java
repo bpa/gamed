@@ -10,408 +10,436 @@ import javax.swing.SwingUtilities;
  */
 public class Client
 {
-	public static final byte CMD_NOP = 0;
-	public static final byte CMD_INVALID = 1;
-	public static final byte CMD_ERROR = 2;
-	public static final byte CMD_CHAT = 3;
-	public static final byte CMD_PLAYER = 4;
-	public static final byte CMD_GAME = 5;
-	public static final byte CMD_ADMIN = 6;
+    public static final byte CMD_NOP = 0;
+    public static final byte CMD_INVALID = 1;
+    public static final byte CMD_ERROR = 2;
+    public static final byte CMD_CHAT = 3;
+    public static final byte CMD_PLAYER = 4;
+    public static final byte CMD_GAME = 5;
+    public static final byte CMD_ADMIN = 6;
+    public static final byte ERR_GAME_FULL = 0;
+    public static final byte ERR_NO_GAME = 1;
+    public static final byte ERR_IN_GAME = 2;
+    public static final byte CMD_RENAME = 0;
+    public static final byte CMD_LIST_GAMES = 0;
+    public static final byte CMD_LIST_GAME_INSTANCES = 1;
+    public static final byte CMD_CREATE_GAME = 2;
+    public static final byte CMD_JOIN_GAME = 3;
+    public static final byte CMD_LIST_PLAYERS = 4;
+    public static final byte CMD_QUIT_GAME = 5;
+    public static final byte CMD_GAME_MESSAGE = 6;
+    public Socket socket;
+    private GameListing login;
+    private java.io.InputStream input;
+    private java.io.OutputStream output;
 
-	public static final byte ERR_GAME_FULL = 0;
-	public static final byte ERR_NO_GAME = 1;
-	public static final byte ERR_IN_GAME = 2;
+    /**
+     * I suppose I shouldn't connect and rename the client, but its sort of part of the nonexistant login.
+     *
+     * @todo Implement a real login function and have that called instead
+     * @todo Bug #11, update CMD_RENAME
+     */
+    public Client(String host, String user, GameListing login)
+    {
+        this.login = login;
+        user = user.replace(":", ";");
+        try
+        {
+            socket = new Socket(host, 7483);
+            input = socket.getInputStream();
+            output = socket.getOutputStream();
+            sendCommand(CMD_PLAYER, CMD_RENAME, user);
+        }
+        catch (IOException e)
+        {
+            System.err.println("Couldn't create new Socket");
+            close();
+        }
+    }
 
-	public static final byte CMD_RENAME = 0;
+    public void askForAvailableGames()
+    {
+        sendCommand(CMD_GAME, CMD_LIST_GAMES, null);
+    }
 
-	public static final byte CMD_LIST_GAMES = 0;
-	public static final byte CMD_LIST_GAME_INSTANCES = 1;
-	public static final byte CMD_CREATE_GAME = 2;
-	public static final byte CMD_JOIN_GAME = 3;
-	public static final byte CMD_LIST_PLAYERS = 4;
-	public static final byte CMD_QUIT_GAME = 5;
-	public static final byte CMD_GAME_MESSAGE = 6;
+    public void askForGameInstances(String game)
+    {
+        sendCommand(CMD_GAME, CMD_LIST_GAME_INSTANCES, game);
+    }
 
-	public Socket socket;
-	private GameListing login;
-	private java.io.InputStream input;
-	private java.io.OutputStream output;
+    public void askForPlayerList()
+    {
+        sendCommand(CMD_GAME, CMD_LIST_PLAYERS, null);
+    }
 
-	/**
-	 * I suppose I shouldn't connect and rename the client, but its sort of part of the nonexistant login.
-	 *
-	 * @todo Implement a real login function and have that called instead
-	 * @todo Bug #11, update CMD_RENAME
-	 */
-	public Client(String host, String user, GameListing login)
-	{
-		this.login = login;
-		user = user.replace(":", ";");
-		try
-		{
-			socket = new Socket(host, 7483);
-			input = socket.getInputStream();
-			output = socket.getOutputStream();
-			sendCommand(CMD_PLAYER, CMD_RENAME, user);
-		}
-		catch (IOException e)
-		{
-			System.err.println("Couldn't create new Socket");
-			close();
-		}
-	}
+    public void createGame(String game, String name)
+    {
+        // TODO revisit serialization
+        game = game.replace(":", ";");
+        name = name.replace(":", ";");
+        sendCommand(CMD_GAME, CMD_CREATE_GAME, game + ":" + name);
+    }
 
-	public void askForAvailableGames()
-	{
-		sendCommand(CMD_GAME, CMD_LIST_GAMES, null);
-	}
+    public void joinGame(String game, String name)
+    {
+        game = game.replace(":", ";");
+        name = name.replace(":", ";");
+        sendCommand(CMD_GAME, CMD_JOIN_GAME, game + ":" + name);
+    }
 
-	public void askForGameInstances(String game)
-	{
-		sendCommand(CMD_GAME, CMD_LIST_GAME_INSTANCES, game);
-	}
+    private void sendCommand(byte command, byte subcommand, String value)
+    {
+        if (socket == null)
+        {
+            return;
+        }
+        byte valueBytes[];
+        if (value == null)
+        {
+            valueBytes = new byte[0];
+        }
+        else
+        {
+            valueBytes = value.getBytes();
+        }
+        int len = valueBytes.length;
+        byte cmd[] = new byte[len + 4];
+        cmd[0] = command;
+        cmd[1] = subcommand;
+        cmd[2] = (byte) (0xff & (len >> 8));
+        cmd[3] = (byte) (0xff & len);
+        System.arraycopy(valueBytes, 0, cmd, 4, len);
+        try
+        {
+            output.write(cmd);
+            output.flush();
+        }
+        catch (IOException e)
+        {
+            close();
+        }
 
-	public void askForPlayerList()
-	{
-		sendCommand(CMD_GAME, CMD_LIST_PLAYERS, null);
-	}
+    }
 
-	public void createGame(String game, String name)
-	{
-		// TODO revisit serialization
-		game = game.replace(":", ";");
-		name = name.replace(":", ";");
-		sendCommand(CMD_GAME, CMD_CREATE_GAME, game + ":" + name);
-	}
+    public void sendGameData(byte[] data)
+    {
+        if (socket == null)
+        {
+            return;
+        }
+        if (data == null || data.length == 0)
+        {
+            return;
+        }
+        byte[] msg = new byte[data.length + 4];
+        msg[0] = CMD_GAME;
+        msg[1] = CMD_GAME_MESSAGE;
+        msg[2] = (byte) (0xff & (data.length >> 8));
+        msg[3] = (byte) (0xff & data.length);
+        System.arraycopy(data, 0, msg, 4, data.length);
+        try
+        {
+            output.write(msg);
+            output.flush();
+        }
+        catch (IOException e)
+        {
+            close();
+        }
+    }
 
-	public void joinGame(String game, String name)
-	{
-		game = game.replace(":", ";");
-		name = name.replace(":", ";");
-		sendCommand(CMD_GAME, CMD_JOIN_GAME, game + ":" + name);
-	}
+    /**
+     * Sends a command to the server to exit the current game
+     */
+    public void quit()
+    {
+        sendCommand(CMD_GAME, CMD_QUIT_GAME, null);
+    }
 
-	private void sendCommand(byte command, byte subcommand, String value)
-	{
-		if (socket == null)
-		{
-			return;
-		}
-		byte valueBytes[];
-		if (value == null)
-		{
-			valueBytes = new byte[0];
-		}
-		else
-		{
-			valueBytes = value.getBytes();
-		}
-		int len = valueBytes.length;
-		byte cmd[] = new byte[len + 4];
-		cmd[0] = command;
-		cmd[1] = subcommand;
-		cmd[2] = (byte) (0xff & (len >> 8));
-		cmd[3] = (byte) (0xff & len);
-		System.arraycopy(valueBytes, 0, cmd, 4, len);
-		try
-		{
-			output.write(cmd);
-			output.flush();
-		}
-		catch (IOException e)
-		{
-			close();
-		}
+    private void close()
+    {
+        if (socket != null)
+        {
+            try
+            {
+                socket.shutdownOutput();
+                socket.shutdownInput();
+                socket.close();
+            }
+            catch (IOException e)
+            {
+            }
+            finally
+            {
+                socket = null;
+            }
+        }
+        input = null;
+        output = null;
+    }
 
-	}
+    /**
+     * Does a blocking read on the socket and deals with the result. On error, it resets the connection
+     *
+     * @param game
+     * @return false on IOException
+     */
+    public boolean poll(Game game)
+    {
+        if (socket == null)
+        {
+            return false;
+        }
+        byte[] cmd = new byte[4];
+        byte[] data;
+        try
+        {
+            int read = input.read(cmd);
+            if (read == 0)
+            {
+                return true;
+            }
+            if (read == -1)
+            {
+                close();
+                return false;
+            }
+            data = getRemainingMessage(cmd);
+        }
+        catch (IOException e)
+        {
+            close();
+            return false;
+        }
+        SwingUtilities.invokeLater(new Handle(game, cmd, data));
+        return true;
+    }
 
-	public void sendGameData(byte[] data)
-	{
-		if (socket == null)
-		{
-			return;
-		}
-		if (data == null || data.length == 0)
-		{
-			return;
-		}
-		byte[] msg = new byte[data.length + 4];
-		msg[0] = CMD_GAME;
-		msg[1] = CMD_GAME_MESSAGE;
-		msg[2] = (byte) (0xff & (data.length >> 8));
-		msg[3] = (byte) (0xff & data.length);
-		System.arraycopy(data, 0, msg, 4, data.length);
-		try
-		{
-			output.write(msg);
-			output.flush();
-		}
-		catch (IOException e)
-		{
-			close();
-		}
-	}
+    class Handle implements Runnable
+    {
+        private final Game game;
+        private final byte[] cmd;
+        private final byte[] data;
 
-	/**
-	 * Sends a command to the server to exit the current game
-	 */
-	public void quit()
-	{
-		sendCommand(CMD_GAME, CMD_QUIT_GAME, null);
-	}
+        public Handle(Game game, byte[] cmd, byte[] data)
+        {
+            this.game = game;
+            this.cmd = cmd;
+            this.data = data;
+        }
 
-	private void close()
-	{
-		if (socket != null)
-		{
-			try
-			{
-				socket.shutdownOutput();
-				socket.shutdownInput();
-				socket.close();
-			}
-			catch (IOException e)
-			{
-			}
-			finally
-			{
-				socket = null;
-			}
-		}
-		input = null;
-		output = null;
-	}
+        public void run()
+        {
+            switch (cmd[0])
+            {
+                case CMD_NOP:
+                case CMD_INVALID:
+                    break;
+                case CMD_ERROR:
+                    switch (cmd[1])
+                    {
+                        case ERR_GAME_FULL:
+                            login.handleErrorMessage("Game is Full");
+                            break;
+                        case ERR_NO_GAME:
+                            login.handleErrorMessage("No game by that name exists");
+                            break;
+                        case ERR_IN_GAME:
+                            break;
+                    }
+                    break;
+                case CMD_CHAT:
+                    break;
+                case CMD_PLAYER:
+                    switch (cmd[1])
+                    {
+                        case CMD_RENAME:
+                            handlePlayerUpdate(data, game);
+                            break;
+                    }
+                    break;
+                case CMD_GAME:
+                    switch (cmd[1])
+                    {
+                        case CMD_LIST_GAMES:
+                            handleListGames(data);
+                            break;
+                        case CMD_LIST_GAME_INSTANCES:
+                            handleListInstances(data);
+                            break;
+                        case CMD_CREATE_GAME:
+                        case CMD_JOIN_GAME:
+                            login.handleStartGame();
+                            sendCommand(CMD_GAME, CMD_LIST_PLAYERS, null);
+                            break;
+                        case CMD_LIST_PLAYERS:
+                            handleListPlayers(game, data);
+                            break;
+                        case CMD_QUIT_GAME:
+                            login.handleGameOver();
+                            break;
+                        case CMD_GAME_MESSAGE:
+                            game.handleGameData(data);
+                            break;
+                    }
+                    break;
+            }
+        }
+    }
 
-	/**
-	 * Does a blocking read on the socket and deals with the result. On error, it resets the connection
-	 *
-	 * @param game
-	 * @return false on IOException
-	 */
-	public boolean poll(Game game)
-	{
-		if (socket == null)
-		{
-			return false;
-		}
-		byte[] cmd = new byte[4];
-		byte[] data;
-		try
-		{
-			int read = input.read(cmd);
-			if (read == 0)
-			{
-				return true;
-			}
-			if (read == -1)
-			{
-				close();
-				return false;
-			}
-			data = getRemainingMessage(cmd);
-		}
-		catch (IOException e)
-		{
-			close();
-			return false;
-		}
-		SwingUtilities.invokeLater(new Handle(game, cmd, data));
-		return true;
-	}
+    private byte[] getRemainingMessage(byte[] cmd) throws IOException
+    {
+        int z = (((cmd[2] & 0xff) << 8) | (cmd[3] & 0xff));
+        byte[] info = new byte[z];
+        if (z == 0)
+        {
+            return info;
+        }
+        input.read(info);
+        return info;
+    }
 
-	class Handle implements Runnable
-	{
-		private final Game game;
-		private final byte[] cmd;
-		private final byte[] data;
+    /**
+     * This could use some better serialization
+     *
+     * @param cmd
+     */
+    private void handleListGames(byte[] info)
+    {
+        if (info != null)
+        {
+            String parse = new String(info);
+            String[] g = parse.trim().split("\n");
+            GameInstance[] games = new GameInstance[(int) (g.length)];
+            for (int i = 0; i < games.length; i++)
+            {
+                games[i] = new GameInstance(g[i]);
+            }
+            login.updateAvailableGames(games);
+        }
+    }
 
-		public Handle(Game game, byte[] cmd, byte[] data)
-		{
-			this.game = game;
-			this.cmd = cmd;
-			this.data = data;
-		}
+    private void handleListInstances(byte[] info)
+    {
+        if (info != null)
+        {
+            String parse = new String(info);
+            String[] instances = parse.trim().split(":");
+            login.updateGameInstances(instances);
+        }
+    }
 
-		public void run()
-		{
-			switch (cmd[0])
-			{
-				case CMD_NOP:
-				case CMD_INVALID:
-					break;
-				case CMD_ERROR:
-					switch (cmd[1])
-					{
-						case ERR_GAME_FULL:
-							login.handleErrorMessage("Game is Full");
-							break;
-						case ERR_NO_GAME:
-							login.handleErrorMessage("No game by that name exists");
-							break;
-						case ERR_IN_GAME:
-							break;
-					}
-					break;
-				case CMD_CHAT:
-					break;
-				case CMD_PLAYER:
-					switch (cmd[1])
-					{
-						case CMD_RENAME:
-							handlePlayerUpdate(data, game);
-							break;
-					}
-					break;
-				case CMD_GAME:
-					switch (cmd[1])
-					{
-						case CMD_LIST_GAMES:
-							handleListGames(data);
-							break;
-						case CMD_LIST_GAME_INSTANCES:
-							handleListInstances(data);
-							break;
-						case CMD_CREATE_GAME:
-						case CMD_JOIN_GAME:
-							login.handleStartGame();
-							sendCommand(CMD_GAME, CMD_LIST_PLAYERS, null);
-							break;
-						case CMD_LIST_PLAYERS:
-							handleListPlayers(game, data);
-							break;
-						case CMD_QUIT_GAME:
-							login.handleGameOver();
-							break;
-						case CMD_GAME_MESSAGE:
-							game.handleGameData(data);
-							break;
-					}
-					break;
-			}
-		}
-	}
+    private void handleListPlayers(Game game, byte[] msg)
+    {
+        Object playerArray = deserialize(msg);
+        if (playerArray instanceof Object[])
+        {
+            Object[] playerData = (Object[]) playerArray;
+            Player[] players = new Player[((Object[]) playerArray).length];
+            for (int i = 0; i < players.length; i++)
+            {
+                Object[] p = (Object[]) playerData[i];
+                players[i] = new Player(((Byte) p[0]) & 0xFF, (String) p[1], (String) p[2]);
+            }
+            game.updatePlayers(players);
+        }
+    }
 
-	private byte[] getRemainingMessage(byte[] cmd) throws IOException
-	{
-		int z = (((cmd[2] & 0xff) << 8) | (cmd[3] & 0xff));
-		byte[] info = new byte[z];
-		if (z == 0)
-		{
-			return info;
-		}
-		input.read(info);
-		return info;
-	}
+    private void handlePlayerUpdate(byte[] msg, Game game)
+    {
+        if (game == null)
+        {
+            return;
+        }
+        if (msg != null)
+        {
+            String[] instances = msg.toString().trim().split(":");
+            Player player = new Player(Integer.parseInt(instances[0]), instances[1], null);
+            game.renamePlayer(player);
+        }
+    }
 
-	/**
-	 * This could use some better serialization
-	 *
-	 * @param cmd
-	 */
-	private void handleListGames(byte[] info)
-	{
-		if (info != null)
-		{
-			String parse = new String(info);
-			String[] g = parse.trim().split("\n");
-			GameInstance[] games = new GameInstance[(int) (g.length)];
-			for (int i = 0; i < games.length; i++)
-			{
-				games[i] = new GameInstance(g[i]);
-			}
-			login.updateAvailableGames(games);
-		}
-	}
+    public static Object deserialize(byte[] data)
+    {
+        Result result = _deserialize(data, 0);
+        if (result.length != data.length)
+            throw new IllegalStateException("Unable to deserialize message:\n" + decode(data));
 
-	private void handleListInstances(byte[] info)
-	{
-		if (info != null)
-		{
-			String parse = new String(info);
-			String[] instances = parse.trim().split(":");
-			login.updateGameInstances(instances);
-		}
-	}
+        return result.obj;
+    }
 
+    public static String decode(byte[] bytes)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < bytes.length; i++)
+        {
+            switch (bytes[i])
+            {
+                case 0:
+                    sb.append(" null");
+                    break;
+                case 1:
+                    sb.append(" \"");
+                    sb.append(bytes[++i] + "");
+                    sb.append(" ");
+                    break;
+                case 2:
+                    sb.append(" #");
+                    sb.append(bytes[++i] + "");
+                    sb.append(" ");
+                    break;
+                case 3:
+                    sb.append(" [");
+                    sb.append(bytes[++i] + "");
+                    sb.append(" ");
+                    break;
+                default:
+                    sb.append((char)bytes[i]);
+            }
+        }
+        return sb.toString();
+    }
 
-	private void handleListPlayers(Game game, byte[] msg)
-	{
-		Object playerArray = deserialize(msg);
-		if (playerArray instanceof Object[])
-		{
-			Object[] playerData = (Object[]) playerArray;
-			Player[] players = new Player[((Object[]) playerArray).length];
-			for (int i = 0; i < players.length; i++)
-			{
-				Object[] p = (Object[]) playerData[i];
-				players[i] = new Player(((Byte) p[0]) & 0xFF, (String) p[1], (String) p[2]);
-			}
-			game.updatePlayers(players);
-		}
-	}
+    private static Result _deserialize(byte[] data, int ind)
+    {
+        if (ind < data.length)
+        {
+            int length;
+            switch (data[ind])
+            {
+                case 0: //null
+                    return new Result(null, 1);
+                case 1: //String
+                    length = data[ind + 1];
+                    return new Result(new String(data, ind + 2, length), length + 2);
+                case 2: //byte
+                    return new Result(data[ind + 1], 2);
+                case 3: //Array
+                    length = 2;
+                    Object[] elements = new Object[data[ind + 1]];
+                    for (int i = 0; i < elements.length; i++)
+                    {
+                        Result result = _deserialize(data, ind + length);
+                        elements[i] = result.obj;
+                        length += result.length;
+                    }
+                    return new Result(elements, length);
+                default:
+                    throw new IllegalArgumentException("Unknown type: " + data[ind]);
+            }
+        }
+        return null;
+    }
 
-	private void handlePlayerUpdate(byte[] msg, Game game)
-	{
-		if (game == null)
-		{
-			return;
-		}
-		if (msg != null)
-		{
-			String[] instances = msg.toString().trim().split(":");
-			Player player = new Player(Integer.parseInt(instances[0]), instances[1], null);
-			game.renamePlayer(player);
-		}
-	}
+    private static class Result
+    {
+        final Object obj;
+        final int length;
 
-	public static Object deserialize(byte[] data)
-	{
-		Result result = _deserialize(data, 0);
-		if (result.length != data.length)
-			throw new IllegalStateException("Unable to deserialize message");
-		return result.obj;
-	}
-
-	private static Result _deserialize(byte[] data, int ind)
-	{
-		if (ind < data.length)
-		{
-			int length;
-			switch (data[ind])
-			{
-				case 0: //null
-					return new Result(null, 1);
-				case 1: //String
-					length = data[ind + 1];
-					return new Result(new String(data, ind + 2, length), length + 2);
-				case 2: //byte
-					return new Result(data[ind + 1], 2);
-				case 3: //Array
-					length = 2;
-					Object[] elements = new Object[data[ind + 1]];
-					for (int i = 0; i < elements.length; i++)
-					{
-						Result result = _deserialize(data, ind + length);
-						elements[i] = result.obj;
-						length += result.length;
-					}
-					return new Result(elements, length);
-				default:
-					throw new IllegalArgumentException("Unknown type: " + data[ind]);
-			}
-		}
-		return null;
-	}
-
-	private static class Result
-	{
-		final Object obj;
-		final int length;
-
-		public Result(Object obj, int length)
-		{
-			this.obj = obj;
-			this.length = length;
-		}
-	}
+        public Result(Object obj, int length)
+        {
+            this.obj = obj;
+            this.length = length;
+        }
+    }
 }

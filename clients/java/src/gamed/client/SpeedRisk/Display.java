@@ -35,7 +35,8 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 		readyRadio.setOpaque(false);
 		notReadyRadio.setOpaque(false);
 		layout.putConstraint(SpringLayout.WEST, statusPanel, 10, SpringLayout.WEST, this);
-		layout.putConstraint(SpringLayout.SOUTH, statusPanel, 10, SpringLayout.SOUTH, this);
+		layout.putConstraint(SpringLayout.EAST, statusPanel, 160, SpringLayout.WEST, this);
+		layout.putConstraint(SpringLayout.SOUTH, statusPanel, -10, SpringLayout.SOUTH, this);
 		layout.putConstraint(SpringLayout.NORTH, progress, 20, SpringLayout.VERTICAL_CENTER, this);
 		layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, progress, 0, SpringLayout.HORIZONTAL_CENTER, this);
 		layout.putConstraint(SpringLayout.SOUTH, loadingText, -20, SpringLayout.VERTICAL_CENTER, this);

@@ -24,12 +24,11 @@ public class RiskPlayer extends PlayerPanel implements Comparable<RiskPlayer>, A
         playerDisplay.setRolloverEnabled(false);
         playerDisplay.addActionListener(this);
 		playerDisplay.setOpaque(false);
-		playerDisplay.setMaximumSize(new Dimension(150, 12));
-		setMaximumSize(new Dimension(150, 12));
+		playerDisplay.setPreferredSize(new Dimension(126, 16));
         setLayout(new BorderLayout());
         add(playerDisplay, BorderLayout.CENTER);
 		JLabel jLabel = new JLabel(icon);
-		jLabel.setMaximumSize(new Dimension(12, 12));
+        jLabel.setPreferredSize(new Dimension(24, 16));
 		add(jLabel, BorderLayout.EAST);
     }
 
