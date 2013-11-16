@@ -269,19 +269,7 @@ public class Login extends JApplet implements GameListing, Server, Runnable
     private void joinButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_joinButtonActionPerformed
         String gameName = ((String) availableGameList.getSelectedValue()).split("\\(")[0];
         String instance = gameInstanceList.getSelectedValue().toString();
-        game = gameName;
-        if (game.equals("SpeedRisk"))
-        {
-            currentGame = new gamed.client.SpeedRisk.Display((Server) this, new ClassicBoard());
-        }
-        else if (game.equals("UltimateRisk"))
-        {
-            currentGame = new gamed.client.SpeedRisk.Display((Server) this, new UltimateBoard());
-        }
-        else
-        {
-            currentGame = new gamed.client.HiLo.Plugin((Server) this);
-        }
+		setGame(gameName);
         client.joinGame(gameName, instance);//GEN-LAST:event_joinButtonActionPerformed
     }
 
@@ -294,7 +282,7 @@ public class Login extends JApplet implements GameListing, Server, Runnable
     private void createButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_createButtonActionPerformed
         String gameName = ((String) availableGameList.getSelectedValue()).split("\\(")[0];
         String name = userGame.getText();
-        game = gameName;
+        setGame(gameName);
         client.createGame(gameName, name);
     }//GEN-LAST:event_createButtonActionPerformed
 
@@ -440,4 +428,21 @@ public class Login extends JApplet implements GameListing, Server, Runnable
     {
         statusLabel.setText(error);
     }
+
+	void setGame(String gameName)
+	{
+		game = gameName;
+		if (game.equals("SpeedRisk"))
+		{
+			currentGame = new gamed.client.SpeedRisk.Display((Server) this, new ClassicBoard());
+		}
+		else if (game.equals("UltimateRisk"))
+		{
+			currentGame = new gamed.client.SpeedRisk.Display((Server) this, new UltimateBoard());
+		}
+		else
+		{
+			currentGame = new gamed.client.HiLo.Plugin((Server) this);
+		}
+	}
 }

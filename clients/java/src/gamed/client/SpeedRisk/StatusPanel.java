@@ -3,8 +3,6 @@ package gamed.client.SpeedRisk;
 import gamed.Player;
 import gamed.Server;
 import java.awt.BorderLayout;
-import java.awt.Dimension;
-import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.GridLayout;
 import java.awt.KeyEventDispatcher;
@@ -12,7 +10,6 @@ import java.awt.KeyboardFocusManager;
 import java.awt.event.KeyEvent;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
@@ -29,7 +26,7 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 	private ArmyGenerationTimer armyGenerationTimer;
 	private final JProgressBar armyGenerationProgress = new JProgressBar();
 	private final Map<Integer, RiskPlayer> players = new ConcurrentHashMap<Integer, RiskPlayer>();
-	private final RiskBoard board;
+	private final Set<Integer> displayedPlayers = new HashSet();
 	private final Server server;
 	private final Display display;
 	private final JButton quitButton = new JButton("Quit Game");
@@ -38,7 +35,7 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 		"Leave 1", "Leave 2", "Leave 3", "Leave 4", "Leave 5", "Leave 6", "Leave 7", "Leave 8", "Leave 9", "Leave 10"
 	});
 
-	public StatusPanel(RiskBoard board, final Server server, Display display)
+	public StatusPanel(final Server server, Display display)
 	{
 		quitButton.setDefaultCapable(false);
 		quitButton.setFocusable(false);
@@ -50,7 +47,6 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 				server.quitGame();
 			}
 		});
-		this.board = board;
 		this.server = server;
 		this.display = display;
 		GridLayout gridLayout = new GridLayout(4, 1);
@@ -63,32 +59,34 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 		add(reserveLabel);
 		add(quitButton);
 		KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(this);
-        adjustSize();
+//        adjustSize();
 	}
 
-	private void adjustSize()
-    {
-        FontMetrics fontMetrics = getFontMetrics(getFont());
-        int height = fontMetrics.getHeight();
-        int columns = ((GridLayout) getLayout()).getRows();
-        if (columns > 9)
-            columns = 9;
-        setBounds(10, board.height - height * columns - 10, 150, height * columns);
-    }
-
+//	private void adjustSize()
+//    {
+//        FontMetrics fontMetrics = getFontMetrics(getFont());
+//        int height = fontMetrics.getHeight();
+//        int columns = ((GridLayout) getLayout()).getRows();
+//        if (columns > 9)
+//            columns = 9;
+//        setBounds(10, board.height - height * columns - 10, 150, height * columns);
+//    }
 	void setPhase(Phase phase)
 	{
 		this.phase = phase;
 		phaseLabel.setText(phase.label);
+		GridLayout layout = (GridLayout) getLayout();
 		switch (phase)
 		{
 			case AT_WAR:
 				armyGenerationTimer = new ArmyGenerationTimer(armyGenerationProgress);
-				reAddPlayers();
+				layout.setRows(layout.getRows() + 1);
+				add(armyGenerationProgress, 0);
 				break;
 			case GAME_OVER:
 				armyGenerationTimer.stop();
-				reAddPlayers();
+				remove(armyGenerationProgress);
+				layout.setRows(layout.getRows() - 1);
 				break;
 		}
 	}
@@ -111,7 +109,6 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 		{
 			riskPlayer = new RiskPlayer(playerId, new PlayerRenderer());
 			players.put(playerId, riskPlayer);
-			reAddPlayers();
 		}
 		return riskPlayer;
 	}
@@ -126,56 +123,31 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 
 	void updatePlayers(Player[] players)
 	{
-		Set<Integer> seen = new HashSet();
+		Set<Integer> active = new HashSet();
+		GridLayout layout = (GridLayout) getLayout();
+		int ind = phase == Phase.AT_WAR ? 2 : 1;
 		for (Player p : players)
 		{
-			seen.add(p.id);
+			active.add(p.id);
 			RiskPlayer riskPlayer = get(p.id);
 			riskPlayer.setPlayerName(p.name);
 			riskPlayer.renderer.setTheme(server, p.theme, display);
+			if (!displayedPlayers.contains(p.id))
+			{
+				displayedPlayers.add(p.id);
+				layout.setRows(layout.getRows() + 1);
+				add(riskPlayer, ind);
+			}
 		}
-		for (Integer id : this.players.keySet())
+		for (Integer pid : displayedPlayers)
 		{
-			if (!seen.contains(id))
-				this.players.remove(id);
+			if (!active.contains(pid))
+			{
+				displayedPlayers.remove(pid);
+				remove(this.players.get(pid));
+				layout.setRows(layout.getRows() - 1);
+			}
 		}
-		reAddPlayers();
-	}
-
-	private void reAddPlayers()
-	{
-		List<RiskPlayer> list = new ArrayList(players.size());
-		for (RiskPlayer riskPlayer : players.values())
-		{
-			if (riskPlayer.playing)
-				list.add(riskPlayer);
-		}
-		Collections.sort(list);
-		int items = 4 + list.size();
-		if (phase == Phase.AT_WAR)
-			items++;
-		removeAll();
-		((GridLayout) getLayout()).setRows(items);
-		if (phase == Phase.AT_WAR)
-			add(armyGenerationProgress);
-		add(defenderPreference);
-		for (RiskPlayer p : list)
-		{
-			add(p);
-		}
-		phaseBG.removeAll();
-		phaseBG.add(phaseLabel, BorderLayout.CENTER);
-		if (player != null)
-		{
-			phaseLabel.setForeground(player.renderer.theme.textColor);
-			reserveLabel.setForeground(player.renderer.theme.textColor);
-			if (player.renderer.theme.icon != null)
-				phaseBG.add(new JLabel(new ImageIcon(player.renderer.theme.icon)), BorderLayout.EAST);
-		}
-		add(phaseBG);
-		add(reserveLabel);
-		add(quitButton);
-        adjustSize();
 	}
 
 	@Override
@@ -192,7 +164,6 @@ public class StatusPanel extends JPanel implements KeyEventDispatcher
 		{
 			riskPlayer.mediaReady();
 		}
-		reAddPlayers();
 	}
 
 	int getDefenders()

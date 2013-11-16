@@ -9,6 +9,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import javax.swing.JPopupMenu;
 import javax.swing.JMenuItem;
+import javax.swing.SpringLayout;
 import javax.swing.SwingUtilities;
 import javax.swing.SwingWorker;
 
@@ -27,10 +28,23 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 	{
 		this.server = server;
 		this.board = board;
-		this.statusPanel = new StatusPanel(board, server, this);
+		this.statusPanel = new StatusPanel(server, this);
 		initComponents();
+		SpringLayout layout = new SpringLayout();
+		this.setLayout(layout);
 		readyRadio.setOpaque(false);
 		notReadyRadio.setOpaque(false);
+		layout.putConstraint(SpringLayout.WEST, statusPanel, 10, SpringLayout.WEST, this);
+		layout.putConstraint(SpringLayout.SOUTH, statusPanel, 10, SpringLayout.SOUTH, this);
+		layout.putConstraint(SpringLayout.NORTH, progress, 20, SpringLayout.VERTICAL_CENTER, this);
+		layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, progress, 0, SpringLayout.HORIZONTAL_CENTER, this);
+		layout.putConstraint(SpringLayout.SOUTH, loadingText, -20, SpringLayout.VERTICAL_CENTER, this);
+		layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, loadingText, 0, SpringLayout.HORIZONTAL_CENTER, this);
+		layout.putConstraint(SpringLayout.WEST, readyRadio, 50, SpringLayout.WEST, this);
+		layout.putConstraint(SpringLayout.VERTICAL_CENTER, readyRadio, -10, SpringLayout.VERTICAL_CENTER, this);
+		layout.putConstraint(SpringLayout.WEST, notReadyRadio, 50, SpringLayout.WEST, this);
+		layout.putConstraint(SpringLayout.VERTICAL_CENTER, notReadyRadio, 10, SpringLayout.VERTICAL_CENTER, this);
+		layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, loadingText, 0, SpringLayout.HORIZONTAL_CENTER, this);
 		add(statusPanel);
 		statusPanel.setVisible(false);
 		atWar = false;
@@ -108,7 +122,6 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
     {
 
         buttonGroup1 = new javax.swing.ButtonGroup();
-        jProgressBar1 = new javax.swing.JProgressBar();
         progress = new javax.swing.JProgressBar();
         loadingText = new javax.swing.JLabel();
         readyRadio = new javax.swing.JRadioButton();
@@ -468,7 +481,6 @@ public class Display extends gamed.Game implements PropertyChangeListener, Actio
 	}
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.ButtonGroup buttonGroup1;
-    private javax.swing.JProgressBar jProgressBar1;
     private javax.swing.JLabel loadingText;
     private javax.swing.JRadioButton notReadyRadio;
     private javax.swing.JProgressBar progress;

@@ -343,7 +343,6 @@ public class Client
 			Player[] players = new Player[((Object[]) playerArray).length];
 			for (int i = 0; i < players.length; i++)
 			{
-				System.out.println(playerData[i].getClass().getName());
 				Object[] p = (Object[]) playerData[i];
 				players[i] = new Player(((Byte) p[0]) & 0xFF, (String) p[1], (String) p[2]);
 			}

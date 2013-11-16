@@ -43,7 +43,7 @@ public class PlayerRenderer
 
 		long pre = 0;
 		long post = 0;
-		long a = theme.background.getRGB(0,0) & 0xFFFFFFFFL;
+		long a = theme.background.getRGB(0, 0) & 0xFFFFFFFFL;
 		if (selected)
 		{
 			pre = 0x80000000L;
@@ -76,7 +76,7 @@ public class PlayerRenderer
 
 	public void renderBackground(Graphics g, int x, int y, int w, int h)
 	{
-		if (theme.opaqueBackground == null)
+		if (theme == null || theme.opaqueBackground == null)
 			return;
 
 		int dstX = 0;
@@ -88,7 +88,7 @@ public class PlayerRenderer
 			while (dstY < h)
 			{
 				int srcY = (dstY + y) % theme.opaqueBackground.getHeight();
-				int height = Math.min(theme.opaqueBackground.getHeight() - srcY, w - dstY);
+				int height = Math.min(theme.opaqueBackground.getHeight() - srcY, h - dstY);
 				g.drawImage(theme.opaqueBackground, dstX, dstY, dstX + width, dstY + height, srcX, srcY, width, height, null);
 				dstY += height;
 			}
@@ -150,7 +150,7 @@ public class PlayerRenderer
 				textColor = new Color(parseColor(properties.getProperty("text-color", "000")));
 				x_offset = intProperty("text-x", 0);
 				y_offset = intProperty("text-y", 0);
-                display.mediaDownloader.addMediaRequestor(this);
+				display.mediaDownloader.addMediaRequestor(this);
 			}
 			catch (MalformedURLException ex)
 			{
@@ -196,9 +196,9 @@ public class PlayerRenderer
 		private BufferedImage opaque(BufferedImage image)
 		{
 			BufferedImage copy = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_4BYTE_ABGR);
-			for (int i=0; i<image.getWidth(); i++)
+			for (int i = 0; i < image.getWidth(); i++)
 			{
-				for (int j=0; j<image.getHeight(); j++)
+				for (int j = 0; j < image.getHeight(); j++)
 				{
 					copy.setRGB(i, j, image.getRGB(i, j) | 0xFF000000);
 				}

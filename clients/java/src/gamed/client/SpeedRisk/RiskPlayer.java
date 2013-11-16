@@ -1,6 +1,7 @@
 package gamed.client.SpeedRisk;
 
 import java.awt.BorderLayout;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import javax.swing.ImageIcon;
@@ -12,6 +13,7 @@ public class RiskPlayer extends PlayerPanel implements Comparable<RiskPlayer>, A
     public final int id;
     public JCheckBox playerDisplay = new JCheckBox();
 	public boolean playing = false;
+	private final ImageIcon icon = new ImageIcon();
 
     public RiskPlayer(int id, PlayerRenderer renderer)
     {
@@ -22,8 +24,13 @@ public class RiskPlayer extends PlayerPanel implements Comparable<RiskPlayer>, A
         playerDisplay.setRolloverEnabled(false);
         playerDisplay.addActionListener(this);
 		playerDisplay.setOpaque(false);
+		playerDisplay.setMaximumSize(new Dimension(150, 12));
+		setMaximumSize(new Dimension(150, 12));
         setLayout(new BorderLayout());
         add(playerDisplay, BorderLayout.CENTER);
+		JLabel jLabel = new JLabel(icon);
+		jLabel.setMaximumSize(new Dimension(12, 12));
+		add(jLabel, BorderLayout.EAST);
     }
 
     void setReady(boolean b)
@@ -73,10 +80,10 @@ public class RiskPlayer extends PlayerPanel implements Comparable<RiskPlayer>, A
 
 	void mediaReady()
 	{
-		removeAll();
 		playerDisplay.setForeground(renderer.theme.textColor);
-		add(playerDisplay, BorderLayout.CENTER);
 		if (renderer.theme.icon != null)
-			add(new JLabel(new ImageIcon(renderer.theme.icon)), BorderLayout.EAST);
+		{
+			icon.setImage(renderer.theme.icon);
+		}
 	}
 }
