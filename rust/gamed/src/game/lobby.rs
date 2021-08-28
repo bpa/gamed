@@ -8,7 +8,7 @@ impl crate::game::Game for Lobby {}
 impl Lobby {
     #[message]
     pub async fn games(&self, client: Client, games: &GameInstances) {
-        client.send(games).await
+        client.send(games);
     }
 
     #[message]
