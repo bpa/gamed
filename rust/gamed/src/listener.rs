@@ -1,5 +1,3 @@
-mod game;
-
 use std::{error::Error, io::Error as IoError, net::SocketAddr, sync::Arc};
 
 use futures_util::{SinkExt, StreamExt};
@@ -10,38 +8,26 @@ use tokio::{
 use tokio_util::codec::{Framed, LinesCodec};
 use tungstenite::protocol::Message;
 
-use crate::game::Game;
+use crate::gamed::Gamed;
 
-#[tokio::main]
-async fn main() -> Result<(), IoError> {
-    let game = Arc::new(Game::new());
-
-    let _res = tokio::join!(
-        websocket_listener(game.clone(), "127.0.0.1:3000"),
-        tcp_client_listener(game.clone(), "127.0.0.1:3001"),
-        // tcp_admin_listener(game.clone(), "127.0.0.1:3002"),
-    );
-    Ok(())
-}
-
-async fn websocket_listener(state: Arc<Game>, addr: &str) -> Result<(), IoError> {
+pub async fn websocket(gamed: Arc<Gamed>, addr: &str) -> Result<(), IoError> {
     let try_socket = TcpListener::bind(&addr).await;
     let listener = try_socket.expect("Failed to bind");
 
     while let Ok((stream, addr)) = listener.accept().await {
-        tokio::spawn(handle_websocket(state.clone(), stream, addr));
+        tokio::spawn(handle_websocket(gamed.clone(), stream, addr));
     }
 
     Ok(())
 }
 
-async fn handle_websocket(state: Arc<Game>, stream: TcpStream, addr: SocketAddr) {
+pub async fn handle_websocket(gamed: Arc<Gamed>, stream: TcpStream, addr: SocketAddr) {
     let mut ws_stream = tokio_tungstenite::accept_async(stream)
         .await
         .expect("Error during the websocket handshake occurred");
 
     let (tx, mut rx) = mpsc::unbounded_channel::<String>();
-    state.insert(addr, tx);
+    let client_id = gamed.on_connect(addr, tx).await;
 
     loop {
         tokio::select! {
@@ -53,7 +39,7 @@ async fn handle_websocket(state: Arc<Game>, stream: TcpStream, addr: SocketAddr)
             result = ws_stream.next() => match result {
                 Some(Ok(msg)) => {
                     if let Message::Text(txt) = msg {
-                        state.broadcast(addr, &txt).await;
+                        gamed.on_message(client_id, &txt).await;
                     }
                 }
                 Some(Err(_)) => {
@@ -63,17 +49,17 @@ async fn handle_websocket(state: Arc<Game>, stream: TcpStream, addr: SocketAddr)
         }
     }
 
-    state.remove(&addr);
+    gamed.on_disconnect(client_id).await;
 }
 
-async fn tcp_client_listener(state: Arc<Game>, addr: &str) -> Result<(), IoError> {
+pub async fn tcp_client(gamed: Arc<Gamed>, addr: &str) -> Result<(), IoError> {
     let try_socket = TcpListener::bind(&addr).await;
     let listener = try_socket.expect("Failed to bind");
 
     while let Ok((stream, addr)) = listener.accept().await {
-        let state = state.clone();
+        let gamed = gamed.clone();
         tokio::spawn(async move {
-            if let Err(e) = handle_tcp_client(state, stream, addr).await {
+            if let Err(e) = handle_tcp_client(gamed, stream, addr).await {
                 println!("{}", e);
             }
         });
@@ -82,15 +68,15 @@ async fn tcp_client_listener(state: Arc<Game>, addr: &str) -> Result<(), IoError
     Ok(())
 }
 
-async fn handle_tcp_client(
-    state: Arc<Game>,
+pub async fn handle_tcp_client(
+    gamed: Arc<Gamed>,
     stream: TcpStream,
     addr: SocketAddr,
 ) -> Result<(), Box<dyn Error>> {
     let mut lines = Framed::new(stream, LinesCodec::new());
 
     let (tx, mut rx) = mpsc::unbounded_channel();
-    state.insert(addr, tx);
+    let client_id = gamed.on_connect(addr, tx).await;
 
     loop {
         tokio::select! {
@@ -99,7 +85,7 @@ async fn handle_tcp_client(
             }
             result = lines.next() => match result {
                 Some(Ok(msg)) => {
-                    state.broadcast(addr, &msg).await;
+                    gamed.on_message(client_id, &msg).await;
                 }
                 Some(Err(e)) => {
                     println!("{}", e);
@@ -109,6 +95,6 @@ async fn handle_tcp_client(
         }
     }
 
-    state.remove(&addr);
+    gamed.on_disconnect(client_id).await;
     Ok(())
 }

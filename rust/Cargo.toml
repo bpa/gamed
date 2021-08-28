@@ -1,13 +1,7 @@
-[package]
-name = "gamed"
-version = "0.1.0"
-edition = "2018"
+[workspace]
 
-[dependencies]
-tokio-tungstenite = "0.15.0"
-futures-channel = "*"
-futures-util = "*"
-tokio = { version = "1.8.1", features = ["full"] }
-tokio-util = { version = "0.6.7", features = ["full"] }
-tokio-stream = "*"
-tungstenite = "*"
+members = [
+    "gamed",
+    "gamed-macros",
+    "gamed-core"
+]

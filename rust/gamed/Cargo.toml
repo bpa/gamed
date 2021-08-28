@@ -1,0 +1,20 @@
+[package]
+name = "gamed"
+version = "0.1.0"
+edition = "2018"
+
+[dependencies]
+async-trait = "0.1.51"
+gamed-macros = { path = "../gamed-macros" }
+tokio-tungstenite = "0.15.0"
+futures-channel = "*"
+futures-util = "*"
+serde = { version =  "1.0.126", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.8.1", features = ["full"] }
+tokio-util = { version = "0.6.7", features = ["full"] }
+tokio-stream = "*"
+tungstenite = "*"   
+
+[dev-dependencies]
+rand = "0.8.4"

@@ -1,13 +1,19 @@
+pub mod lobby;
 use std::{collections::HashMap, net::SocketAddr, sync::Mutex};
 use tokio::sync::mpsc;
 
 type Tx = mpsc::UnboundedSender<String>;
 
-pub struct Game {
+pub trait Game: Send {
+    // fn new(players: Players, config: Map<String, Value>) -> Self;
+}
+
+pub struct Players {
     state: Mutex<HashMap<SocketAddr, Tx>>,
 }
 
-impl Game {
+impl Players {
+    #[gamed_macros::message]
     pub fn new() -> Self {
         Self {
             state: Mutex::new(HashMap::<SocketAddr, Tx>::new()),

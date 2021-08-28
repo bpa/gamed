@@ -1,0 +1,12 @@
+[package]
+name = "gamed-macros"
+version = "0.1.0"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+lazy_static = "1.4.0"
+syn = {version="1.0.57",features=["full","fold"]}
+quote = "1.0"
