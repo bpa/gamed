@@ -1,10 +1,9 @@
-use serde::Serialize;
-use serde_json::Value;
-use std::cmp::Ordering;
-
 use async_trait::async_trait;
 use gamed::{create, message, state, Client, Game};
 use rand::Rng;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::cmp::Ordering;
 use tokio::sync::Mutex;
 
 #[derive(Game)]
@@ -47,7 +46,18 @@ impl HiLo {
         }
     }
 }
-
+#[derive(Deserialize)]
+#[serde(tag = "cmd")]
+struct HiLoGuess {
+    number: usize,
+    test: Option<String>,
+}
+#[derive(Deserialize)]
+#[serde(tag = "cmd", rename_all = "snake_case")]
+enum HiLoMessage {
+    Guess(HiLoGuess),
+    Quit,
+}
 struct GameImpl {
     game: Mutex<HiLo>,
 }
@@ -58,28 +68,19 @@ impl gamed::Games for GameImpl {
         println!("Client joined!");
     }
 
-    async fn on_message(
-        &self,
-        client: &mut gamed::Client,
-        msg: serde_json::Map<String, serde_json::Value>,
-    ) {
-        let cmd = msg.get("cmd").unwrap();
-        if let Value::String(cmd) = cmd {
-            println!("Client sent {}", cmd);
-            match cmd.as_str() {
-                "guess" => {
-                    if let Some(number) = msg.get("number") {
-                        if let Value::Number(number) = number {
-                            if let Some(number) = number.as_u64() {
-                                let mut game = self.game.lock().await;
-                                game.guess(number as usize, client);
-                            }
-                        }
+    async fn on_message(&self, client: &mut gamed::Client, msg: &str) {
+        let message: serde_json::Result<HiLoMessage> = serde_json::from_str(msg);
+        match message {
+            Ok(message) => match message {
+                HiLoMessage::Guess(message) => {
+                    if let Some(test) = message.test {
+                        client.error(&test);
                     }
+                    self.game.lock().await.guess(message.number, client);
                 }
-                "quit" => client.error("Quit not implemented"),
-                _ => client.error(&format!("Unknown cmd `{}`", cmd)),
-            }
+                HiLoMessage::Quit => client.error("Quit not implemented"),
+            },
+            Err(e) => client.error(&format!("Bad message: {}", e)),
         }
     }
 

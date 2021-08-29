@@ -12,7 +12,7 @@ type Tx = mpsc::UnboundedSender<String>;
 #[async_trait]
 pub trait Games: Sync + Send {
     async fn on_connect(&self, client: &mut Client);
-    async fn on_message(&self, client: &mut Client, msg: serde_json::Map<String, Value>);
+    async fn on_message(&self, client: &mut Client, msg: &str);
     async fn on_disconnect(&self, client: &mut Client);
 }
 
@@ -60,26 +60,7 @@ impl Gamed {
         let mut client = client.lock().await;
 
         println!("Message from client: {}", msg);
-        let value: serde_json::Result<Value> = serde_json::from_str(msg);
-        match value {
-            Ok(message) => {
-                if let Value::Object(obj) = message {
-                    match obj.get("cmd") {
-                        None => client.error("Missing `cmd`"),
-                        Some(cmd) => {
-                            if let Value::String(_) = cmd {
-                                self.handler.on_message(&mut client, obj).await;
-                            } else {
-                                client.error("cmd must be a string");
-                            }
-                        }
-                    }
-                } else {
-                    client.error("Not a JSON object");
-                }
-            }
-            Err(e) => client.error(&format!("Unparseable JSON: {}", e)),
-        }
+        self.handler.on_message(&mut client, msg).await;
     }
 
     pub async fn on_disconnect(&self, client_id: usize) {

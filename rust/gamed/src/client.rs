@@ -12,6 +12,7 @@ pub struct Client {
 }
 
 #[derive(Serialize)]
+#[serde(tag = "cmd", rename = "error")]
 struct Error<'a> {
     reason: &'a str,
 }
@@ -33,13 +34,16 @@ impl Client {
         T: ?Sized + Serialize,
     {
         match serde_json::to_string(message) {
-            Ok(s) => self.tx.send(s),
-            Err(e) => self.tx.send(
-                serde_json::to_string(&Error {
-                    reason: &e.to_string(),
-                })
+            Ok(s) => self.tx.send(s).unwrap(),
+            Err(e) => self
+                .tx
+                .send(
+                    serde_json::to_string(&Error {
+                        reason: &e.to_string(),
+                    })
+                    .unwrap(),
+                )
                 .unwrap(),
-            ),
         };
     }
 }
