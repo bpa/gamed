@@ -1,13 +1,10 @@
 use serde::Serialize;
-use std::sync::Arc;
-
-use tokio::sync::{mpsc, Mutex};
-
-use crate::{game::Game, player::Player};
+use tokio::sync::mpsc;
 
 pub struct Client {
-    pub(crate) _game: Arc<Mutex<dyn Game>>,
-    _player: Arc<Mutex<Player>>,
+    pub game: usize,
+    pub instance: usize,
+    pub player: usize,
     pub(crate) tx: mpsc::UnboundedSender<String>,
 }
 
@@ -17,11 +14,17 @@ struct Error<'a> {
     reason: &'a str,
 }
 impl Client {
-    pub fn new(game: Arc<Mutex<dyn Game>>, tx: mpsc::UnboundedSender<String>) -> Self {
+    pub fn new(
+        game: usize,
+        instance: usize,
+        player: usize,
+        tx: mpsc::UnboundedSender<String>,
+    ) -> Self {
         Self {
-            _game: game,
+            game,
+            instance,
+            player,
             tx,
-            _player: Arc::new(Mutex::new(Player {})),
         }
     }
 

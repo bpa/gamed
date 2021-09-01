@@ -1,10 +1,12 @@
 use async_trait::async_trait;
-use gamed::{create, message, state, Client, Game};
+use gamed::{
+    create,
+    game::lobby::{LobbycreateMessage, LobbyjoinMessage},
+    message, state, Client, Game,
+};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
-use std::cmp::Ordering;
-use tokio::sync::Mutex;
+use std::{cmp::Ordering, sync::Arc};
 
 #[derive(Game)]
 struct HiLo {
@@ -29,7 +31,7 @@ impl HiLo {
     }
 
     #[message]
-    pub fn guess(&mut self, number: usize, client: &Client) {
+    pub fn guess(&mut self, number: usize, client: Arc<Client>) {
         self.guesses += 1;
         let answer = match number.cmp(&(self.answer as usize)) {
             Ordering::Less => "Too low",
@@ -47,11 +49,20 @@ impl HiLo {
     }
 }
 #[derive(Deserialize)]
-#[serde(tag = "cmd")]
 struct HiLoGuess {
     number: usize,
     test: Option<String>,
 }
+
+#[derive(Deserialize)]
+#[serde(tag = "cmd", rename_all = "snake_case")]
+enum LobbyMessage {
+    Games,
+    Create(LobbycreateMessage),
+    Join(LobbyjoinMessage),
+    Quit,
+}
+
 #[derive(Deserialize)]
 #[serde(tag = "cmd", rename_all = "snake_case")]
 enum HiLoMessage {
@@ -59,39 +70,67 @@ enum HiLoMessage {
     Quit,
 }
 struct GameImpl {
-    game: Mutex<HiLo>,
+    lobby_instances: gamed::LockList<gamed::Lobby>,
+    hilo_instances: gamed::LockList<HiLo>,
+    names: Vec<String>,
 }
 
 #[async_trait]
 impl gamed::Games for GameImpl {
-    async fn on_connect(&self, _client: &mut gamed::Client) {
+    fn names(&self) -> &Vec<String> {
+        &self.names
+    }
+    async fn on_connect(&self, _client: std::sync::Arc<gamed::Client>) {
         println!("Client joined!");
     }
 
-    async fn on_message(&self, client: &mut gamed::Client, msg: &str) {
-        let message: serde_json::Result<HiLoMessage> = serde_json::from_str(msg);
-        match message {
-            Ok(message) => match message {
-                HiLoMessage::Guess(message) => {
-                    if let Some(test) = message.test {
-                        client.error(&test);
+    async fn on_message(&self, client: std::sync::Arc<gamed::Client>, msg: &str) {
+        match client.game {
+            0 => {
+                if let Some(game) = self.lobby_instances.get(client.instance).await {
+                    let game = game.lock().await;
+                    let message: serde_json::Result<LobbyMessage> = serde_json::from_str(msg);
+                    match message {
+                        Ok(message) => match message {
+                            LobbyMessage::Games => game.games(client, self),
+                            LobbyMessage::Create(a) => {
+                                game.create(client, a.game, a.name, self).await
+                            }
+                            LobbyMessage::Join(a) => game.join(client, a.name, self),
+                            LobbyMessage::Quit => todo!(),
+                        },
+                        Err(e) => client.error(&format!("Bad message: {}", e)),
                     }
-                    self.game.lock().await.guess(message.number, client);
                 }
-                HiLoMessage::Quit => client.error("Quit not implemented"),
-            },
-            Err(e) => client.error(&format!("Bad message: {}", e)),
+            }
+            1 => {
+                if let Some(game) = self.hilo_instances.get(client.instance).await {
+                    let message: serde_json::Result<HiLoMessage> = serde_json::from_str(msg);
+                    match message {
+                        Ok(message) => match message {
+                            HiLoMessage::Guess(message) => {
+                                game.lock().await.guess(message.number, client);
+                            }
+                            HiLoMessage::Quit => client.error("Quit not implemented"),
+                        },
+                        Err(e) => client.error(&format!("Bad message: {}", e)),
+                    }
+                }
+            }
+            _ => {}
         }
     }
 
-    async fn on_disconnect(&self, _client: &mut gamed::Client) {
+    async fn on_disconnect(&self, _client: std::sync::Arc<gamed::Client>) {
         println!("Client quit!");
     }
 }
 #[tokio::main]
 async fn main() -> Result<(), std::io::Error> {
     let gamed = std::sync::Arc::new(gamed::Gamed::new(Box::new(GameImpl {
-        game: Mutex::new(HiLo::init()),
+        lobby_instances: gamed::LockList::new(),
+        hilo_instances: gamed::LockList::new(),
+        names: vec!["HiLo"],
     })));
 
     let _res = tokio::join!(
